@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoEnv: Automated Environments for Measuring Cross-Environment Agent Learning - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AutoEnv: Automated Environments for Measuring Cross-Environment Agent Learning</h1>
+  <div class="meta">
+    <span>Jiayi Zhang, Yiran Peng, Fanqi Kong, Cheng Yang 等</span>
+    <span>2025-12-03</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2511.19304" target="_blank">arXiv:2511.19304</a>
+  </div>
+  <div class="tags">
+    <span class="tag">智能体学习</span>
+    <span class="tag">跨环境泛化</span>
+    <span class="tag">环境自动生成</span>
+    <span class="tag">强化学习</span>
+    <span class="tag">LLM Agent</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>AutoEnv 提出了一个自动生成异构环境的框架，并构建了 36 个多样化环境的基准数据集 AutoEnv-36，系统性地揭示了固定学习方法无法在异构环境中有效泛化的现象，指出跨环境智能体学习需要环境自适应的策略选择。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>理解本论文需要以下基础概念：</p>
+        <ul>
+          <li><strong>智能体（Agent）</strong>：能够感知环境、做出决策并执行动作的程序。大语言模型（LLM）可以作为智能体的"大脑"，通过自然语言与环境交互。</li>
+          <li><strong>环境（Environment）</strong>：在强化学习框架中，环境定义了状态空间、动作空间、转移函数、奖励函数和观测函数。智能体通过与环境交互来学习和改进。</li>
+          <li><strong>跨环境学习（Cross-Environment Learning）</strong>：与在单一环境中反复训练不同，跨环境学习要求智能体从多个规则不同的环境中提取通用的学习策略。就像人类既会下棋、又会打游戏，还能在不同游戏之间迁移经验。</li>
+          <li><strong>MDP/POMDP</strong>：马尔可夫决策过程（MDP）和部分可观测 MDP 是强化学习的理论基础，定义了状态 S、动作 A、转移 T、奖励 R、观测 Ω 等核心要素。</li>
+          <li><strong>自进化/Agentic Learning</strong>：智能体通过自身与环境交互的经验来改进内部组件（提示词、代码、模型等），而非仅依赖人工设计。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>本论文的核心动机可以用一个类比来理解：<strong>在学校里，一个学生如果只做数学题，可能考试成绩很好，但换到物理考试就不行了。真正的学习能力应该体现在：不管面对什么新科目，都能快速适应并进步。</strong></p>
+        <p>目前智能体学习面临两个关键缺失：</p>
+        <p><strong>缺少多样化的环境集合</strong>：现有研究大多在单一类型环境（如编程、搜索、游戏）中测试智能体，缺乏一个涵盖不同奖励机制、观测条件和语义规则的标准环境集合。</p>
+        <p><strong>缺少统一的学习表示方法</strong>：不同工作修改提示词、代码或工作流来让智能体"学习"，但各自为政，无法跨环境比较和复用。</p>
+        <p>AutoEnv 的解决方案是：(1) 用代码自动生成环境——给定一个环境主题，框架自动生成完整的可执行环境代码，并通过三阶段验证确保质量；(2) 用统一的框架表示学习——将智能体学习形式化为"选择→优化→评估"三阶段流程，学习方法的差异仅在于选择策略、优化信号和目标组件的组合不同。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一部分：环境自动生成（AutoEnv）</h4>
+        <p><strong>步骤 1：环境形式化定义</strong>：将环境定义为元组 E = (S, A, T, R, Ω, τ)，包括状态空间、动作空间、转移函数、奖励函数、观测函数和终止条件。</p>
+        <p><strong>步骤 2：三层抽象架构</strong>：BaseEnv 实现核心动力学 (S, A, T, R)；ObsEnv 特化观测函数 Ω，控制信息暴露程度；SkinEnv 添加渲染，将观测转换为智能体可感知的形式（文本或图像）。</p>
+        <p><strong>步骤 3：环境生成管线</strong>：主题 → 详细语言描述 → YAML DSL → 编码智能体实现代码 → 自修复循环（运行测试、收集错误、迭代修复）。</p>
+        <p><strong>步骤 4：三阶段验证</strong>：执行验证（检测编译和运行时错误）→ 关卡生成验证（检查目标可达性）→ 可靠性验证（差异化模型测试，过滤奖励不可靠的环境）。</p>
+        <p><strong>步骤 5：AutoEnv-36 构建</strong>：从 100 个主题生成，通过验证后保留 65 个，最终筛选出 36 个，包含 358 个验证关卡，覆盖导航、操控、模式推理和模拟四大类。</p>
+        <h4>第二部分：学习形式化框架</h4>
+        <p><strong>步骤 6：基本对象</strong>：候选（智能体的一个版本）、组件（可修改的部分）、轨迹（交互记录）、指标（评估值）。</p>
+        <p><strong>步骤 7：三阶段学习流程</strong>：选择（Best/Pareto）→ 优化（动力学/指令方案）→ 评估（归一化奖励）。</p>
+        <p><strong>步骤 8：八种方法实例化</strong>：2 种选择 × 2 种优化信号 × 2 种目标组件 = 8 种组合。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>环境定义</strong>：E = (S, A, T, R, Ω, τ)</p>
+        <ul>
+          <li>S：状态空间，环境所有可能的状态集合</li>
+          <li>A：动作空间，智能体可以执行的所有动作</li>
+          <li>T：转移函数 T(s, a) → s'，给定当前状态和动作返回下一状态</li>
+          <li>R：奖励函数 R(s, a, s')，给定状态转移返回奖励值</li>
+          <li>Ω：观测函数 Ω(s)，给定真实状态返回智能体实际能观测到的信息</li>
+          <li>τ：终止条件，判断一个回合是否结束</li>
+        </ul>
+        <p><strong>归一化奖励</strong>：将智能体实际奖励与验证器提供的最大奖励进行归一化，使不同环境的分数可在 0-100% 范围内比较。</p>
+        <p><strong>学习方法搜索空间</strong>：Learning Method = (F_s, F_o, Component)，其中 F_s ∈ {Best, Pareto}、F_o ∈ {Dynamics-based, Instruction-based}、Component ∈ {Prompt, Agent Code}，共 2×2×2 = 8 种组合。</p>
+        <p><strong>学习上界（Upper Bound）</strong>：对每个环境选择表现最好的学习方法，代表在该方法空间中可达到的最佳跨环境学习性能。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>模型选择</strong>：选择了 7 个不同能力和规模的 LLM（GPT-4o-mini、GPT-5、o3、Claude-4-Sonnet、DeepSeek-V3.1、Gemini-2.5-Flash、Kimi-K2），覆盖当前主流商用和开源模型。</p>
+        <p><strong>环境维度设计</strong>：奖励类型（二值/累积）、观测条件（完全/部分）、语义表示（正常/反转）三个正交维度，系统地测试不同规则分布。反转语义环境特别设计来测试智能体是否真正理解规则。</p>
+        <p><strong>关键发现</strong>：</p>
+        <ul>
+          <li>AutoEnv-36 足够有挑战性：最强模型 o3 仅达 48.73%</li>
+          <li>固定学习方法不可扩展：6 环境增益约 8%，36 环境仅约 3%</li>
+          <li>环境-方法存在强交互：同一方法在不同环境上效果差异巨大（52%-88%）</li>
+          <li>自适应选择有效但有极限：边际收益递减</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>Figure 1</strong>：对比了单一环境学习 vs. 跨环境学习的概念差异。单一环境中轨迹仅更新智能体内部组件；跨环境中来自多个环境的轨迹同时更新智能体组件和共享学习策略。</p>
+        <p><strong>Figure 2</strong>：AutoEnv 环境生成管线的完整流程——主题和 DSL 设计、编码智能体实现和自修复循环、三层代码结构和示例 SkinEnv 渲染效果。</p>
+        <p><strong>Table 1</strong>：AutoEnv-36 数据集统计——奖励类型各 50%、完全观测 41.7%/部分观测 58.3%、正常语义 78.8%/反转语义 22.2%，平均 6.10 个动作、471 行代码。</p>
+        <p><strong>Table 2</strong>：环境生成管线评估——自动主题 60% 最终成功率，监督主题 80%，平均 $4.12/环境。</p>
+        <p><strong>Table 3</strong>：7 个 LLM 在 AutoEnv-36 上的详细表现，按维度拆分。</p>
+        <p><strong>Table 4-5</strong>：学习方法分析，Qwen-2.5-7B 的 5 种方法和 DeepSeek-V3.1 的 8 种方法在 6 个环境子集上的对比。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>可靠性验证不够完善</strong>：差异化模型测试只能过滤明显有问题的环境，无法保证奖励结构的完美合理性。</li>
+          <li><strong>环境规模和类型有限</strong>：目前以文本交互为主，多模态环境仅作为探索展示。36 个环境与真实世界的复杂度相比仍然有限。</li>
+          <li><strong>学习方法空间受限</strong>：8 种方法的组合空间相对较小，没有探索更复杂的优化算法或元学习方法。</li>
+          <li><strong>编码智能体的质量瓶颈</strong>：环境代码的生成质量依赖于底层编码智能体的能力，可能存在系统性偏差。</li>
+          <li><strong>评估成本</strong>：虽然单环境成本低（$4.12），但全面评估（36 环境 × 多模型 × 多方法）的总体成本仍然可观。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2511.19304</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-12-03</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">AI Agent / 强化学习</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">AutoEnv-36 (36 环境, 358 关卡)</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">归一化奖励 (Normalized Reward)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">最强 o3: 48.73%, 最弱 GPT-4o-mini: 11.96%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">GPT-4o-mini, GPT-5, o3, Claude-4-Sonnet, DeepSeek-V3.1, Gemini-2.5-Flash, Kimi-K2</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        <p>这篇论文的定位很清晰——不是追求 SOTA 性能，而是建立一个<strong>测量的基础设施</strong>。将"智能体学习"从经验性的手工调参提升为可系统搜索、可定量比较的科学研究。</p>
+        <p>三层抽象架构（BaseEnv/ObsEnv/SkinEnv）的设计很巧妙，把规则、信息和表现解耦后，可以用组合方式高效生成多样化的环境变体。"反转语义"环境的设计——故意让描述与规则相反——是一个很好的对抗性测试。</p>
+        <p>核心发现"固定学习方法无法跨环境扩展"有了系统实验支持后变得更加确凿。"边际收益递减"现象——从 4 种扩展到 8 种学习方法只多了 1.23 个百分点——暗示当前学习方法空间可能已接近饱和，需要质的突破。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
