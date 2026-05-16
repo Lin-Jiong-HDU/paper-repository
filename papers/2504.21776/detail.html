@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebThinker: Empowering Large Reasoning Models with Deep Research Capability - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>WebThinker: Empowering Large Reasoning Models with Deep Research Capability</h1>
+  <div class="meta">
+    <span>Xiaoxi Li, Jiajie Jin, Guanting Dong, Hongjin Qian, Yongkang Wu, Ji-Rong Wen, Yutao Zhu, Zhicheng Dou</span>
+    <span>2025-04-30</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2504.21776" target="_blank">arXiv:2504.21776</a>
+  </div>
+  <div class="tags">
+    <span class="tag">大型推理模型</span>
+    <span class="tag">深度研究</span>
+    <span class="tag">网络搜索</span>
+    <span class="tag">报告生成</span>
+    <span class="tag">强化学习</span>
+    <span class="tag">DPO</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>WebThinker 通过为大型推理模型集成深度网络探索器和自主"思考-搜索-起草"策略，使模型在推理过程中能自主搜索网页、导航和撰写研究报告，显著提升了复杂推理和报告生成任务的性能。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>理解本论文需要以下基础概念：</p>
+        <p><strong>大型推理模型（LRM）</strong>：如 OpenAI o1、DeepSeek-R1 这类模型，具备长时间推理（long-horizon reasoning）能力。它们通过生成"思维链"（Chain of Thought）来逐步解决复杂问题。但这类模型有一个关键缺陷：它们只能依赖训练时学到的静态知识，无法在推理过程中获取新信息。</p>
+        <p><strong>检索增强生成（RAG）</strong>：一种常见的做法是给模型接入搜索引擎，让它能检索外部信息。传统 RAG 通常是"先检索，再生成"的两步流程，模型无法在推理中间动态决定何时搜索。</p>
+        <p><strong>Direct Preference Optimization（DPO）</strong>：一种基于偏好数据的训练方法。给定一组"好的"和"差的"回答，DPO 直接优化模型使其更倾向于生成好的回答，而不需要训练一个单独的奖励模型。</p>
+        <p><strong>深度网络探索</strong>：不同于简单的"搜索-点击"流程，深度探索意味着模型可以在搜索结果中导航、点击链接、在页面间跳转，逐层深入地获取信息，类似人类研究者在网上追踪信息线索的方式。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>WebThinker 的核心思想可以用一个类比来理解：把一个"闭卷考试"的学生变成一个"开卷但可以查资料"的研究者。</p>
+        <p>想象你在解答一道复杂的科学题。传统 LRM 就像一个学生只能凭记忆作答——如果记忆中没有相关知识，就会出错或瞎猜。而 WebThinker 就像允许这个学生在解题过程中随时去图书馆查资料，不仅能查，还能在图书馆里翻阅多本书、交叉比对，甚至边查资料边写研究报告。</p>
+        <p>具体来说，WebThinker 有两个创新点：</p>
+        <p><strong>1. Deep Web Explorer（深度网络探索器）</strong>：当模型在推理中遇到知识盲区时，可以调用这个工具。它不仅能搜索，还能在搜索结果中导航——点击链接、浏览页面内容、继续搜索更多相关信息。这是一种"递归式"的深度探索，不是一次性搜索。</p>
+        <p><strong>2. Autonomous Think-Search-and-Draft（自主思考-搜索-起草）</strong>：在报告生成模式下，模型可以在推理、信息搜索和报告撰写之间无缝切换。模型就像一个真正的研究者：先思考需要什么信息，去网上搜索，找到信息后写一段报告，发现不够再继续搜索补充，如此循环直到完成完整的报告。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>步骤 1：整体框架设计</strong></p>
+        <ul>
+          <li>WebThinker 有两个工作模式：问题解决模式和报告生成模式</li>
+          <li>问题解决模式专注于回答复杂问题（如 PhD 级别科学问题）</li>
+          <li>报告生成模式专注于撰写全面的研究报告</li>
+        </ul>
+        <p><strong>步骤 2：Deep Web Explorer 工具构建</strong></p>
+        <ul>
+          <li>模型在推理链中可以调用 Deep Web Explorer 工具</li>
+          <li>该工具内部有两种基本操作：搜索引擎查询（生成查询词并获取网页列表）和页面导航（点击链接或按钮，浏览页面内容）</li>
+          <li>探索器有自己的内部推理链，自主决定是否继续搜索或深入导航</li>
+          <li>最终输出一个简洁的结果，填补主推理链中的知识空白</li>
+        </ul>
+        <p><strong>步骤 3：报告生成的写作工具</strong></p>
+        <ul>
+          <li>除了探索工具，报告模式还配备了三个写作工具：起草、检查和编辑</li>
+          <li>这些工具由一个辅助 LLM 执行，将复杂的任务编排与具体的文本操作分离开来</li>
+          <li>所有探索过的网页被存储在文档记忆中，供写作时检索引用</li>
+        </ul>
+        <p><strong>步骤 4：偏好数据构建</strong></p>
+        <ul>
+          <li>使用 WebThinker 在多个复杂数据集上采样不同的推理轨迹</li>
+          <li>按三个优先级规则构建偏好对：(1) 正确性/报告质量优先；(2) 工具调用效率（更少的工具调用更优）；(3) 思维简洁性（更短的推理链更优）</li>
+        </ul>
+        <p><strong>步骤 5：迭代在线 DPO 训练</strong></p>
+        <ul>
+          <li>利用构建的偏好数据集训练模型</li>
+          <li>迭代过程：训练 → 用新模型采样 → 构建新偏好数据 → 更新参考策略 → 重复</li>
+          <li>通过与环境交互的 on-policy 方式，持续优化工具使用策略</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>公式 1（主推理过程）</strong>：描述了问题解决模式下的推理过程。推理链的每一步都依赖于之前的推理步骤和所有已完成的 Deep Web Explorer 返回的结果。最终答案的生成依赖于完整的推理链和原始问题。</p>
+        <p><strong>公式 2（深度探索器内部过程）</strong>：描述探索器内部的推理过程。每一步的决策都基于当前已获取的网页内容（动态变化），决定是继续搜索/导航还是输出结果。</p>
+        <p><strong>公式 3（报告生成过程）</strong>：辅助 LLM 根据编辑指令、从文档记忆中检索的相关文档和当前报告状态来更新报告内容。</p>
+        <p><strong>公式 4（DPO 损失函数）</strong>：标准 DPO 损失：增大偏好轨迹的概率，降低非偏好轨迹的概率。β 控制偏离参考策略的程度，σ 是 sigmoid 函数。通过迭代在线方式，模型持续优化工具使用策略。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>为什么选这些数据集？</strong></p>
+        <ul>
+          <li><strong>GPQA</strong>：测试 PhD 级别的科学问答能力，需要专业知识，最能体现"知识密集型推理"</li>
+          <li><strong>GAIA</strong>：测试通用 AI 助手能力，包含多层级复杂信息获取任务</li>
+          <li><strong>WebWalkerQA</strong>：专门测试深度网页导航和信息提取能力，直接对应 WebThinker 的核心能力</li>
+          <li><strong>HLE</strong>：跨学科极端难题，需要高级搜索和推理能力</li>
+          <li><strong>Glaive</strong>：测试开放式推理问题的报告生成能力</li>
+        </ul>
+        <p><strong>实验结果说明什么？</strong></p>
+        <ul>
+          <li>在 GPQA 上，WebThinker-32B-RL 达到 70.7% 准确率，超越 QwQ-32B 的 64.1%，接近 DeepSeek-R1-671B 的 74.2%</li>
+          <li>在 GAIA 上达到 48.5% 平均分，在 32B 模型中显著领先</li>
+          <li>在 WebWalkerQA 上达到 46.5%，远超所有 RAG 方法和 Search-o1</li>
+          <li>报告生成任务中也显著优于基线方法</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>Figure 1</strong>：展示了 WebThinker 在复杂推理问题解决和科学报告生成两个任务上与其他模型的整体性能对比。左图显示在 GPQA/GAIA/WebWalkerQA 等基准上的表现，右图显示报告生成质量。</p>
+        <p><strong>Figure 3</strong>：WebThinker 框架的总览图。展示了两种模式的运作方式：(1) 问题解决模式中，推理模型调用搜索工具进行深度网页探索；(2) 报告生成模式中，模型在思考和搜索的同时利用写作工具迭代生成研究报告。</p>
+        <p><strong>Table 1</strong>：主要实验结果表，展示了在 GPQA、GAIA、WebWalkerQA 三个基准上所有方法的详细对比。WebThinker-32B-RL 在多个子任务上取得最佳或次佳成绩。</p>
+        <p><strong>Table 2</strong>：HLE 基准上的结果，按学科分类展示。WebThinker 在数学、生物/医学、化学等多个领域表现出色。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>论文主要基于 QwQ-32B 作为骨干模型，未在其他规模或架构的模型上充分验证通用性</li>
+          <li>Deep Web Explorer 的搜索深度受限于 API 调用次数和网页内容获取的质量</li>
+          <li>报告生成的质量评估依赖于 LLM 评判（DeepSeek-R1 + GPT-4o），可能存在评判偏差</li>
+          <li>迭代 DPO 训练的计算成本较高，每轮迭代需要重新采样轨迹</li>
+          <li>模型在某些 Level 3（最难级别）的任务上仍有较大提升空间</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2504.21776</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-04-30</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">NLP / AI / IR</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">GPQA, GAIA, WebWalkerQA, HLE, Glaive</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Pass@1, 报告质量评分</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">GPQA 70.7%, GAIA 48.5%, WebWalkerQA 46.5%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">GPT-4o, o1-preview, o3-mini, DeepSeek-R1, Search-o1, OpenAI Deep Research</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">这篇论文的核心贡献在于将"深度搜索"和"报告生成"整合到推理模型的推理链中，而非作为外部附加模块。这种设计让搜索和写作成为了推理的自然组成部分。Deep Web Explorer 的递归设计特别值得关注——它允许模型在搜索结果中层层深入，比简单 RAG 更接近人类研究行为。WebThinker 代表了 AI 助手从"问答工具"向"研究助手"演进的重要一步。该工作被 NeurIPS 2025 接收。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

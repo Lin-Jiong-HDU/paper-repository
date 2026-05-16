@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepResearcher: Scaling Deep Research via Reinforcement Learning in Real-world Environments - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>DeepResearcher: Scaling Deep Research via Reinforcement Learning in Real-world Environments</h1>
+  <div class="meta">
+    <span>Yuxiang Zheng, Dayuan Fu, Xiangkun Hu, Xiaojie Cai, Lyumanshan Ye, Pengrui Lu, Pengfei Liu</span>
+    <span>2025-04-04</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2504.03160" target="_blank">arXiv:2504.03160</a>
+  </div>
+  <div class="tags">
+    <span class="tag">强化学习</span>
+    <span class="tag">深度研究</span>
+    <span class="tag">网络搜索</span>
+    <span class="tag">LLM 智能体</span>
+    <span class="tag">RAG</span>
+    <span class="tag">GRPO</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>DeepResearcher 是首个在真实网络搜索环境中通过端到端强化学习训练 LLM 深度研究智能体的框架，相比 prompt 工程基线提升高达 28.9 分，并涌现出规划、交叉验证、反思和诚实等类人认知行为。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>理解这篇论文需要以下基础概念：</p>
+        <p><strong>大型语言模型（LLM）</strong>：如 GPT、Qwen 等大规模预训练模型，能够理解和生成自然语言。</p>
+        <p><strong>RAG（检索增强生成）</strong>：一种让 LLM 在回答问题时先检索外部文档、再基于检索结果生成答案的方法。传统 RAG 使用固定的本地知识库（如 Wikipedia 文本），假设所有需要的信息都已在库中。</p>
+        <p><strong>Prompt Engineering</strong>：通过精心设计提示词来引导 LLM 的行为。这种方法灵活但脆弱，难以泛化到复杂任务。</p>
+        <p><strong>强化学习（RL）</strong>：一种机器学习范式，智能体通过与环境的交互获得奖励信号，从而学习最优策略。DeepSeek-R1 和 Kimi K1.5 等工作已证明 RL 能显著提升 LLM 的推理能力。</p>
+        <p><strong>GRPO（Group Relative Policy Optimization）</strong>：一种 RL 算法，通过同一问题生成多条轨迹（rollout），用组内相对表现来估计优势函数，无需训练额外的 critic 网络。</p>
+        <p><strong>深度研究（Deep Research）</strong>：指需要多步搜索、信息综合和推理的复杂研究任务，如 OpenAI Deep Research 等产品所展示的能力。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>现有的深度研究智能体存在两个关键问题：<strong>基于 prompt 工程的方法</strong>行为僵化、泛化能力差；<strong>基于 RAG 的 RL 训练方法</strong>（如 Search-R1、R1-Searcher）虽然在静态知识库中训练，但无法应对真实网络的噪声、多样性和动态性。</p>
+        <p>DeepResearcher 的核心洞察是：<strong>在真实网络环境中进行端到端 RL 训练不是锦上添花，而是开发鲁棒研究能力的根本要求。</strong> 就像一个学生只在模拟题中练习（RAG 环境）永远无法完全应对真实考试（开放网络）一样——真实环境中的信息可能是过时的、矛盾的、或根本不存在的。</p>
+        <p>类比来说，如果 RAG 训练是在"温室"中培育植物，那么 DeepResearcher 就是在"野外"环境中培育——虽然更艰难，但长出来的能力更强壮、更适应真实世界。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>1. 智能体轨迹设计</strong>：DeepResearcher 采用迭代式的"推理-行动"循环。每一步先在 think 标签中进行推理，然后选择工具调用（网络搜索或网页浏览），获取观察结果后再进入下一轮推理，直到有足够信息生成最终答案。</p>
+        <p><strong>2. 多智能体架构</strong>：系统包含两类智能体——主研究智能体负责推理和决策，浏览智能体专门负责从网页中提取相关信息。浏览智能体会将长网页分段处理，维护短期记忆，按顺序阅读并在信息不足时决定继续阅读还是停止。</p>
+        <p><strong>3. 真实环境中的工程挑战处理</strong>：</p>
+        <ul>
+          <li><strong>高并发请求</strong>：GRPO 每步需要大量采样（如 4096 个并发搜索请求），为此搭建了 50 节点的分布式 CPU 服务器集群来处理。</li>
+          <li><strong>反爬虫与 API 限制</strong>：实现重试机制和搜索结果缓存（7 天内相同查询复用结果），既应对限制又降低成本。</li>
+          <li><strong>信息提取优化</strong>：浏览智能体按段落顺序阅读，如果前几段就明显不相关则跳过该网页，提高效率。</li>
+        </ul>
+        <p><strong>4. RL 训练框架</strong>：采用 GRPO 算法，每步采样 256 个 prompt，每个 prompt 生成 16 条轨迹（rollout），每条轨迹最多 10 次工具调用。工具返回的观察结果被 mask 掉，不参与梯度计算。</p>
+        <p><strong>5. 奖励设计</strong>：使用 F1 分数作为主要奖励指标。格式错误给予 -1 惩罚；格式正确则奖励为 F1 分数。</p>
+        <p><strong>6. 数据去污染</strong>：对每个训练问题从基础模型采样 10 次回答，如果任一次包含正确答案则排除该问题。最终构建了 80,000 个训练样本，其中多跳问题占 75%。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>GRPO 目标函数</strong>：给定输入 x 和一组轨迹，GRPO 的优化目标为：</p>
+        <ul>
+          <li>对每条轨迹，计算当前策略与旧策略的概率比 r_i</li>
+          <li>使用 clip 操作将比率限制在 [1-ε, 1+ε] 范围内，防止策略更新过大</li>
+          <li>优势函数 A_i 基于组内轨迹的相对表现估计（无需 critic 网络）</li>
+          <li>加入 KL 散度惩罚项，防止偏离参考策略太远</li>
+          <li>最终目标是在所有轨迹上取平均</li>
+        </ul>
+        <p><strong>奖励函数</strong>：格式错误 → reward = -1；格式正确 → reward = F1 score（预测答案与标准答案在词级别的 F1 分数）</p>
+        <p><strong>观察遮蔽（Observation Masking）</strong>：工具返回的观察内容不参与损失计算，只有模型自身生成的 token 计入梯度。这确保模型学习的是如何推理和决策，而非记忆搜索结果。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>为什么选这些数据集</strong>：实验使用了 7 个开放域 QA 数据集，分为域内（NQ、TQ、HotpotQA、2Wiki）和域外（MuSiQue、Bamboogle、PopQA）。域内数据集是训练数据的来源，测试模型是否学好了；域外数据集考察泛化能力。特别地，Bamboogle 的语料不限于 Wikipedia，能测试模型在非 Wikipedia 知识上的表现。</p>
+        <p><strong>为什么用 F1 和 MBE 双指标</strong>：F1 是基于词匹配的规则指标，MBE（Model-Based Evaluation）使用 GPT-4o-mini 作为评判者，能处理语义等价但措辞不同的情况。</p>
+        <p><strong>结果说明了什么</strong>：</p>
+        <ul>
+          <li>DeepResearcher 在所有 7 个数据集的 MBE 指标上都是最优的</li>
+          <li>相比 prompt 工程基线提升高达 28.9 分（Bamboogle）</li>
+          <li>相比 RAG-based RL 提升高达 7.2 分（Bamboogle）</li>
+          <li>即使 R1-Searcher 也在网络环境中推理，DeepResearcher 仍显著优于它，证明<strong>训练</strong>环境的真实性才是关键</li>
+          <li>在 Bamboogle 上优势最大，因为该数据集需要的知识超出 Wikipedia 范围</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>Figure 1</strong>：展示 DeepResearcher 在 7 个数据集上的 MBE 结果雷达图，全面领先所有基线。</p>
+        <p><strong>Figure 3</strong>：展示完整的训练轨迹流程——问题并行处理、多轮 rollout、浏览智能体的网页分段处理和信息提取过程。</p>
+        <p><strong>Figure 4</strong>：训练动态分析——(a) F1 分数从 0.375 逐步提升到 0.55；(b) 难题需要更多工具调用，且调用次数持续增长；(c) 回应长度随训练增加，模型学会了更详细的推理。</p>
+        <p><strong>Figure 5</strong>：规划行为案例——模型能制定多步计划并动态调整；交叉验证案例——模型在首次搜索就找到答案后仍会额外验证。</p>
+        <p><strong>Figure 6</strong>：反思行为——当搜索结果偏离预期时，模型会调整查询策略；诚实行为——模型在无法找到确切答案时会坦诚表示。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p>1. <strong>短答案评估的局限</strong>：当前使用 F1 分数作为奖励，只适用于短答案的 QA 任务。对于需要长文本回答的深度研究报告，需要更复杂的奖励机制。</p>
+        <p>2. <strong>计算成本高昂</strong>：在真实网络环境中训练需要大量搜索 API 调用和网页抓取，搭建了 50 节点集群，成本和工程复杂度都很高。</p>
+        <p>3. <strong>基础模型的依赖</strong>：使用 Qwen2.5-7B-Instruct 作为基础模型，未探索更大模型的效果。</p>
+        <p>4. <strong>工具调用的限制</strong>：当前固定使用 top-k=10 的搜索结果，未探索动态参数优化。</p>
+        <p>5. <strong>诚实的评估问题</strong>：模型学会了在找不到答案时坦承不知，但现有的评估指标并未奖励这种行为。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2504.03160</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-04-04</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">人工智能 / NLP / 机器学习</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">NQ, TQ, HotpotQA, 2Wiki, MuSiQue, Bamboogle, PopQA</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">F1 Score, MBE</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">7 个数据集 MBE 全部最优；最高提升 28.9 分</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">CoT, RAG, Search-o1, Search-r1, R1-Searcher</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box"><p>DeepResearcher 的核心贡献在于证明了"真实环境训练"的重要性——这不仅仅是一个工程细节，而是影响模型能力本质的关键因素。这类似于机器人学习中 sim-to-real gap 的问题：在模拟器中学到的策略往往在真实世界中失效。</p><p>一个值得关注的现象是<strong>涌现的认知行为</strong>：规划、交叉验证、反思和诚实这些行为都不是通过 SFT 显式教导的，而是通过端到端 RL 自然涌现的。这暗示 RL 训练可能是一种更高效地培养复杂认知行为的方式。</p><p>不过，当前方法仍局限于短答案 QA 场景。真正的深度研究需要处理长文本报告、多文档综合分析、矛盾信息处理等更复杂的能力。如何将这一框架扩展到这些场景，是一个值得探索的方向。</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
