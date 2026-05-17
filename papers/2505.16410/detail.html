@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool-Star: Empowering LLM-Brained Multi-Tool Reasoner via Reinforcement Learning - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Tool-Star: Empowering LLM-Brained Multi-Tool Reasoner via Reinforcement Learning</h1>
+  <div class="meta">
+    <span>Guanting Dong, Yifei Chen, Xiaoxi Li, Jiajie Jin, Hongjin Qian, Yutao Zhu, Hangyu Mao, Guorui Zhou, Zhicheng Dou, Ji-Rong Wen</span>
+    <span>2025-05-22</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2505.16410" target="_blank">arXiv:2505.16410</a>
+  </div>
+  <div class="tags">
+    <span class="tag">强化学习</span>
+    <span class="tag">工具集成推理</span>
+    <span class="tag">多工具协作</span>
+    <span class="tag">LLM 推理</span>
+    <span class="tag">GRPO</span>
+    <span class="tag">数据合成</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>Tool-Star 是一个基于强化学习的框架，通过两阶段训练（冷启动微调 + 多工具自批评 RL）和数据合成管线，使 LLM 能够在逐步推理过程中自主调用搜索引擎、代码解释器等多种外部工具，在 10+ 个挑战性推理基准上显著超越了单工具 RL 方法。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>工具集成推理 (Tool-Integrated Reasoning, TIR)</strong>：传统 LLM 只靠语言本身进行推理，而 TIR 让模型在推理链中嵌入对外部工具（如搜索引擎、代码执行器）的调用，把"纯语言推理"扩展为"交互式推理"。类比：如果 LLM 的推理像闭卷考试，TIR 就像开卷考试 + 可以用计算器 + 可以查资料。</p>
+        <p><strong>强化学习 (RL) 与 GRPO</strong>：RL 通过奖励信号优化模型行为。GRPO (Group Relative Policy Optimization) 是 DeepSeekMath 提出的 RL 算法，用一组 rollout 的相对表现来估计 baseline，无需单独训练 critic 模型。类比：GRPO 像是"小组成员互评"，每次生成一组答案，组内相互比较来决定谁好谁坏。</p>
+        <p><strong>课程学习 (Curriculum Learning)</strong>：先学简单的，再学难的，循序渐进地提升模型能力。Tool-Star 将数据按难度分为简单/困难两组，分别用于 SFT 和 RL 阶段。</p>
+        <p><strong>SFT 与 DPO</strong>：SFT（监督微调）让模型模仿好的示例；DPO（直接偏好优化）通过对比"好答案"和"坏答案"来训练模型偏好。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>Tool-Star 要解决的核心问题是：<strong>如何让 LLM 在推理时不仅能用一个工具，而是能协调多个工具（搜索 + 代码 + 浏览器）进行协作推理？</strong></p>
+        <p>之前的 TIR 方法存在三个关键瓶颈：</p>
+        <ul>
+          <li><strong>数据稀缺</strong>：高质量的"带工具调用的推理链"数据很难获取</li>
+          <li><strong>单工具局限</strong>：现有 RL 方法大多只优化单一工具（要么只用搜索，要么只用代码），导致跨领域能力不均衡</li>
+          <li><strong>奖励设计不足</strong>：简单的"对/错"奖励无法引导模型学会多工具协作</li>
+        </ul>
+        <p>Tool-Star 的解决思路像培养一个"全能型学生"：先通过大量练习（数据合成 + SFT）建立基本功，再通过自主探索 + 自我批评（self-critic RL）学会灵活组合不同工具。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：数据合成管线（3 步）</h4>
+        <p><strong>1. 数据收集与采样</strong>：从开源数据集中收集约 90K 文本推理数据和 1K 已有 TIR 数据。然后通过两种方式扩展工具调用轨迹：</p>
+        <ul>
+          <li><strong>TIR 提示采样</strong>：用带工具调用指令的 prompt 让 LLM 生成带工具调用的推理链，自动调用工具获取反馈后拼回推理链继续生成</li>
+          <li><strong>Hint 采样</strong>：先让模型做纯语言推理，然后在不确定的地方（"maybe"、"wait"）或答案后插入工具调用提示，让模型从该点继续进行工具增强推理</li>
+        </ul>
+        <p><strong>2. 工具使用质量归一化</strong>：通过三种策略过滤低质量样本：</p>
+        <ul>
+          <li>控制工具调用频率（去除过度调用的样本）</li>
+          <li>去除重复工具调用（如同一段代码反复出现）</li>
+          <li>格式标准化（统一特殊 token 格式）</li>
+        </ul>
+        <p><strong>3. 难度感知分类</strong>：对每个问题同时做纯语言推理和工具推理，按结果分为四类：</p>
+        <ul>
+          <li>类别 1-2：纯推理就对，不需要工具 → 进入 SFT 的文本子集</li>
+          <li>类别 3：工具推理才对，证明工具有效 → 进入 SFT 的工具子集</li>
+          <li>类别 4：两种都不对，最难 → 专门留给 RL 阶段</li>
+        </ul>
+        <h4>第二步：两阶段训练框架</h4>
+        <p><strong>阶段 1 - 冷启动 SFT</strong>：用简单 + 中等难度数据做监督微调，让模型学会基本的工具调用模式。</p>
+        <p><strong>阶段 2 - 多工具自批评 RL</strong>：</p>
+        <ul>
+          <li>先用 K 步标准 GRPO RL 训练，获得 RL 初始化模型</li>
+          <li>然后<strong>自采样</strong>：让模型自己生成多个候选答案</li>
+          <li>用分层奖励函数给每个答案打分</li>
+          <li>把高分答案作为"正例"、低分答案作为"负例"，用 DPO 做偏好学习</li>
+          <li>这个自批评过程每 K 步穿插一次，迭代进行</li>
+        </ul>
+        <p><strong>六种工具设计</strong>：</p>
+        <ul>
+          <li>训练工具：搜索引擎、Web 浏览器代理、代码解释器</li>
+          <li>推理工具：代码调试器（修 bug）、工具回溯器（回退到失败调用前）、推理链精炼器（超长时压缩）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>公式 (1) - 问题建模</h4>
+        <p>将多工具推理建模为自回归生成过程。推理链中每个 token 的生成概率依赖于之前所有 token、指令、问题以及之前所有工具反馈。最终答案也以自回归方式基于完整推理链生成。</p>
+        <h4>公式 (3) - 分层奖励函数</h4>
+        <p>如果格式正确且答案正确：奖励 = 正确性分 + 多工具协作奖励 rM。如果格式正确但答案错误：奖励 = 0。格式错误：奖励 = -1。rM（多工具协作奖励）：当推理链中同时出现 search 和 python 时给 0.1 额外奖励，否则为 0。这意味着同时使用搜索和代码会得到更高奖励。</p>
+        <h4>公式 (4) - GRPO 损失</h4>
+        <p>标准 GRPO 目标，包含裁剪（clip）机制和 KL 散度惩罚。用组内 rollout 的相对优势来调整策略。</p>
+        <h4>公式 (5) - DPO 损失</h4>
+        <p>在自批评阶段，用偏好数据做 DPO 训练，让模型给高奖励答案更高的概率。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>数据集选择</strong>：覆盖两大类共 10+ 个数据集：</p>
+        <ul>
+          <li>数学推理：AIME24、AIME25、MATH500、MATH、GSM8K（由易到难，从基础算术到竞赛数学）</li>
+          <li>知识推理：WebWalker、HotpotQA、2WikiMultiHopQA、MuSiQue、Bamboogle（多跳 QA，测试信息检索和整合能力）</li>
+        </ul>
+        <p>这样设计是为了验证模型在<strong>计算型</strong>和<strong>知识型</strong>两类核心推理能力上的表现。</p>
+        <p><strong>基线方法</strong>：覆盖三大类方法：</p>
+        <ul>
+          <li>基座模型（Qwen2.5-3B、Llama3.2-3B）</li>
+          <li>单工具增强（ToRL 代码、DotaMath 代码、RAG/Search-o1/Search-R1 搜索）</li>
+          <li>多工具方法（Multi-Tool Prompting、ReCall）</li>
+        </ul>
+        <p><strong>关键发现</strong>：</p>
+        <ul>
+          <li>仅靠 prompt 引导的多工具使用反而不如基座模型（不稳定）</li>
+          <li>单工具 RL 方法在擅长领域很强，但在其他领域表现急剧下降（如搜索方法在 MATH500 上准确率暴跌 20%+）</li>
+          <li>Tool-Star 在所有数据集上都保持强势，平均准确率 46.1%（3B 模型），显著优于所有基线</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>Figure 1</strong>：雷达图对比 Tool-Star 与 Search-o1、Recall、ToRL 在 10 个数据集上的表现，Tool-Star 的覆盖面最广且各项均优。</p>
+        <p><strong>Figure 2</strong>：3 步数据合成管线流程图，展示从数据收集到质量归一化再到难度分类的完整过程。</p>
+        <p><strong>Figure 3</strong>：多工具自批评 RL 框架图，包含 GRPO 训练、自采样、奖励分配、DPO 训练的闭环。</p>
+        <p><strong>Figure 4</strong>：左图展示工具使用效率对比；中图和右图分析推理时工具优化对 DotaMath 和 Tool-Star 的影响。</p>
+        <p><strong>Figure 5</strong>：本地搜索 vs 网络搜索对比，Web 搜索在 2Wiki (+13%) 和 Bamboogle (+8%) 上提升显著。</p>
+        <p><strong>Figure 6</strong>：不同参数规模（0.5B/1.5B/3B）的 RL 训练曲线。</p>
+        <p><strong>Figure 7</strong>：100 步 RL 训练中 KL 损失、奖励、响应长度和验证分数的变化趋势。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>规模限制</strong>：主要实验基于 3B 参数模型，更大规模模型（7B、72B）的效果有待验证</li>
+          <li><strong>工具类型</strong>：目前仅支持搜索引擎、代码解释器和浏览器三种训练工具，其他类型工具（如数据库查询、API 调用）的整合尚未探索</li>
+          <li><strong>延迟问题</strong>：多工具调用带来的推理延迟未做深入分析，实际部署时可能成为瓶颈</li>
+          <li><strong>奖励设计</strong>：分层奖励函数中的阈值（如 rM=0.1）需要手动设定，不同任务的最优值可能不同</li>
+          <li><strong>数据依赖</strong>：数据合成管线仍依赖强模型（如 Qwen2.5-72B）生成初始推理链，成本较高</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2505.16410</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-05-22</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">LLM 推理 / 强化学习</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">AIME24/25, MATH500, MATH, GSM8K, WebWalker, HotpotQA, 2Wiki, MuSiQue, Bamboogle</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">准确率, F1, TE</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">平均 46.1%（3B），超越所有基线</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">ToRL, Search-R1, Search-o1, ReCall, RAG</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        <p>Hint 采样的思路很巧妙：不是直接让模型从零开始生成工具调用，而是从已有的推理链中找到"不确定"的节点插入工具调用，这样生成的数据质量更高。</p>
+        <p>自批评机制是关键创新：标准 GRPO 只用规则奖励，但 Tool-Star 让模型自己采样并区分好坏答案，通过 DPO 内化奖励结构——这比纯规则奖励更适合多工具协作这种复杂场景。</p>
+        <p>冷启动的重要性被低估：实验表明去掉冷启动 SFT 后性能下降最大（-11.7%），说明 RL 探索的起点非常重要。</p>
+        <p>Tool-Star 验证了"小模型 + 多工具"可以接近甚至超越"大模型纯推理"的效果，这对资源受限场景很有价值。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
