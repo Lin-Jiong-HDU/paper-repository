@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>From Experience to Skill: Multi-Agent Generative Engine Optimization via Reusable Strategy Learning - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>From Experience to Skill: Multi-Agent Generative Engine Optimization via Reusable Strategy Learning</h1>
+  <div class="meta">
+    <span>Beining Wu, Fuyou Mao, Jiong Lin, Cheng Yang 等</span>
+    <span>2026-04-21</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.19516" target="_blank">arXiv:2604.19516</a>
+  </div>
+  <div class="tags">
+    <span class="tag">GEO</span>
+    <span class="tag">生成式引擎优化</span>
+    <span class="tag">多智能体系统</span>
+    <span class="tag">策略学习</span>
+    <span class="tag">RAG</span>
+    <span class="tag">技能复用</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>本文提出 MAGEO 框架，将生成式引擎优化（GEO）重新定义为策略学习问题，通过多智能体协作执行优化，并将成功的编辑模式蒸馏为可复用的技能，在多个主流生成式引擎上显著超越启发式基线。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>要理解本文，需要了解以下基础概念：</p>
+        <ul>
+          <li><strong>生成式引擎（Generative Engines, GEs）</strong>：如 ChatGPT、Gemini、Qwen 等系统，它们不再像传统搜索引擎那样返回排序列表，而是通过检索增强生成（RAG）从多个文档中提取证据，生成带引用的合成答案。用户看到的是一段自然语言回答，而非一堆链接。</li>
+          <li><strong>检索增强生成（RAG）</strong>：一种技术框架，先从外部知识库中检索相关文档，再将文档内容作为上下文输入大语言模型，让模型基于证据生成答案。</li>
+          <li><strong>SEO vs GEO</strong>：传统 SEO 关注提高网页在搜索结果中的排名（关键词密度、链接结构等信号），而 GEO 关注如何让网页内容在生成式引擎的答案中获得更多引用和更高可见度（语义影响和引用准确性）。</li>
+          <li><strong>多智能体系统</strong>：由多个专业化智能体协作完成任务的系统，每个智能体负责不同角色（如规划、编辑、评估），通过协调机制共同优化结果。</li>
+          <li><strong>策略学习与技能蒸馏</strong>：将优化过程中反复出现的成功模式抽象为可复用的策略规则，类似于人类从经验中提炼技能，在新任务中直接调用已掌握的方法。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>这篇论文的核心洞察可以用一个类比来理解：<strong>传统的 GEO 方法就像一个实习生，每次做任务都从零开始试错，做完就忘；而 MAGEO 就像一个有经验的编辑，不仅会做当前任务，还会把成功的经验总结成方法论，下次遇到类似任务直接套用。</strong></p>
+        <p>论文发现了现有 GEO 方法的三个关键缺陷：</p>
+        <ul>
+          <li><strong>指标缺陷</strong>：现有指标要么只看表面可见度，要么只看语义影响，很少同时关注引用的准确性（忠实度），导致优化后内容可能获得了更多曝光，但引用是错误或编造的。</li>
+          <li><strong>评估缺陷</strong>：现有评估方法容易受到检索噪声和排名漂移的干扰，无法准确归因内容编辑的效果。</li>
+          <li><strong>学习缺陷</strong>：所有现有方法都是单次优化，无法积累经验，每次都从零开始。</li>
+        </ul>
+        <p>MAGEO 的解决方案是一个<strong>双层架构</strong>：执行层负责实际的内容优化（四个智能体协作），学习层负责从优化过程中提炼可复用的技能。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 1：双分支评估协议（Twin-Branch Protocol）</h4>
+        <p>固定检索列表，建立两条平行分支——基线分支使用原始文档生成答案，优化分支使用编辑后的文档生成答案。这样可以在黑盒引擎中隔离内容编辑的因果效果，避免检索排序变化干扰归因。</p>
+
+        <h4>步骤 2：多智能体协作执行</h4>
+        <ul>
+          <li><strong>Preference Agent</strong>（偏好智能体）：分析大量查询-响应对，学习不同引擎的隐含偏好（如 Gemini 偏好表格和链接，GPT 偏好权威引用）。</li>
+          <li><strong>Planner Agent</strong>（规划智能体）：根据引擎偏好、当前响应状态和技能库中的策略，制定高层修订策略（只规划不编辑）。</li>
+          <li><strong>Editor Agent</strong>（编辑智能体）：按规划执行具体的内容修改，通过并行采样生成多个候选变体。</li>
+          <li><strong>Evaluator Agent</strong>（评估智能体）：作为内部质检员，预测 DSV-CF 增益，并执行忠实度门控——拒绝任何语义偏离原文的变体。</li>
+        </ul>
+
+        <h4>步骤 3：迭代优化循环</h4>
+        <p>在每一轮中，四个智能体按顺序协作：规划→编辑→评估→选择。评估智能体预测每个候选变体的 DSV-CF 增益，选择最优的作为下一轮的输入。循环在分数停滞或编辑预算耗尽时终止。</p>
+
+        <h4>步骤 4：技能银行（Skill Bank）学习</h4>
+        <p>会话内记忆（MS）记录每一步编辑的结果；跨会话记忆（MC）将反复出现的成功模式抽象为结构化策略技能。技能按引擎类型和场景索引，供后续任务直接检索使用。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>DSV-CF 指标公式</h4>
+        <p><strong>S<sub>DSV-CF</sub> = λ · S̄<sub>SSV</sub> + (1-λ) · S̄<sub>ISI</sub> - γ(1-AA)</strong></p>
+        <p>这个公式统一了两个评估维度：</p>
+        <ul>
+          <li><strong>S̄<sub>SSV</sub></strong>（表面语义可见度）：衡量目标文档在生成答案中"物理占据"了多少空间，包含词级可见度（WLV）、位置衰减权威度（DPA）、引用显著性（CP）和主观印象（SI）四个子指标。</li>
+          <li><strong>S̄<sub>ISI</sub></strong>（内在语义影响）：衡量目标文档对答案的深度影响，包含归因准确性（AA）、响应级忠实度（FA）、关键点覆盖率（KC）和答案主导性（AD）四个子指标。</li>
+          <li><strong>λ = 0.5</strong> 平衡可见度和质量。</li>
+          <li><strong>γ</strong> 是归因惩罚系数，γ = 0.5 时 DSV-CF 最优，过大则允许虚假引用，过小则保守不敢优化。</li>
+        </ul>
+
+        <h4>WLV（词级可见度）</h4>
+        <p>计算所有引用目标文档的句子的归一化词数总和。如果一句话引用了 N 个来源，则每个来源的权重为 1/N，避免多引用的句子给单一来源过多分数。</p>
+
+        <h4>DPA（位置衰减权威度）</h4>
+        <p>在 WLV 基础上，根据句子位置加入指数衰减权重 e<sup>pos(i)</sup>，模拟 F 形阅读模式——读者更关注前面的内容。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>为什么选这些引擎</strong>：选择了三个代表性引擎——GPT-5.2（OpenAI，闭源旗舰）、Gemini-3 Pro（Google，闭源）、Qwen-3 Max（开源代表），覆盖了主流部署场景。</p>
+        <p><strong>为什么用双基准</strong>：GEO-Bench 是现有标准基准，用于与已发表基线直接对比；MSME-GEO-Bench 是自建的多场景、多引擎基准，基于 ELIS 理论构建，覆盖健康、金融、教育、消费、法律等日常领域，弥补现有基准在查询-文档对齐和场景覆盖上的不足。</p>
+        <p><strong>结果说明了什么</strong>：</p>
+        <ul>
+          <li>MAGEO 在 WLV 上达到 4.52（GPT-5.2），是最强启发式基线 1.33 的 3.4 倍</li>
+          <li>归因准确性（AA）也同步提升，说明可见度增益不是靠编造引用换来的</li>
+          <li>消融实验证实：去掉引擎偏好模块性能下降约 19%，去掉技能银行下降约 13%</li>
+          <li>多智能体优化在第 5 轮左右达到峰值，之后出现"过度优化疲劳"</li>
+          <li>与多种启发式策略组合的 Combo-Best 相比，MAGEO 仍然大幅领先，说明优势不是简单的规则堆叠</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图 1</strong>：展示从 SEO 到 GEO 的范式转变，包括四个核心挑战（不透明呈现、未定义指标、不清晰优化路径、模糊偏好）</li>
+          <li><strong>图 2</strong>：MAGEO 框架全景图，展示双分支协议和四智能体协作流程</li>
+          <li><strong>图 3</strong>：MSME-GEO-Bench 的统计分布，覆盖 5 大领域、15 子类、多样化查询意图</li>
+          <li><strong>图 4</strong>：多轮优化轨迹图，显示性能在第 5 轮左右达到峰值后出现"过度优化疲劳"</li>
+          <li><strong>图 5</strong>：成本效益分析，MAGEO Lite 是性价比最优点，Full 版为极致性能选项</li>
+          <li><strong>表 1-3</strong>：主实验结果，覆盖 GPT-5.2、Gemini-3 Pro、Qwen-3 Max 三个引擎</li>
+          <li><strong>表 5</strong>：与组合启发式基线对比，证明 MAGEO 的优势不是简单规则堆叠</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>计算开销</strong>：多智能体优化循环的 token 消耗和延迟高于轻量级启发式方法（Full 版约 12.4k tokens/query），可能不适合实时或高吞吐场景</li>
+          <li><strong>基准规模</strong>：MSME-GEO-Bench 当前的规模和类别分布仍限制了细粒度子组分析</li>
+          <li><strong>模型偏差</strong>：Gemini-3 Pro 参与了反向查询生成和标注，可能引入模型特定偏差</li>
+          <li><strong>技能泛化</strong>：未提供技能在未见场景中的泛化能力的形式化分析或学习曲线</li>
+          <li><strong>仅文本</strong>：当前框架仅支持文本 GEO，不支持多模态场景</li>
+          <li><strong>技能老化</strong>：生成式引擎不断演进，已学到的技能可能逐渐失效</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.19516</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-21</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">生成式引擎优化 / AI Agent</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">MSME-GEO-Bench, GEO-Bench</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">DSV-CF, WLV, AA, FA</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">WLV 4.52 (GPT-5.2), 5.30 (Gemini-3 Pro), 3.84 (Qwen-3 Max)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">9种启发式策略 + 组合基线</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        <p>技能银行的设计很巧妙，将优化经验转化为可检索的策略规则，与人类专家成长路径相似。双分支协议解决了因果归因难题。跨引擎偏好差异的发现很有实践价值。潜在风险：如果所有创作者使用类似优化策略，可能导致生成式引擎答案趋于同质化。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
