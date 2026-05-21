@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VL-JEPA: Joint Embedding Predictive Architecture for Vision-language - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>VL-JEPA: Joint Embedding Predictive Architecture for Vision-language</h1>
+  <div class="meta">
+    <span>Delong Chen, Mustafa Shukor, Théo Moutakanni, Willy Chung, Jade Yu, Tejaswi Kasarla, Yejin Bang, Allen Boloourchi, Yann LeCun, Pascale Fung</span>
+    <span>2026-02-02</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2512.10942" target="_blank">arXiv:2512.10942</a>
+  </div>
+  <div class="tags">
+    <span class="tag">视觉语言模型</span>
+    <span class="tag">联合嵌入预测架构</span>
+    <span class="tag">视频理解</span>
+    <span class="tag">嵌入空间</span>
+    <span class="tag">选择性解码</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>VL-JEPA 提出了一种基于联合嵌入预测架构的视觉语言模型，通过在连续嵌入空间而非离散 token 空间中进行预测，用更少的可训练参数实现了更强的多模态任务能力。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>自回归视觉语言模型 (VLM)</strong>：当前主流的视觉语言模型（如 LLaVA、InstructBLIP、Qwen-VL）采用"token 生成"范式——接收视觉输入和文本查询，自回归地逐 token 生成文本回复。这种方式虽然直观，但存在两个根本问题：(1) 训练成本高，模型需要同时学习任务相关语义和任务无关的表面语言特征（如措辞风格、同义改写）；(2) 实时推理延迟大，必须完成整个 token 序列生成后才能获取语义。</p>
+        <p><strong>JEPA (Joint Embedding Predictive Architecture)</strong>：由 Yann LeCun 倡导的架构范式，核心思想是在抽象的嵌入空间中进行预测，而非在原始数据空间中重建。之前的工作包括 I-JEPA（图像）、V-JEPA（视频）等，但它们只针对单一模态。VL-JEPA 是首个面向通用视觉语言任务的 JEPA 模型。</p>
+        <p><strong>CLIP 式对比学习</strong>：CLIP 通过 InfoNCE 损失将图像和文本对齐到共享嵌入空间，支持零样本分类和跨模态检索。但它无法生成文本，任务覆盖有限。</p>
+        <p><strong>InfoNCE 损失</strong>：对比学习中的经典损失函数，包含两部分——表示对齐项（拉近正样本对）和均匀性正则项（推开负样本对），天然防止表示坍塌。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>VL-JEPA 的核心洞见可以用一个类比来理解：<strong>传统 VLM 就像让学生逐字默写答案，而 VL-JEPA 则是让学生理解答案的含义即可</strong>。</p>
+        <p>想象你问"这张图里有什么动物？"——答案可能是"一只猫"、"这是一只猫"、"图中有猫"等等。这些在 token 空间中是完全不同的序列（几乎无重叠 token），但它们的语义是一致的。传统 VLM 必须学习所有这些变体，浪费了大量建模能力。VL-JEPA 通过 Y-Encoder 将这些语义等价的回答映射到嵌入空间中的相近点，将多峰的离散分布压缩为紧凑的单峰连续分布，大大简化了学习目标。</p>
+        <p>这种设计还带来了一个独特优势：<strong>选择性解码</strong>。因为预测是在嵌入空间中非自回归进行的，模型可以持续输出语义嵌入流，仅在检测到语义发生显著变化时才调用轻量级文本解码器。这对于智能眼镜、机器人等实时视频应用至关重要。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 1：视觉编码 (X-Encoder)</h4>
+        <ul>
+          <li>使用冻结的 V-JEPA V2-S（304M 参数），将视频/图像压缩为视觉 token 序列</li>
+          <li>输入以 256² 分辨率均匀采样帧，图像则复制填充</li>
+          <li>这一步不做训练，保留预训练视觉编码器的强大能力</li>
+        </ul>
+        <h4>步骤 2：条件预测 (Predictor)</h4>
+        <ul>
+          <li>用 Llama-3.2-1B 的后 8 层 Transformer 初始化（490M 可训练参数）</li>
+          <li>接收视觉 token 和文本查询 token，使用双向注意力（非因果 mask）</li>
+          <li>通过平均池化和线性投影，输出 1536 维的预测嵌入</li>
+        </ul>
+        <h4>步骤 3：目标嵌入 (Y-Encoder)</h4>
+        <ul>
+          <li>用 EmbeddingGemma-300M 初始化，最大上下文 512 token</li>
+          <li>学习率为全局学习率的 0.05 倍（关键超参数），防止初期预测质量差导致嵌入空间不稳定</li>
+          <li>线性投影头输出 1536 维嵌入，与 Predictor 共享嵌入空间</li>
+        </ul>
+        <h4>步骤 4：推理解码 (Y-Decoder)</h4>
+        <ul>
+          <li>仅在推理时使用，将预测嵌入翻译为可读文本</li>
+          <li>轻量级设计，不参与主训练循环</li>
+          <li>支持选择性解码：仅当嵌入变化超过阈值时触发</li>
+        </ul>
+        <h4>步骤 5：训练目标</h4>
+        <ul>
+          <li>使用双向 InfoNCE 损失，Predictor 和 Y-Encoder 联合训练、互相学习</li>
+          <li>在同一个 batch 内，每个预测嵌入与对应目标嵌入拉近（对齐），与其他目标嵌入推远（均匀性）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>训练损失 (InfoNCE)</strong>：</p>
+        <p>L = -log(exp(sim(Ŝ_Y, S_Y) / τ) / Σ exp(sim(Ŝ_Y, S_Y') / τ))</p>
+        <ul>
+          <li>Ŝ_Y：Predictor 输出的预测嵌入</li>
+          <li>S_Y：Y-Encoder 编码的目标嵌入</li>
+          <li>sim(·,·)：余弦相似度</li>
+          <li>τ：温度参数</li>
+          <li>分母对所有 batch 内负样本求和</li>
+          <li>双向应用：同时计算 Predictor→Y-Encoder 和 Y-Encoder→Predictor 方向</li>
+        </ul>
+        <p>这个损失的本质是：让预测嵌入和真实目标嵌入在 1536 维空间中"靠得近"，同时让不同样本的嵌入"散得开"，避免所有嵌入坍塌到同一个点。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>为什么选这些数据集？</h4>
+        <p>论文的实验设计覆盖了视觉语言模型的四大任务类型，每个都有明确目的：</p>
+        <ol>
+          <li><strong>视频分类（8 个数据集）</strong>：测试嵌入空间的判别能力，这是 CLIP 的强项</li>
+          <li><strong>文本到视频检索（8 个数据集）</strong>：测试跨模态对齐质量</li>
+          <li><strong>VQA（4 个数据集）</strong>：测试生成和理解能力，这是传统 VLM 的强项</li>
+          <li><strong>WorldPrediction-WM</strong>：测试世界模型理解能力，需要从初始/终态图像推断动作</li>
+        </ol>
+        <h4>关键对比实验</h4>
+        <ul>
+          <li>与 CLIP、SigLIP2、Perception Encoder 对比分类/检索（证明 JEPA 范式优于纯对比学习）</li>
+          <li>与 InstructBLIP、QwenVL 对比 VQA（证明小参数也能匹敌大模型）</li>
+          <li>严格受控实验：相同视觉编码器 + 相同训练数据，唯一区别是 token 预测 vs 嵌入预测</li>
+        </ul>
+        <h4>结果说明什么？</h4>
+        <ul>
+          <li>嵌入预测比 token 预测更高效：0.5B vs 1B 可训练参数，性能翻倍</li>
+          <li>单一架构统一多任务：不需要为分类/检索/VQA 设计不同模型</li>
+          <li>在世界模型理解上超越 GPT-4o、Claude-3.5、Gemini-2.0，说明语义嵌入空间确实学到了更深层的视觉-语言关联</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>Figure 1</strong>：VL-JEPA 模型架构总览，展示四大组件及其交互</li>
+          <li><strong>Figure 2</strong>：详细架构图，左侧为训练时信息流，右侧为多任务应用场景（生成、分类、检索、判别式 VQA）</li>
+          <li><strong>Figure 3</strong>：嵌入预测 vs Token 预测的严格受控对比——VL-JEPA 在 5M 样本即达到 VLM 在 15M 样本的性能，且推理延迟相当</li>
+          <li><strong>Figure 4</strong>：选择性解码示意——嵌入流持续监控，仅在语义变化超过阈值时触发解码，解码操作减少约 2.85 倍</li>
+          <li><strong>Table 1</strong>：8 个分类 + 8 个检索数据集的全面对比，VL-JEPA 平均超越 CLIP/SigLIP2/PE</li>
+          <li><strong>Table 2</strong>：VQA 基准——1.6B 参数的 VL-JEPA 匹敌 7B-13B 的 InstructBLIP 和 QwenVL</li>
+          <li><strong>Table 3</strong>：WorldPrediction-WM——VL-JEPA 65.7% 新 SOTA，超越 GPT-4o (53.6%)、Claude-3.5 (55.6%)</li>
+          <li><strong>Table 7</strong>：消融实验——预训练阶段对分类贡献 +21.7，InfoNCE 损失优于其他损失函数</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ol>
+          <li><strong>评估范围有限</strong>：论文明确指出，VL-JEPA 的目标不是替代 VLM 的所有能力。在复杂推理、工具使用和智能体行为等任务上，当前的 token 生成模型仍然更强</li>
+          <li><strong>模型规模未充分探索</strong>：虽然结果显示了参数和数据规模扩展的潜力，但作者没有进行大规模扩展实验</li>
+          <li><strong>生成质量</strong>：嵌入预测→解码的方式可能在需要精确措辞的任务上不如直接 token 生成灵活</li>
+          <li><strong>Y-Decoder 依赖</strong>：生成任务仍需 Y-Decoder，其质量直接影响输出文本质量</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2512.10942</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-02-02</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">计算机视觉 (cs.CV)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">8 分类 + 8 检索 + 4 VQA + WorldPrediction + EK-100 + COIN</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Top-1 Acc, Recall@1, CIDEr</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">WorldPrediction 65.7% SOTA; COIN 56.2% SOTA; VQA 匹敌 7B+ 模型</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">CLIP, SigLIP2, PE, InstructBLIP, QwenVL, LLaVA, GPT-4o</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">VL-JEPA 的核心贡献不是在某个 benchmark 上刷 SOTA，而是提供了一种根本不同的视觉语言建模范式。将学习目标从 token 空间提升到语义嵌入空间，与 Yann LeCun 倡导的"抽象表示学习"理念一脉相承。选择性解码对于智能眼镜、机器人等实时应用具有实际价值。WorldPrediction-WM 上超越 GPT-4o 等大模型尤其令人印象深刻——说明在特定任务上，精心设计的小模型可以在语义嵌入空间中胜过通用大模型。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
