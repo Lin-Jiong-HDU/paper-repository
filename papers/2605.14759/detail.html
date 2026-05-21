@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crys-JEPA: Accelerating Crystal Discovery via Embedding Screening and Generative Refinement - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Crys-JEPA: Accelerating Crystal Discovery via Embedding Screening and Generative Refinement</h1>
+  <div class="meta">
+    <span>Nian Liu, Nikita Kazeev, Stephen Gregory Dale, Artem Maevskiy, Yuwei Zeng, Ryoji Kubo, Pengru Huang, Thomas Laurent, Yann LeCun, Kostya S. Novoselov, Xavier Bresson</span>
+    <span>2025-05</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.14759" target="_blank">arXiv:2605.14759</a>
+  </div>
+  <div class="tags">
+    <span class="tag">晶体生成</span>
+    <span class="tag">材料发现</span>
+    <span class="tag">联合嵌入预测架构</span>
+    <span class="tag">稳定性-新颖性权衡</span>
+    <span class="tag">生成式精炼</span>
+    <span class="tag">JEPA</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>本文揭示了晶体 de novo 生成中稳定性和新颖性之间的根本权衡，并提出 Crys-JEPA——一种基于能量的感知潜空间代理模型，通过筛选-精炼管道显著提升同时满足稳定、唯一、新颖晶体的生成比例。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>晶体结构与表示</strong>：晶体是由原子在三维空间中周期性排列形成的结构。其基本重复单元称为"晶胞"（unit cell），通常用三个组件描述：原子分数坐标 X、原子类型 A、以及晶格矩阵 L。晶格矩阵通过奇异值分解可分解为旋转矩阵和对称矩阵。</p>
+        <p><strong>De Novo 晶体生成（DNG）</strong>：目标是发现全新的晶体结构，不依赖预定义模板。近年来深度生成模型（如扩散模型、流匹配）极大推动了该领域的发展。现有模型通常以最大化观测晶体的对数似然为目标进行训练。</p>
+        <p><strong>V.S.U.N 评估指标</strong>：有效性（V）衡量结构和组成合理性；稳定性（S）衡量能量是否在凸包阈值内；唯一性（U）衡量生成集合内部无重复；新颖性（N）衡量与参考数据集不匹配。复合指标 V.S.U.N 衡量同时满足全部四个条件的比例。</p>
+        <p><strong>凸包与稳定性</strong>：在相图中，凸包代表给定化学体系中最稳定的化合物组合。能量高出凸包的距离越小，晶体越稳定。</p>
+        <p><strong>联合嵌入预测架构（JEPA）</strong>：由 Yann LeCun 提出的自监督学习框架。输入经两种增强后分别编码，训练预测器从上下文嵌入预测目标嵌入，学习有意义的表征同时避免坍缩。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>核心发现：<strong>当前晶体生成模型面临严峻的稳定性-新颖性权衡</strong>。类比"地图探索"问题：训练数据中的已知晶体像已标记区域，模型靠近标记点则稳定但不新颖，远离则迅速不稳定。论文发现稳定且新颖的晶体存在的"有效区域"极其狭窄。</p>
+        <p>两个关键创新：</p>
+        <ul>
+          <li><strong>Crys-JEPA</strong>：学习按形成能组织的潜空间，能量相近的晶体嵌入距离近，差异大的距离远，用嵌入距离近似评估稳定性</li>
+          <li><strong>筛选-精炼管道</strong>：先用基础模型生成候选晶体，用 Crys-JEPA 筛选有潜力的样本，再微调模型，让其在更好的数据分布上学习</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一阶段：稳定性-新颖性权衡的实证研究</h4>
+        <ul>
+          <li>选择多个主流晶体生成模型（CDVAE、ADiT 等），在 MP-20 上训练并生成晶体</li>
+          <li>引入基于指纹的距离度量 D，按生成晶体与训练分布的远近排序</li>
+          <li>发现稳定性单调下降、新颖性单调上升、而 S.U.N 几乎不变</li>
+        </ul>
+        <h4>第二阶段：Crys-JEPA 的构建</h4>
+        <ul>
+          <li>对晶体施加平移和旋转变换创建上下文视角和目标视角</li>
+          <li>基于等变图神经网络编码器处理原子坐标、类型和晶格信息</li>
+          <li>能量感知 InfoNCE 损失：根据形成能差异调整负样本权重</li>
+          <li>预训练数据：Material Project + MPtrj（含不稳定变化轨迹）</li>
+        </ul>
+        <h4>第三阶段：筛选-精炼管道</h4>
+        <ul>
+          <li>预训练生成模型 G → 生成 N 个晶体 → MatterSim 弛豫 → 保留 V.U.N 合格的</li>
+          <li>构建同化学体系参考集，计算嵌入平均距离 D_C</li>
+          <li>选择 top-k% 最小距离晶体微调 G</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>晶格矩阵分解</strong>：L = UΛ，将旋转和形状分离，便于生成模型学习。</p>
+        <p><strong>能量感知 InfoNCE 损失</strong>：权重项 ω_ik 根据形成能差异 |E_i - E_k| 调整——差异大则推远，差异小则允许靠近。确保潜空间按能量有物理意义地组织。</p>
+        <p><strong>稳定性代理距离</strong>：D_C = (1/N_Ref) Σ ||H_C - H^Ref_i||²，即生成晶体嵌入与同化学体系训练晶体嵌入的平均平方距离。距离越小越接近已知稳定晶体。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>MP-20</strong>：45,231 个无机晶体（≤20 原子/晶胞），DNG 标准基准，大部分为已知稳定材料，对新颖性构成挑战。</p>
+        <p><strong>Alex-MP-20</strong>：607,684 个结构，规模更大，测试可扩展性。</p>
+        <p><strong>核心指标</strong>：V.S.U.N 衡量同时满足四个条件的比例，贴近实际材料发现需求。</p>
+        <p><strong>关键结果</strong>：MP-20 上 V.S.U.N 提升 81.4%，Alex-MP-20 上提升 82.6%，与 CDVAE、ADiT、FlowLLM、MMDF 等基线对比均显著改进。</p>
+        <p><strong>消融实验</strong>：验证了能量感知权重项的必要性、管道各步骤的贡献、不同 top-k% 的影响，以及 SIGReg 替代方案的可行性。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>图 1</strong>：稳定性-新颖性权衡可视化。(a) 不同模型在稳定性 vs 新颖性空间中的位置呈明显负相关。(b) 按与训练分布的距离排列，稳定性单调下降、新颖性单调上升，S.U.N 几乎平坦，说明几乎没有"中间地带"。</p>
+        <p><strong>图 3</strong>：Crys-JEPA 潜空间 UMAP 可视化。形成能从低（红色）到高（黄色）呈现清晰的流形结构，验证嵌入空间的能量感知组织。</p>
+        <p><strong>表 1</strong>：MP-20 和 Alex-MP-20 上主要结果，Crys-JEPA 管道在 V.S.U.N 上大幅领先所有基线。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>JEPA 架构可能存在表征坍缩或部分坍缩，低维可视化可能产生误导性结构</li>
+          <li>用平均嵌入距离替代精确凸包优化是一种简化，某些化学体系中可能不够准确</li>
+          <li>管道效果受限于基础生成模型质量——无法生成足够多样的候选则筛选也难以找到好的样本</li>
+          <li>实验限于 ≤20 原子/晶胞的晶体，更大体系的可扩展性尚未验证</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.14759</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-05</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">材料科学 / 生成模型</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">MP-20, Alex-MP-20</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">V.S.U.N</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">MP-20 提升 81.4%，Alex-MP-20 提升 82.6%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">CDVAE, ADiT, FlowLLM, MMDF, DiffCSP++</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">将 JEPA 框架创新性地应用于材料科学，将形成能差异融入对比学习权重，是巧妙的跨领域结合。筛选-精炼管道简洁有效——不需改变底层生成架构，通过更好的训练数据分布引导模型。这种方法论对其他需要同时优化多目标的场景（如药物分子生成中的活性-选择性权衡）也有启发价值。不过嵌入距离作为稳定性代理在所有化学体系中的可靠性仍需更多验证。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
