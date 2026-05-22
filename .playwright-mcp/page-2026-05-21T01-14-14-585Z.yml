@@ -1,0 +1,298 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - link "Skip to main content" [ref=e4] [cursor=pointer]:
+      - /url: "#content"
+    - generic [ref=e5]:
+      - link "Cornell University" [ref=e7] [cursor=pointer]:
+        - /url: https://www.cornell.edu/
+        - img "Cornell University" [ref=e8]
+      - link "Learn about arXiv becoming an independent nonprofit." [ref=e10] [cursor=pointer]:
+        - /url: https://tech.cornell.edu/arxiv/
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - text: We gratefully acknowledge support from the Simons Foundation,
+          - link "member institutions" [ref=e13] [cursor=pointer]:
+            - /url: https://info.arxiv.org/about/ourmembers.html
+          - text: ", and all contributors."
+        - link "Donate" [ref=e14] [cursor=pointer]:
+          - /url: https://info.arxiv.org/about/donate.html
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - link "arxiv logo" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - img "arxiv logo" [ref=e18]
+        - generic [ref=e19]: ">"
+        - link "cs" [ref=e20] [cursor=pointer]:
+          - /url: /list/cs/recent
+        - generic [ref=e21]: ">"
+        - text: arXiv:2512.10942
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - textbox "Search term or terms" [ref=e26]:
+            - /placeholder: Search...
+          - paragraph [ref=e27]:
+            - link "Help" [ref=e28] [cursor=pointer]:
+              - /url: https://info.arxiv.org/help
+            - text: "|"
+            - link "Advanced Search" [ref=e29] [cursor=pointer]:
+              - /url: https://arxiv.org/search/advanced
+        - combobox "Field to search" [ref=e31]:
+          - option "All fields" [selected]
+          - option "Title"
+          - option "Author"
+          - option "Abstract"
+          - option "Comments"
+          - option "Journal reference"
+          - option "ACM classification"
+          - option "MSC classification"
+          - option "Report number"
+          - option "arXiv identifier"
+          - option "DOI"
+          - option "ORCID"
+          - option "arXiv author ID"
+          - option "Help pages"
+          - option "Full text"
+        - button "Search" [ref=e32] [cursor=pointer]
+  - main [ref=e33]:
+    - generic [ref=e35]:
+      - generic [ref=e36]:
+        - heading "Computer Science > Computer Vision and Pattern Recognition" [level=1] [ref=e38]
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - text: "[Submitted on 11 Dec 2025 ("
+            - link "v1" [ref=e42] [cursor=pointer]:
+              - /url: https://arxiv.org/abs/2512.10942v1
+            - text: ), last revised 2 Feb 2026 (this version, v2)]
+          - 'heading "VL-JEPA: Joint Embedding Predictive Architecture for Vision-language" [level=1] [ref=e43]'
+          - generic [ref=e44]:
+            - link "Delong Chen" [ref=e45] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Chen,+D
+            - text: ","
+            - link "Mustafa Shukor" [ref=e46] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Shukor,+M
+            - text: ","
+            - link "Theo Moutakanni" [ref=e47] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Moutakanni,+T
+            - text: ","
+            - link "Willy Chung" [ref=e48] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Chung,+W
+            - text: ","
+            - link "Jade Yu" [ref=e49] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Yu,+J
+            - text: ","
+            - link "Tejaswi Kasarla" [ref=e50] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Kasarla,+T
+            - text: ","
+            - link "Yejin Bang" [ref=e51] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Bang,+Y
+            - text: ","
+            - link "Allen Bolourchi" [ref=e52] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Bolourchi,+A
+            - text: ","
+            - link "Yann LeCun" [ref=e53] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=LeCun,+Y
+            - text: ","
+            - link "Pascale Fung" [ref=e54] [cursor=pointer]:
+              - /url: https://arxiv.org/search/cs?searchtype=author&query=Fung,+P
+          - blockquote [ref=e55]: "We introduce VL-JEPA, a vision-language model built on a Joint Embedding Predictive Architecture (JEPA). Instead of autoregressively generating tokens as in classical VLMs, VL-JEPA predicts continuous embeddings of the target texts. By learning in an abstract representation space, the model focuses on task-relevant semantics while abstracting away surface-level linguistic variability. In a strictly controlled comparison against standard token-space VLM training with the same vision encoder and training data, VL-JEPA achieves stronger performance while having 50% fewer trainable parameters. At inference time, a lightweight text decoder is invoked only when needed to translate VL-JEPA predicted embeddings into text. We show that VL-JEPA natively supports selective decoding that reduces the number of decoding operations by 2.85x while maintaining similar performance compared to non-adaptive uniform decoding. Beyond generation, the VL-JEPA's embedding space naturally supports open-vocabulary classification, text-to-video retrieval, and discriminative VQA without any architecture modification. On eight video classification and eight video retrieval datasets, the average performance VL-JEPA surpasses that of CLIP, SigLIP2, and Perception Encoder. At the same time, the model achieves comparable performance as classical VLMs (InstructBLIP, QwenVL) on four VQA datasets: GQA, TallyQA, POPE and POPEv2, despite only having 1.6B parameters."
+          - table "Additional metadata" [ref=e57]:
+            - rowgroup [ref=e58]:
+              - 'row "Subjects: Computer Vision and Pattern Recognition (cs.CV)" [ref=e59]':
+                - cell "Subjects:" [ref=e60]
+                - cell "Computer Vision and Pattern Recognition (cs.CV)" [ref=e61]
+              - 'row "Cite as: arXiv:2512.10942 [cs.CV]" [ref=e62]':
+                - cell "Cite as:" [ref=e63]
+                - cell "arXiv:2512.10942 [cs.CV]" [ref=e64]:
+                  - generic [ref=e65]:
+                    - link "arXiv:2512.10942" [ref=e66] [cursor=pointer]:
+                      - /url: https://arxiv.org/abs/2512.10942
+                    - text: "[cs.CV]"
+              - row "(or arXiv:2512.10942v2 [cs.CV] for this version)" [ref=e67]:
+                - cell [ref=e68]
+                - cell "(or arXiv:2512.10942v2 [cs.CV] for this version)" [ref=e69]:
+                  - text: (or
+                  - generic [ref=e70]:
+                    - link "arXiv:2512.10942v2" [ref=e71] [cursor=pointer]:
+                      - /url: https://arxiv.org/abs/2512.10942v2
+                    - text: "[cs.CV]"
+                  - text: for this version)
+              - row "https://doi.org/10.48550/arXiv.2512.10942 Focus to learn more" [ref=e72]:
+                - cell [ref=e73]
+                - cell "https://doi.org/10.48550/arXiv.2512.10942 Focus to learn more" [ref=e74]:
+                  - link "https://doi.org/10.48550/arXiv.2512.10942" [ref=e75] [cursor=pointer]:
+                    - /url: https://doi.org/10.48550/arXiv.2512.10942
+                  - button "Focus to learn more" [ref=e77]:
+                    - generic [ref=e79]: Focus to learn more
+        - generic [ref=e80]:
+          - heading "Submission history" [level=2] [ref=e81]
+          - text: "From: Delong Chen ["
+          - link "view email" [ref=e82] [cursor=pointer]:
+            - /url: /show-email/abbbd64c/2512.10942
+          - text: "]"
+          - strong [ref=e83]:
+            - link "[v1]" [ref=e84] [cursor=pointer]:
+              - /url: /abs/2512.10942v1
+          - text: Thu, 11 Dec 2025 18:59:22 UTC (1,902 KB)
+          - strong [ref=e85]: "[v2]"
+          - text: Mon, 2 Feb 2026 12:38:20 UTC (1,906 KB)
+      - generic [ref=e86]:
+        - generic [ref=e87]:
+          - heading "Access Paper:" [level=2] [ref=e88]
+          - list [ref=e89]:
+            - listitem [ref=e90]:
+              - link "View PDF" [ref=e91] [cursor=pointer]:
+                - /url: /pdf/2512.10942
+            - listitem [ref=e92]:
+              - link "HTML (experimental)" [ref=e93] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2512.10942v2
+            - listitem [ref=e94]:
+              - link "TeX Source" [ref=e95] [cursor=pointer]:
+                - /url: /src/2512.10942
+          - link "view license" [ref=e97] [cursor=pointer]:
+            - /url: http://creativecommons.org/licenses/by/4.0/
+            - generic [ref=e98]: view license
+        - generic [ref=e99]:
+          - text: "Current browse context:"
+          - generic [ref=e100]: cs.CV
+          - generic [ref=e101]:
+            - link "< prev" [ref=e103] [cursor=pointer]:
+              - /url: /prevnext?id=2512.10942&function=prev&context=cs.CV
+            - text: "|"
+            - link "next >" [ref=e105] [cursor=pointer]:
+              - /url: /prevnext?id=2512.10942&function=next&context=cs.CV
+          - generic [ref=e106]:
+            - link "new" [ref=e107] [cursor=pointer]:
+              - /url: /list/cs.CV/new
+            - text: "|"
+            - link "recent" [ref=e108] [cursor=pointer]:
+              - /url: /list/cs.CV/recent
+            - text: "|"
+            - link "2025-12" [ref=e109] [cursor=pointer]:
+              - /url: /list/cs.CV/2025-12
+          - generic [ref=e110]:
+            - text: "Change to browse by:"
+            - link "cs" [ref=e112] [cursor=pointer]:
+              - /url: /abs/2512.10942?context=cs
+        - generic [ref=e113]:
+          - heading "References & Citations" [level=3] [ref=e114]
+          - list [ref=e115]:
+            - listitem [ref=e116]:
+              - link "NASA ADS" [ref=e117] [cursor=pointer]:
+                - /url: https://ui.adsabs.harvard.edu/abs/arXiv:2512.10942
+            - listitem [ref=e118]:
+              - link "Google Scholar" [ref=e119] [cursor=pointer]:
+                - /url: https://scholar.google.com/scholar_lookup?arxiv_id=2512.10942
+            - listitem [ref=e120]:
+              - link "Semantic Scholar" [ref=e121] [cursor=pointer]:
+                - /url: https://api.semanticscholar.org/arXiv:2512.10942
+        - generic [ref=e122]: export BibTeX citation
+        - generic [ref=e123]:
+          - heading "Bookmark" [level=3] [ref=e125]
+          - link "BibSonomy logo" [ref=e126] [cursor=pointer]:
+            - /url: "http://www.bibsonomy.org/BibtexHandler?requTask=upload&url=https://arxiv.org/abs/2512.10942&description=VL-JEPA: Joint Embedding Predictive Architecture for Vision-language"
+            - img "BibSonomy logo" [ref=e127]
+          - link "Reddit logo" [ref=e128] [cursor=pointer]:
+            - /url: "https://reddit.com/submit?url=https://arxiv.org/abs/2512.10942&title=VL-JEPA: Joint Embedding Predictive Architecture for Vision-language"
+            - img "Reddit logo" [ref=e129]
+      - generic [ref=e131]:
+        - radio "Bibliographic Tools" [checked] [ref=e132]
+        - generic [ref=e133] [cursor=pointer]: Bibliographic Tools
+        - generic [ref=e134]:
+          - heading "Bibliographic and Citation Tools" [level=1] [ref=e135]
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - generic [ref=e139]:
+                - checkbox "Bibliographic Explorer Toggle"
+                - generic [ref=e141]: Bibliographic Explorer Toggle
+              - generic [ref=e142]:
+                - text: Bibliographic Explorer
+                - emphasis [ref=e143]:
+                  - text: (
+                  - link "What is the Explorer?" [ref=e144] [cursor=pointer]:
+                    - /url: https://info.arxiv.org/labs/showcase.html#arxiv-bibliographic-explorer
+                  - text: )
+            - generic [ref=e145]:
+              - generic [ref=e147]:
+                - checkbox "Connected Papers"
+                - generic [ref=e149]: Connected Papers Toggle
+              - generic [ref=e150]:
+                - text: Connected Papers
+                - emphasis [ref=e151]:
+                  - text: (
+                  - link "What is Connected Papers?" [ref=e152] [cursor=pointer]:
+                    - /url: https://www.connectedpapers.com/about
+                  - text: )
+            - generic [ref=e153]:
+              - generic [ref=e155]:
+                - checkbox "Litmaps"
+                - generic [ref=e157]: Litmaps Toggle
+              - generic [ref=e158]:
+                - text: Litmaps
+                - emphasis [ref=e159]:
+                  - text: (
+                  - link "What is Litmaps?" [ref=e160] [cursor=pointer]:
+                    - /url: https://www.litmaps.co/
+                  - text: )
+            - generic [ref=e161]:
+              - generic [ref=e163]:
+                - checkbox "scite Smart Citations"
+                - generic [ref=e165]: scite.ai Toggle
+              - generic [ref=e166]:
+                - text: scite Smart Citations
+                - emphasis [ref=e167]:
+                  - text: (
+                  - link "What are Smart Citations?" [ref=e168] [cursor=pointer]:
+                    - /url: https://www.scite.ai/
+                  - text: )
+        - radio "Code, Data, Media" [ref=e172]
+        - generic [ref=e173] [cursor=pointer]: Code, Data, Media
+        - radio "Demos" [ref=e174]
+        - generic [ref=e175] [cursor=pointer]: Demos
+        - radio "Related Papers" [ref=e176]
+        - generic [ref=e177] [cursor=pointer]: Related Papers
+        - radio "About arXivLabs" [ref=e178]
+        - generic [ref=e179] [cursor=pointer]: About arXivLabs
+      - generic [ref=e180]:
+        - link "Which authors of this paper are endorsers?" [ref=e181] [cursor=pointer]:
+          - /url: /auth/show-endorsers/2512.10942
+        - text: "|"
+        - link "Disable MathJax" [ref=e182] [cursor=pointer]:
+          - /url: javascript:setMathjaxCookie()
+        - text: (
+        - link "What is MathJax?" [ref=e183] [cursor=pointer]:
+          - /url: https://info.arxiv.org/help/mathjax.html
+        - text: )
+  - contentinfo [ref=e184]:
+    - navigation "Secondary" [ref=e185]:
+      - generic [ref=e187]:
+        - list [ref=e189]:
+          - listitem [ref=e190]:
+            - link "About" [ref=e191] [cursor=pointer]:
+              - /url: https://info.arxiv.org/about
+          - listitem [ref=e192]:
+            - link "Help" [ref=e193] [cursor=pointer]:
+              - /url: https://info.arxiv.org/help
+        - list [ref=e195]:
+          - listitem [ref=e196]:
+            - link "Contact" [ref=e198] [cursor=pointer]:
+              - /url: https://info.arxiv.org/help/contact.html
+          - listitem [ref=e199]:
+            - link "Subscribe" [ref=e201] [cursor=pointer]:
+              - /url: https://info.arxiv.org/help/subscribe
+      - generic [ref=e203]:
+        - list [ref=e205]:
+          - listitem [ref=e206]:
+            - link "Copyright" [ref=e207] [cursor=pointer]:
+              - /url: https://info.arxiv.org/help/license/index.html
+          - listitem [ref=e208]:
+            - link "Privacy Policy" [ref=e209] [cursor=pointer]:
+              - /url: https://info.arxiv.org/help/policies/privacy_policy.html
+        - list [ref=e211]:
+          - listitem [ref=e212]:
+            - link "Web Accessibility Assistance" [ref=e213] [cursor=pointer]:
+              - /url: https://info.arxiv.org/help/web_accessibility.html
+          - listitem [ref=e214]:
+            - paragraph [ref=e215]:
+              - link "arXiv Operational Status" [ref=e216] [cursor=pointer]:
+                - /url: https://status.arxiv.org
+                - text: arXiv Operational Status

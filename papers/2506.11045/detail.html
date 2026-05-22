@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procedural Environment Generation for Tool-Use Agents - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Procedural Environment Generation for Tool-Use Agents</h1>
+  <div class="meta">
+    <span>Michael Sullivan, Mareike Hartmann, Alexander Koller</span>
+    <span>2025-05-21</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2506.11045" target="_blank">arXiv:2506.11045</a>
+  </div>
+  <div class="tags">
+    <span class="tag">工具使用智能体</span>
+    <span class="tag">过程化生成</span>
+    <span class="tag">强化学习</span>
+    <span class="tag">合成数据</span>
+    <span class="tag">LLM 微调</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>RandomWorld 是一个通过过程化生成创建可交互工具和非线性组合任务的流水线，利用合成数据对 LLM 进行 SFT 和 RL 训练，在多个工具使用基准上取得性能提升，并在 NESTFUL 数据集上创下两个指标的新 SOTA。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>理解本论文需要以下基础概念：</p>
+        <ul>
+          <li><strong>LLM 工具使用（Tool Use）</strong>：让大语言模型调用外部 API/函数来增强能力，如搜索信息、执行计算、操作文件等。模型需要学会何时调用、调用哪个工具、传什么参数。</li>
+          <li><strong>在线强化学习（Online RL）</strong>：模型在环境中实时交互并获得奖励信号来更新策略。与离线 SFT 不同，RL 训练需要环境是可交互的（工具可以被实际调用并返回结果）。</li>
+          <li><strong>轨迹骨架（Trajectory Skeleton）</strong>：一系列工具调用的抽象序列，标注了每个调用的输入来自哪些先前调用的输出。它是一个 DAG（有向无环图），而非简单的线性链。</li>
+          <li><strong>组合性（Compositionality）</strong>：任务需要多个工具按特定顺序组合完成。非线性组合性意味着工具调用之间可以存在分支和汇合，形成 DAG 结构而非简单链式调用。</li>
+          <li><strong>GRPO（Group Relative Policy Optimization）</strong>：一种在线 RL 算法，属于策略梯度方法的变体，通过组内相对比较来估计优势函数，减少对价值网络的依赖。</li>
+          <li><strong>SFT（Supervised Fine-Tuning）</strong>：监督微调，直接在标注好的输入-输出对上训练模型，是传统的微调方式。</li>
+          <li><strong>LoRA（Low-Rank Adaptation）</strong>：一种参数高效的微调方法，只训练低秩分解后的少量参数，而非整个模型。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>RandomWorld 的核心思想可以用"程序化世界构建"来类比：</p>
+        <p>想象你在玩一款像 Minecraft 这样的游戏，游戏世界是程序化生成的——地形、生物、任务都不是人工设计的，而是由算法自动创建的。RandomWorld 对 LLM 工具使用训练做了同样的事情：它不依赖真实世界的 API 或人工编写的任务，而是自动生成虚拟的"工具世界"。</p>
+        <p>这个世界的三个关键特征是：</p>
+        <ul>
+          <li><strong>深度（Depth）</strong>：拥有大量来自不同领域的工具（550 个合成工具 + 6 个手工工具），让模型学会泛化到未见过的工具，而不是死记硬背少数几个工具的用法。</li>
+          <li><strong>非线性组合性（Non-linear Compositionality）</strong>：生成的任务不是简单的"A → B → C"线性调用链，而是可以包含分支和汇合的 DAG 结构。例如，"找到亚马逊购物车中第 N 和第 M 个商品，分别查价格，再求总价"——两条分支最终汇合到一个加法工具。</li>
+          <li><strong>可交互性（Interactivity）</strong>：工具是真正可调用的函数，不是文本描述。模型在 RL 训练中可以实际调用工具、看到中间结果、根据结果调整后续行为。这与大多数现有工具使用数据集（只有静态的文本标注）形成鲜明对比。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p>RandomWorld 的流水线分为四个主要步骤：</p>
+        <h4>步骤 1：类型系统构建（Section 3.1）</h4>
+        <ul>
+          <li>定义 73 个基础类型，是 Python 内置类型（string、int、float）的细粒度子类型。例如：<code>actor-name</code> 是 <code>person-name</code> 的子类型，<code>person-name</code> 是 <code>string</code> 的子类型。</li>
+          <li>每个类型配有三个组件：描述（用于工具生成时的 LLM 提示）、生成器（生成该类型的随机实例）、识别器（判断一个值是否属于该类型）。</li>
+          <li>通过三种类型构造器（list、dict、union）可以理论上生成无限多的复合类型。</li>
+        </ul>
+        <h4>步骤 2：工具自动生成（Section 3.2）</h4>
+        <ul>
+          <li>随机采样输入类型和输出类型。</li>
+          <li>将类型信息传给 LLM（GPT-4o），让它生成一个合理的工具名称和描述。</li>
+          <li>LLM 还需给工具的合理性和真实感打分（1-5 分），低于 4 分的工具被丢弃（约 89% 的候选工具被过滤）。</li>
+          <li>通过的工具有确定性：相同的输入总是返回相同输出（通过缓存输入/输出对实现），且输出值通过类型生成器生成，保证类型安全。</li>
+          <li>支持依赖类型工具：输出类型依赖于输入值。例如 <code>add</code> 对两个 <code>price</code> 求和，输出仍然是 <code>price</code>。</li>
+        </ul>
+        <h4>步骤 3：环境与指令生成（Section 3.3）</h4>
+        <p>这是 RandomWorld 最关键的创新——"从调用序列到指令"的逆向生成方式：</p>
+        <ul>
+          <li><strong>3.3.1 轨迹骨架生成</strong>：先采样用户输入类型和轨迹长度，然后通过类型引导的采样过程逐步选择兼容的工具，构建出一个 DAG 形式的调用序列。关键细节：会删除所有"无用"的工具调用（其输出不被任何后续调用使用），然后补充新的调用，反复迭代直到所有调用都有用。</li>
+          <li><strong>3.3.2 环境构建</strong>：根据轨迹骨架采样具体的输入/输出值，填充环境数据结构。可选地为工具分配"应用"，要求 agent 先登录才能使用。</li>
+          <li><strong>3.3.3 指令生成</strong>：用 LLM 根据轨迹骨架和用户输入值生成自然语言指令。为了防止泄露中间结果，所有非用户输入值都被替换为变量名。生成后还需用另一个 LLM 验证指令是否包含足够信息（约 60% 的环境通过了验证）。</li>
+        </ul>
+        <h4>步骤 4：智能体接口（Section 3.4）</h4>
+        <ul>
+          <li>与 TRL 文本环境完全兼容，支持 RL 和 SFT 两种训练方式。</li>
+          <li>提示词由工具清单（含干扰工具）+ 指令构成，干扰工具与真实工具的比例为 1:1。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>公式 1：列表子类型关系</strong></p>
+        <p><code>list(A) ≤ B</code> 当且仅当存在 C 使得 <code>B = list(C)</code> 且 <code>A ≤ C</code>。含义：一个"整数列表"也是"数字列表"的子类型（如果 int ≤ number），但列表类型不能与非列表类型有子类型关系。</p>
+        <p><strong>公式 2：字典子类型关系</strong></p>
+        <p><code>dict(A, B) ≤ C</code> 当且仅当 C 是 <code>dict(X, Y)</code> 的形式，且 A ≥ X（键的类型逆变）和 B ≤ Y（值的类型协变）。这遵循了编程语言中泛型类型的标准协变/逆变规则。</p>
+        <p><strong>公式 3a/3b：联合类型子类型关系</strong></p>
+        <ul>
+          <li><code>union(A, B) ≤ C</code> 当 A ≤ C 且 B ≤ C（联合类型是两个分支的公共超类型的子类型）</li>
+          <li><code>C ≤ union(A, B)</code> 当 C ≤ A 或 C ≤ B（任何属于联合类型之一的类型也是联合类型的子类型）</li>
+        </ul>
+        <p><strong>公式 4a/4b/4c：类型识别器</strong></p>
+        <p>递归定义：联合类型的识别器检查值是否属于任一分支；列表类型检查是否为列表且每个元素满足元素类型的识别器；字典类型检查键值对的类型。</p>
+        <p><strong>GRPO 训练</strong></p>
+        <p>使用精确匹配奖励函数——如果 agent 返回的最终值与目标状态完全一致则奖励 1，否则为 0。GRPO 的组大小为 8，损失仅针对策略生成的文本（工具调用动作），不包含工具返回的输出。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p>实验设计回答了三个关键问题：</p>
+        <h4>问题 1：合成数据是否有效？</h4>
+        <ul>
+          <li>基础模型：Llama-3.1-8B-Instruct 和 Qwen2.5-7B-Instruct。</li>
+          <li>训练数据：12,000 个从 556 个工具（550 合成 + 6 手工）生成的环境，轨迹长度 2-8。</li>
+          <li>对比模型：ToolACE-8B（同基础模型，SFT 训练）、Hammer2.0-7B（同基础模型，SFT 训练在更多数据上）。</li>
+          <li>评估基准：RandomWorld 测试集（276 个环境，用训练时未见的 75 个工具）、ToolQA（Easy/Hard）、NESTFUL（5 个指标）。</li>
+          <li>选择这些基准的理由：RandomWorld 测试集测分布内泛化；ToolQA 测分布外泛化（12 个真实工具）；NESTFUL 测 API 调用链的正确性（4000+ 真实 API）。</li>
+        </ul>
+        <h4>问题 2：数据量如何影响性能？</h4>
+        <ul>
+          <li>可扩展性研究：分别减少 75% 的工具、75% 的任务、或两者同时减少。</li>
+          <li>发现：任务数量比工具数量影响更大；但工具少时，任务数的影响更显著。</li>
+        </ul>
+        <h4>问题 3：训练方式（SFT vs RL）哪个更好？</h4>
+        <ul>
+          <li>Qwen 模型上 SFT 整体更好（NESTFUL SOTA），Llama 模型上 RL 整体更好。</li>
+          <li>说明训练方式的选择与基础模型有关。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>Figure 1</strong>：展示了一个 agent 在 RandomWorld 环境中执行非线性组合任务的完整过程，包括流水线各组件的可视化。</li>
+          <li><strong>Figure 2</strong>：一个非线性轨迹骨架的示例，展示 DAG 结构——"亚马逊购物车中第 N 和第 M 个商品，分别查价格，再求总价"。</li>
+          <li><strong>Figure 3</strong>：RandomWorld 的完整类型层次结构，73 个基础类型及其父子关系的树状图。</li>
+          <li><strong>Table 1</strong>：RandomWorld 与现有工具使用数据集的对比——唯一同时满足交互性、深度工具库、合成性、组合性五个条件的数据集。</li>
+          <li><strong>Table 2</strong>：主要实验结果，展示了所有模型在三个基准上的表现。</li>
+          <li><strong>Table 3</strong>：可扩展性研究——工具数量和任务数量对下游性能的影响。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>实验方面</strong>：</p>
+        <ul>
+          <li>仅在 7-8B 参数量的小模型上实验，未验证更大模型的效果。</li>
+          <li>训练规模较小（12,000 任务，556 工具），主要受计算资源限制。</li>
+          <li>仅在三个基准上评估。</li>
+          <li>未尝试课程学习等更高级的训练策略。</li>
+        </ul>
+        <p><strong>方法方面</strong>：</p>
+        <ul>
+          <li>工具和指令生成质量受限于使用的 LLM（GPT-4o）。</li>
+          <li>指令验证 LLM 可能错误过滤掉困难但合理的任务（验证 LLM 完不成的任务不代表指令不好）。</li>
+          <li>工具输出是类型生成器随机生成的，不是真实世界的行为，可能缺乏语义一致性。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2506.11045</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-05-21</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">工具使用智能体 / 合成数据</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">RandomWorld 测试集、ToolQA、NESTFUL</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">EM、F1F、F1P、Sequence Acc、Win Rate</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">Qwen-RW-SFT 在 NESTFUL 创 F1F(0.96) 和 F1P(0.71) 新 SOTA；超越 Mixtral-8x22B (141B)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">ToolACE-8B、Hammer2.0-7B、Mixtral-8x22B、GPT-3.5</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        <p>RandomWorld 最大的贡献在于解决了工具使用 RL 训练中"环境从哪里来"的根本问题。通过类型系统保证结构正确性，通过 LLM 保证语义合理性，通过验证机制过滤低质量数据——三重保障让合成数据的质量出奇地好。</p>
+        <p>一个值得深思的发现是：仅用 12,000 个合成任务训练的 Qwen 模型，竟然在 NESTFUL 上超过了参数量 20 倍的 Mixtral-8x22B，这说明数据质量（交互性 + 组合性 + 正确的逆向生成）远比数据数量或模型规模重要。</p>
+        <p>另一个有趣的发现是 SFT 和 RL 的效果因基础模型而异——Qwen 上 SFT 更好，Llama 上 RL 更好。这暗示不同基础模型的预训练数据分布可能影响最佳的微调策略选择。</p>
+        <p>可扩展性研究的结论很振奋：性能随数据量增长而提升，且没有饱和迹象，意味着继续增加合成数据可能进一步提升效果。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
