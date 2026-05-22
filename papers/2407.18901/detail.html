@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AppWorld: A Controllable World of Apps and People for Benchmarking Interactive Coding Agents - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AppWorld: A Controllable World of Apps and People for Benchmarking Interactive Coding Agents</h1>
+  <div class="meta">
+    <span>Harsh Trivedi, Tushar Khot, Mareike Hartmann, Ruskin Manku, Vinty Dong, Edward Li, Shashank Gupta, Ashish Sabharwal, Niranjan Balasubramanian</span>
+    <span>2024-07-26</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2407.18901" target="_blank">arXiv:2407.18901</a>
+  </div>
+  <div class="tags">
+    <span class="tag">自主智能体</span>
+    <span class="tag">代码生成</span>
+    <span class="tag">基准测试</span>
+    <span class="tag">API 调用</span>
+    <span class="tag">工具使用</span>
+    <span class="tag">交互式编码</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>AppWorld 构建了一个由 9 个日常应用和 457 个 API 组成的可控执行环境，以及包含 750 个任务的基准测试套件，专门用于评估需要通过编写复杂代码与多个应用交互的自主编码智能体。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>理解本论文需要掌握以下基础概念：</p>
+        <ul>
+          <li><strong>自主智能体（Autonomous Agent）</strong>：能够根据自然语言指令，自动规划并执行一系列操作来完成任务的 AI 系统。与传统的单次问答不同，智能体需要在环境中反复交互——观察结果、调整策略、继续执行。</li>
+          <li><strong>工具使用/函数调用（Tool Use / Function Calling）</strong>：大语言模型通过调用外部工具（如 API）来完成超出其自身能力的任务。例如查询数据库、发送消息、下单购物等。现有的基准测试大多只涉及简单的线性 API 调用序列。</li>
+          <li><strong>交互式代码生成（Interactive Code Generation）</strong>：智能体不仅要调用 API，还需要编写包含复杂控制流（循环、条件判断、异常处理）的代码，并且在与环境交互的过程中迭代地修改和完善代码。</li>
+          <li><strong>沙箱执行环境（Sandboxed Execution Environment）</strong>：一个安全隔离的代码运行环境，智能体在其中执行代码不会影响真实世界。AppWorld 就是这样一种环境。</li>
+          <li><strong>附带损害（Collateral Damage）</strong>：智能体在完成主要任务时，意外修改或破坏了与任务无关的数据。例如，任务是给 Alice 转账，但智能体不小心删除了 Bob 的联系人信息。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>可以用一个生活中的类比来理解 AppWorld：想象你有一个数字助手，你需要让它帮你完成"查看冰箱里的食材清单（在笔记应用中），然后根据缺少的物品在购物应用下单，最后通过消息应用告诉家人买了什么"这样的跨应用任务。</p>
+        <p>现有的基准测试存在一个根本性缺陷：它们假设智能体只需要按顺序调用几个 API 就能完成任务。但现实世界中的日常数字任务远比这复杂——它们需要跨多个应用操作，需要编写包含循环、条件判断的代码，需要在执行过程中根据反馈动态调整。</p>
+        <p>AppWorld 的核心思想是构建一个<strong>完整的、可执行的、可控的数字世界</strong>：</p>
+        <ul>
+          <li><strong>AppWorld Engine（引擎）</strong>：这是一个包含 9 个日常应用（笔记、消息、通讯录、购物、银行、音乐、电影、天气、支出追踪）的执行环境，共有 457 个 API，模拟了约 100 个虚构用户的真实数字生活。引擎约 6 万行代码，每个应用都有完整的后端逻辑和数据库。</li>
+          <li><strong>AppWorld Benchmark（基准）</strong>：包含 750 个自然、多样且具有挑战性的任务。每个任务不仅要求智能体调用 API，还要求编写具有复杂控制流的代码。基准约 4 万行代码，包括任务描述、参考解答和自动化测试。</li>
+          <li><strong>评估机制</strong>：使用基于状态的单元测试（state-based unit tests）进行评估。这种评估方式允许不同的完成任务路径（殊途同归），同时检测附带损害（确保智能体没有意外修改无关数据）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：构建 AppWorld Engine</h4>
+        <ul>
+          <li>设计 9 个日常应用：Contacts（通讯录）、Messaging（消息）、Notes（笔记）、Shopping（购物）、Banking（银行）、Music（音乐）、Movies（电影）、Weather（天气）、Expense Tracking（支出追踪）</li>
+          <li>为每个应用实现完整的后端 API，共计 457 个可调用的 API</li>
+          <li>使用 SQLite 数据库存储应用状态，每个应用有独立的数据表</li>
+          <li>填充约 100 个虚构用户的数据，包括联系人、消息历史、购物记录、银行账户、音乐播放列表等，确保数据之间的关联关系真实合理</li>
+        </ul>
+
+        <h4>第二步：创建 AppWorld Benchmark 任务</h4>
+        <ul>
+          <li>设计 750 个任务，分为 "normal"（一般难度）和 "challenge"（高难度）两个级别</li>
+          <li>每个任务包含：自然语言指令、ground truth 代码解答、测试用例</li>
+          <li>任务需要跨多个应用操作，例如"查看 Alice 的生日（通讯录），给她买一份她最喜欢的歌手的专辑（音乐+购物），然后发消息告诉她（消息）"</li>
+          <li>任务的参考解答代码平均包含循环、条件判断、异常处理等复杂控制流</li>
+        </ul>
+
+        <h4>第三步：设计评估框架</h4>
+        <ul>
+          <li>采用基于状态的单元测试：执行智能体生成的代码后，检查应用的最终状态是否满足预期</li>
+          <li>支持多解性：不同的代码实现方式只要最终状态正确都算通过</li>
+          <li>附带损害检测：除了验证任务目标是否达成，还检查无关数据是否被意外修改</li>
+          <li>将评估分为两个维度：completion（任务完成度）和 collateral damage（附带损害率）</li>
+        </ul>
+
+        <h4>第四步：实验评估</h4>
+        <ul>
+          <li>测试多个 LLM：GPT-4o、GPT-4-Turbo、Claude-3、Gemini-1.5-Pro、Llama-3-70B 等</li>
+          <li>使用 ReAct 风格的智能体框架，让模型在多轮交互中生成代码、观察执行结果、调整代码</li>
+          <li>分析错误类型：API 调用错误、逻辑错误、控制流错误、附带损害等</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p>本论文的核心不在于数学公式，而在于系统设计和评估框架。以下是几个关键的技术设计：</p>
+        <ul>
+          <li><strong>任务评估机制</strong>：对于每个任务 t，智能体的输出代码 c 在 AppWorld Engine 中执行后，得到最终应用状态 S_final。评估通过测试函数来验证：Completion Check（检查主要目标是否达成）和 Collateral Check（检查无关数据是否被修改）。只有两者都通过，任务才算完全成功。</li>
+          <li><strong>智能体交互流程</strong>：接收自然语言任务描述 → 生成 Python 代码调用 AppWorld API → 在沙箱环境中执行代码 → 观察执行结果（输出、错误信息）→ 根据反馈决定是否需要修改代码并重新执行 → 重复直到任务完成或达到最大交互轮数。</li>
+          <li><strong>API 设计模式</strong>：每个 API 遵循统一的设计模式——接收结构化参数、返回 JSON 格式结果、维护应用状态的一致性。例如 search_contacts(name="Alice") 返回匹配的联系人列表，send_message(to=contact_id, body="Hello") 发送消息并更新消息历史。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>为什么选择这些应用和数据集？</strong></p>
+        <ul>
+          <li>9 个应用覆盖了日常生活中最常见的数字操作场景：沟通（消息、通讯录）、信息管理（笔记、支出追踪）、娱乐（音乐、电影）、日常生活（购物、天气、银行）</li>
+          <li>这些应用的组合能够模拟真实的跨应用任务链，比单应用场景更具挑战性</li>
+          <li>约 100 个虚构用户的数据确保了任务的多样性和真实性</li>
+        </ul>
+        <p><strong>关键实验结果：</strong></p>
+        <ul>
+          <li><strong>GPT-4o</strong> 在 normal 任务上完成率约 49%，challenge 任务约 30%</li>
+          <li>其他模型（GPT-4-Turbo、Claude-3、Gemini-1.5-Pro）比 GPT-4o 至少低 16 个百分点</li>
+          <li>附带损害是一个普遍问题：即使任务完成了，很多智能体也会意外修改无关数据</li>
+          <li>主要错误类型包括：API 使用错误（参数错误、调用顺序错误）、逻辑推理错误（对任务需求理解偏差）、控制流错误（循环/条件判断逻辑不对）</li>
+        </ul>
+        <p><strong>为什么这些结果有意义？</strong></p>
+        <p>这些结果表明，即使是最先进的 LLM，在面对需要编写复杂代码并与多个应用交互的任务时，表现仍然远远不够理想。这揭示了现有智能体在真实世界应用场景中的局限性，也为未来的研究指明了方向。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图 1（论文首页图）</strong>：展示了 AppWorld 的整体概念——一个智能体接收自然语言任务，通过编写 Python 代码与多个应用交互完成任务。图中展示了一个具体的任务示例：用户要求查看某人的购物清单、计算总价、转账并通知对方。</li>
+          <li><strong>图 2（AppWorld Engine 架构图）</strong>：展示了 9 个应用及其 API 架构，以及它们如何通过统一的接口与智能体交互。每个应用都有独立的数据库，API 调用会透明地维护应用状态。</li>
+          <li><strong>图 3（任务分布统计）</strong>：展示了 750 个任务在不同维度上的分布——涉及的应用数量、API 调用次数、代码复杂度（行数、控制流结构数量）等。大部分任务需要跨 2-4 个应用操作。</li>
+          <li><strong>图 4（主要实验结果柱状图）</strong>：对比了不同 LLM 在 normal 和 challenge 任务上的表现。GPT-4o 领先但绝对分数仍然不高，所有模型在 challenge 任务上的表现都显著下降。</li>
+          <li><strong>图 5（错误分析饼图）</strong>：展示了不同类型的错误分布。API 使用错误和逻辑推理错误是最主要的两大类错误。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>应用范围有限</strong>：虽然 9 个应用覆盖了日常场景，但真实世界的应用生态远比这复杂（社交媒体、地图导航、文件管理等均未包含）。</li>
+          <li><strong>无 GUI 交互</strong>：AppWorld 只支持 API 交互，而真实的智能体可能需要通过图形界面操作应用。</li>
+          <li><strong>语言限制</strong>：任务和 API 都是英文的，没有覆盖多语言场景。</li>
+          <li><strong>静态数据</strong>：虚构用户的数据是固定的，不会像真实世界那样持续更新和变化。</li>
+          <li><strong>缺乏多用户交互</strong>：模拟的是单用户视角，没有考虑多用户并发操作的场景。</li>
+          <li><strong>没有涉及长期记忆</strong>：任务都是独立的，没有测试智能体在多天/多任务间的记忆和持续学习能力。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2407.18901</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2024-07-26</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">软件工程、AI、NLP、ML</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">AppWorld Benchmark (750 任务, 9 应用, 457 API)</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Completion Rate, Collateral Damage Rate</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">GPT-4o: ~49% normal, ~30% challenge</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">GPT-4o, GPT-4-Turbo, Claude-3, Gemini-1.5-Pro, Llama-3</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box"><p>AppWorld 是一个非常精心设计的基准测试，它准确地抓住了当前智能体评估中的一个关键空白——现有基准过于简化，不能反映真实世界中跨应用、需要复杂代码生成任务的挑战。</p><p>"附带损害"这个概念非常有价值，应该在更多基准测试中被采纳。750 个任务虽然不算多，但每个任务都有手工编写的参考解答和测试用例，质量优先于数量。</p><p>即使是最强的 GPT-4o 也只能解决约一半的 normal 任务，说明这个领域还有很大的提升空间。特别是复杂控制流的代码生成和多步推理能力，是未来需要重点突破的方向。</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
