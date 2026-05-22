@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rewarding the Scientific Process: Process-Level Reward Modeling for Agentic Data Analysis - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Rewarding the Scientific Process: Process-Level Reward Modeling for Agentic Data Analysis</h1>
+  <div class="meta">
+    <span>Zhisong Qiu, Shuofei Qiao, Kewei Xu, Yuqi Zhu, Lun Du, Ningyu Zhang, Huajun Chen</span>
+    <span>2025-04</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.24198" target="_blank">arXiv:2604.24198</a>
+  </div>
+  <div class="tags">
+    <span class="tag">Process Reward Models</span>
+    <span class="tag">Data Analysis Agent</span>
+    <span class="tag">Large Language Models</span>
+    <span class="tag">Test-Time Scaling</span>
+    <span class="tag">Reinforcement Learning</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>本文提出 DataPRM，一种面向数据分析 Agent 的环境感知型过程奖励模型，通过主动环境交互验证和反思感知的三元奖励策略，解决现有 PRM 在数据分析任务中无法检测静默错误和误判探索性错误的问题。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>要理解这篇论文，需要了解以下概念：</p>
+        <p><strong>Process Reward Model (PRM)</strong>：过程奖励模型，与只关注最终结果正确性的 Outcome Reward Model (ORM) 不同，PRM 对 Agent 解决问题的每一步都给出评分。可以类比为一个"逐题批改"的老师 vs "只看总分"的考试制度。PRM 之前在数学推理、代码生成等静态领域已经很成功了。</p>
+        <p><strong>Data Analysis Agent</strong>：数据分析 Agent，即用大语言模型驱动的自动化数据分析系统。它能读取文件、编写和执行代码、分析数据并输出结果。采用 ReAct 范式——先思考再行动，行动后观察环境反馈。</p>
+        <p><strong>Silent Error（静默错误）</strong>：代码执行没有报错（没有抛出异常），但结果实际上是错误的。比如代码成功运行并生成了可视化图表，但图表中缺少了某个关键的数据缓冲区——从代码执行角度来说"没有错"，但从分析结果角度看是错的。</p>
+        <p><strong>Grounding Error（接地错误）</strong>：Agent 在初次接触数据时因为不了解数据的实际结构（比如猜错了列名）而产生的错误。这类错误通常是可恢复的——Agent 通过环境反馈可以自我纠正。类似于你在陌生城市第一次走错路，但看了路标后就能找到正确方向。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>这篇论文的核心洞察是：<strong>现有的通用 PRM 在数据分析任务上"水土不服"</strong>。</p>
+        <p>想象一个场景：你让 AI 分析一个复杂的数据集。AI 可能会：</p>
+        <ol>
+          <li>先试探性地查看数据结构（可能因为不熟悉列名而报错）</li>
+          <li>逐步分析数据（中间可能有逻辑错误但代码不报错）</li>
+          <li>最终给出结果</li>
+        </ol>
+        <p>现有 PRM 的问题是：</p>
+        <ul>
+          <li>看到"报错"就判为坏步骤 → 但试探性报错其实是正常探索</li>
+          <li>看到代码"运行成功"就判为好步骤 → 但可能结果根本就是错的</li>
+        </ul>
+        <p>DataPRM 的解决方案可以类比为一个<strong>有实验室权限的审稿人</strong>：</p>
+        <ul>
+          <li><strong>主动验证</strong>：不只是"看"代码文本，还能实际运行代码、调用工具来检查结果是否正确</li>
+          <li><strong>区分错误类型</strong>：把错误分为"致命错误"和"可恢复的探索性错误"，对后者给予宽容评分</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>Step 1: 构建 Environment-Aware Verifier 架构</h4>
+        <p>DataPRM 采用与数据分析 Agent 相同的 ReAct 范式——它不只是静态地看代码，而是能通过多轮代码交互来验证步骤正确性。输入是历史轨迹加上当前步骤，DataPRM 内部执行多步推理和验证循环，最终输出评分和理由。</p>
+        <h4>Step 2: Tool-Augmented 能力集成</h4>
+        <p>为 DataPRM 配备了两个工具：<code>query_document</code>（查询文档）和 <code>query_image</code>（查询图像）。通过函数调用，DataPRM 可以借助外部专家模型来验证涉及文档或图像的内容。这样 DataPRM 就能全面覆盖文件、文档手册和图像等多种验证场景。</p>
+        <h4>Step 3: Reflection-Aware 三元奖励策略</h4>
+        <p>传统 PRM 用二元评分 (0 或 1)，DataPRM 扩展为三元：1.0（完全正确）、0.5（可恢复的探索性错误）、0.0（不可恢复的致命错误）。这个设计专门解决 Grounding Error 的误判问题——探索性步骤获得 0.5 分而不是 0 分。</p>
+        <h4>Step 4: 多样性驱动的数据构建</h4>
+        <p>用 Qwen3-235B 作为策略模型并行采样 K=4 条轨迹。只保留最终答案不完全一致的轨迹集（确保数据集中包含需要 PRM 做出判断的边界案例）。使用知识增强的步骤级标注：先由模型初步评分和归因，再用 DeepSeek-V3.2 作为专家标注器完成最终标注。最终构建了超过 7000 条高质量监督数据。</p>
+        <h4>Step 5: 应用到 Test-Time Scaling 和 RL</h4>
+        <p>TTS 阶段：用 Best-of-N、Beam Search 等搜索策略，由 DataPRM 选择最优轨迹。RL 阶段：结合 GRPO 算法，将过程奖励和结果奖励加权组合作为训练信号。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>公式 (1) - 轨迹表示</strong>：<code>h_t = (u, z_0, a_0, z_1, a_1, ..., z_{t-1}, a_{t-1}, o_t)</code>，其中 u 是任务，z 是思考，a 是动作（代码），o 是观察结果。这是 ReAct 范式的标准轨迹格式。</p>
+        <p><strong>公式 (2) - PRM 评分</strong>：<code>r_t = R_θ(h_t, τ_t)</code>，每个步骤获得一个评分，轨迹级奖励是所有步骤奖励的聚合。</p>
+        <p><strong>公式 (6) - DataPRM 输入</strong>：将历史验证结果 <code>f_t</code> 也纳入输入，确保验证的一致性和全局视角。</p>
+        <p><strong>公式 (7) - GRPO 损失函数</strong>：标准的重要性采样比例加上裁剪策略，确保 RL 训练稳定。</p>
+        <p><strong>公式 (8) - 组合奖励</strong>：<code>r_total = (1-β)·r_outcome + β·mean(r_prm)</code>，平衡结果正确性和过程有效性。</p>
+        <p><strong>公式 (10) - 一致性检查</strong>：如果 PRM 的最终判断与真实结果不一致，强制对齐。防止模型从矛盾信号中学习。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>数据集选择</strong>：</p>
+        <ul>
+          <li>ScienceAgentBench：科学数据分析基准，包含真实科学研究任务</li>
+          <li>DABStep：数据分析步骤评估基准</li>
+          <li>DABench 和 TableBench：用于 RL 评估的数据分析基准</li>
+        </ul>
+        <p><strong>为什么选这些数据集</strong>：这些数据集涵盖了从简单到复杂的数据分析任务，且包含真实的代码执行环境，能充分测试 DataPRM 的环境交互能力。</p>
+        <p><strong>主要指标</strong>：Success Rate (SR)、Accuracy、pass@1、pass@3。</p>
+        <p><strong>关键结果</strong>：</p>
+        <ul>
+          <li>Best-of-N：在 ScienceAgentBench 上提升 7.21%，在 DABStep 上提升 11.28%</li>
+          <li>仅 4B 参数就超越了 72B 的 Qwen2.5-Math-PRM 和 32B 的 GenPRM</li>
+          <li>RL 训练：在 DABench 上达到 78.73%，TableBench 上达到 64.84%</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>Figure 1</strong>：数据分析 Agent 与 DataPRM 的协作流程图，展示 PRM 如何在每个步骤进行监督</li>
+          <li><strong>Figure 2</strong>：通用 PRM 在数据分析任务上的失败模式分析——(a) PRM 引导的搜索不如多数投票，(b) 对 Grounding Error 的错误惩罚，(c) 环境交互消融实验</li>
+          <li><strong>Figure 3</strong>：DataPRM 框架总览——(a) 多样性驱动轨迹生成，(b) 数据构建和验证流程</li>
+          <li><strong>Table 2</strong>：主实验结果，DataPRM 在 Best-of-N 下全面领先</li>
+          <li><strong>Table 3</strong>：消融实验，验证环境交互、多轮对话和三元奖励各自的贡献</li>
+          <li><strong>Figure 5</strong>：RL 训练动态，展示过程奖励避免了 entropy collapse</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ol>
+          <li>仅关注推理和可视化类数据分析任务，未涉及模型训练和预测等工程性任务</li>
+          <li>仅通过 SFT 训练 DataPRM，依赖高质量轨迹数据</li>
+          <li>未来需要探索 RL 等减少人工数据依赖的训练方法</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.24198</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-04</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Process Reward Models, Data Analysis Agent</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">ScienceAgentBench, DABStep, DABench, TableBench</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Success Rate, Accuracy, pass@1, pass@3</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">4B 模型超越 72B 基线，TTS 提升最高 11.28%，RL 在 DABench 达 78.73%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Qwen2.5-Math-PRM-72B, GenPRM-32B, ThinkPRM-14B, Majority Voting, Self-Rewarding, LLM-as-a-judge</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">这篇论文的立意非常好——它精准地识别了 PRM 从"静态推理"走向"动态交互式推理"时面临的独特挑战。三元奖励的设计很巧妙，0.5 分的"可恢复错误"机制本质上是在奖励探索行为，这与 RL 中探索-利用权衡的思想一致。数据构建中"保留答案不一致的轨迹"的策略也体现了工程智慧——只有在需要做出判断的边界案例上训练，PRM 才能学到有区分度的能力。消融实验中"数据多样性胜过纯度"的发现也很有启发性，说明在复杂决策空间中，接触更丰富的错误模式比只看干净的示例更有价值。这项工作不仅对数据分析有意义，也为其他需要 Agent 与环境交互的领域（如 Web 导航、软件工程）提供了有价值的参考。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
