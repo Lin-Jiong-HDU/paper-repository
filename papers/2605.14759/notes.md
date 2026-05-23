@@ -4,7 +4,7 @@
 
 - **标题**: Crys-JEPA: Accelerating Crystal Discovery via Embedding Screening and Generative Refinement
 - **作者**: Nian Liu, Nikita Kazeev, Stephen Gregory Dale, Artem Maevskiy, Yuwei Zeng, Ryoji Kubo, Pengru Huang, Thomas Laurent, Yann LeCun, Kostya S. Novoselov, Xavier Bresson
-- **发表日期**: 2025-05
+- **发表日期**: 2025-05-01
 - **arXiv ID**: 2605.14759
 - **arXiv 链接**: <https://arxiv.org/abs/2605.14759>
 - **领域/关键词**: 晶体生成、材料发现、联合嵌入预测架构、稳定性-新颖性权衡、生成式精炼

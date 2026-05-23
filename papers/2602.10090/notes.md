@@ -4,7 +4,7 @@
 
 - **标题**: Agent World Model: Infinity Synthetic Environments for Agentic Reinforcement Learning
 - **作者**: Zhaoyang Wang, Canwen Xu, Boyi Liu, Yite Wang, Siwei Han, Zhewei Yao, Huaxiu Yao, Yuxiong He
-- **发表日期**: 2026年2月
+- **发表日期**: 2026-02-01
 - **arXiv ID**: 2602.10090
 - **arXiv 链接**: <https://arxiv.org/abs/2602.10090>
 - **领域/关键词**: LLM Agent, 强化学习, 合成环境, 工具使用, 多轮交互

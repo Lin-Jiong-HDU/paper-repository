@@ -4,7 +4,7 @@
 
 - **标题**: From Self-Evolving Synthetic Data to Verifiable-Reward RL: Post-Training Multi-turn Interactive Tool-Using Agents
 - **作者**: Jiaxuan Gao, Jiaao Chen, Chuyi He, Shusheng Xu, Di Jin, Yi Wu
-- **发表日期**: 2026-01
+- **发表日期**: 2026-01-01
 - **arXiv ID**: 2601.22607
 - **arXiv 链接**: <https://arxiv.org/abs/2601.22607>
 - **领域/关键词**: 交互式智能体、强化学习、数据合成、工具使用、自进化、GRPO、多智能体协同

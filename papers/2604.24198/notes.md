@@ -4,7 +4,7 @@
 
 - **标题**: Rewarding the Scientific Process: Process-Level Reward Modeling for Agentic Data Analysis
 - **作者**: Zhisong Qiu, Shuofei Qiao, Kewei Xu, Yuqi Zhu, Lun Du, Ningyu Zhang, Huajun Chen
-- **发表日期**: 2025-04
+- **发表日期**: 2025-04-01
 - **arXiv ID**: 2604.24198
 - **arXiv 链接**: <https://arxiv.org/abs/2604.24198>
 - **领域/关键词**: Process Reward Models, Data Analysis Agent, Large Language Models, Test-Time Scaling, Reinforcement Learning
