@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Large-Scale Terminal Agentic Trajectory Generation from Dockerized Environments - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Large-Scale Terminal Agentic Trajectory Generation from Dockerized Environments</h1>
+  <div class="meta">
+    <span>Siwei Wu, Yizhi Li, Yuyang Song, Wei Zhang, Yang Wang, Riza Batista-Navarro, Xian Yang, Mingjie Tang, Bryan Dai, Jian Yang, Chenghua Lin</span>
+    <span>2026-02-04</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2602.01244" target="_blank">arXiv:2602.01244</a>
+  </div>
+  <div class="tags">
+    <span class="tag">Terminal Agent</span>
+<span class="tag">Trajectory Generation</span>
+<span class="tag">Dockerized Environment</span>
+<span class="tag">Reinforcement Learning</span>
+<span class="tag">Code Generation</span>
+<span class="tag">Test-time Scaling</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>TerminalTraj 提出了一套从 Docker 化环境中大规模生成终端智能体轨迹的完整流水线，通过预测性质量过滤和可执行验证代码，从近百万个 GitHub 仓库中筛选并生成了超过 5 万条高质量的多轮交互轨迹，训练出的 TerminalTraj-32B 模型在 TerminalBench 1.0 和 2.0 上分别取得了超过骨干模型 20 分和 10 分的提升。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+<p><strong>终端智能体（Terminal Agent）</strong>：一类能够通过命令行界面（shell）与计算机环境交互的 AI 智能体。与传统的代码生成模型不同，终端智能体需要理解环境状态、执行命令、读取输出并根据反馈动态调整策略。典型代表有 OpenHands、SWE-Agent 等。</p>
+<p><strong>TerminalBench（TB）</strong>：专门用于评估终端智能体性能的基准测试。TB 1.0 包含 46 个 Docker 化任务，TB 2.0 扩展到 72 个任务，涵盖多模态、SQL、Web 服务、安全等多个领域。评估采用 pass@k 指标，即 k 次尝试中至少一次通过测试的概率。</p>
+<p><strong>轨迹（Trajectory）</strong>：智能体在执行任务过程中产生的完整交互序列，包括环境状态、智能体的动作（命令）、环境反馈等多轮对话记录。高质量的轨迹是训练智能体的关键训练数据。</p>
+<p><strong>Docker 化环境</strong>：将任务运行环境打包为 Docker 镜像，确保环境的可复现性和隔离性。每个任务对应一个 Docker 镜像，包含所需的依赖、数据文件和初始状态。</p>
+<p><strong>多轮监督微调（Multi-turn SFT）</strong>：与单轮问答不同，终端智能体任务需要多轮交互。训练数据格式为多轮对话序列，模型需要在每一轮根据历史上下文和当前环境状态生成下一步动作。</p>
+</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+<p>TerminalTraj 的核心思想可以用一个"淘金"的比喻来理解：互联网上有海量的开源项目和代码仓库，但绝大多数并不适合用来训练终端智能体。关键挑战在于如何从"沙子"中筛出"金子"——即那些环境可复现、任务有意义、轨迹可验证的高质量训练数据。</p>
+<p>整个流水线的设计遵循一个层层递进的漏斗逻辑：</p>
+<ul>
+<li><strong>广撒网</strong>：从 GitHub 等平台收集近 90 万个代码仓库作为原始数据源</li>
+<li><strong>粗筛</strong>：构建 Docker 镜像，用 ScoreModel 预测哪些镜像更有可能产出高质量数据</li>
+<li><strong>精炼</strong>：为通过筛选的镜像生成任务实例（包含任务描述和验证代码），用大模型（Qwen3-Coder-480B）在环境中执行任务，产生交互轨迹</li>
+<li><strong>验真</strong>：通过可执行的 pytest 验证代码检验轨迹的正确性，只保留通过验证的轨迹</li>
+</ul>
+<p>这套流水线的巧妙之处在于它解决了一个核心矛盾：高质量轨迹的生成需要大量计算资源（每条轨迹都需要在 Docker 容器中实际运行），但原始数据中只有极小比例能产出可用数据。通过引入 ScoreModel 做预测性过滤，将 Docker 构建成功率从随机选择的 9% 提升到了 19.5%，大幅提高了资源利用效率。</p>
+</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+<p><strong>Step 1: 数据源收集（Data Sources Collection）</strong></p>
+<ul>
+<li>从 GitHub 收集 899,741 个代码仓库，覆盖 8 个领域（多模态、SQL、QEMU、Web 服务、安全、数据处理、模型训练与评估、环境交互）和 8 种编程语言</li>
+<li>领域分类通过仓库的 README、文件结构等元信息自动判定</li>
+<li>最终收集到 1,265,972 个数据源实例</li>
+</ul>
+<p><strong>Step 2: Docker 镜像策展（Docker Image Curation）</strong></p>
+<ul>
+<li>为每个代码仓库生成 Dockerfile 并构建镜像</li>
+<li>引入 ScoreModel（基于奖励模型训练的质量预测器）对镜像进行质量评分</li>
+<li>质量评分公式：Q_i = Σ ScoreModel(f_j) / N_i，其中 f_j 是镜像中的文件，N_i 是文件数量</li>
+<li>设定阈值 τ=0.2，只有 Q_i &gt; τ 的镜像才进入下一阶段</li>
+<li>通过 ScoreModel 筛选后，Docker 构建成功率达到 19.5%，而随机选择仅 9%</li>
+<li>最终成功构建 32,325 个 Docker 镜像</li>
+</ul>
+<p><strong>Step 3: 实例生成（Instance Generation）</strong></p>
+<ul>
+<li>对每个通过筛选的 Docker 镜像，生成任务描述（task query）和可执行验证代码（executable validation code）</li>
+<li>任务描述使用大模型自动生成，描述需要完成的目标</li>
+<li>验证代码是 pytest 测试套件，用于自动检验任务是否正确完成</li>
+<li>每个镜像可生成多个不同难度的任务实例</li>
+<li>最终生成 1,030,695 个任务实例</li>
+</ul>
+<p><strong>Step 4: 轨迹滚动与验证（Trajectory Rolling and Verification）</strong></p>
+<ul>
+<li>使用 Terminus-2 脚手架（scaffold）作为智能体与环境的交互框架</li>
+<li>采用 Qwen3-Coder-480B 作为轨迹生成的"滚动模型"（rolling model）</li>
+<li>每个任务实例在对应 Docker 容器中运行，记录完整的交互轨迹</li>
+<li>轨迹验证：运行 pytest 验证代码，只有全部测试通过的轨迹才被保留</li>
+<li>最终收集到 50,733 条经过验证的高质量轨迹</li>
+</ul>
+<p><strong>Step 5: 模型训练</strong></p>
+<ul>
+<li>使用 Qwen2.5-Coder 系列作为骨干模型（7B、14B、32B 三个规模）</li>
+<li>采用 Megatron-LM 框架进行多轮监督微调（multi-turn SFT）</li>
+<li>训练数据格式为多轮对话序列，模型学习在每个交互轮次中根据环境状态生成正确的命令</li>
+</ul>
+</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+<p><strong>质量评分公式</strong>：</p>
+<p>Q_i = Σ ScoreModel(f_j) / N_i</p>
+<ul>
+<li>Q_i：第 i 个 Docker 镜像的质量分数</li>
+<li>f_j：镜像中的第 j 个文件</li>
+<li>N_i：第 i 个镜像中的文件总数</li>
+<li>ScoreModel：一个训练好的奖励模型，输入文件内容，输出该文件对构建质量的贡献分数</li>
+<li>阈值 τ=0.2：只有质量分数超过此阈值的镜像才被保留</li>
+</ul>
+<p>这个公式的直觉是：一个高质量的 Docker 镜像应该包含"有价值"的文件（如配置良好的依赖、有意义的代码逻辑），而不是随机拼凑的文件。ScoreModel 学习了什么样的文件特征与高质量环境相关。</p>
+<p><strong>Pass@k 指标</strong>：</p>
+<p>pass@k = 1 - C(n-c, k) / C(n, k)</p>
+<ul>
+<li>n：总尝试次数</li>
+<li>c：成功次数</li>
+<li>k：允许的尝试次数</li>
+<li>该指标衡量在 k 次独立尝试中至少成功一次的概率，是评估代码生成和智能体性能的标准指标</li>
+</ul>
+<p><strong>Test-time Scaling</strong>：</p>
+<p>通过增加推理时的采样次数（k 值），观察模型性能随 k 的增长趋势。TerminalTraj 训练的模型在 pass@k 曲线上表现出更好的缩放特性，说明训练数据质量对推理阶段的性能提升有显著帮助。</p>
+</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+<p><strong>基准测试选择</strong>：选用 TerminalBench 1.0（46 个任务）和 TerminalBench 2.0（72 个任务）作为评估基准，这两个基准专门针对终端智能体设计，涵盖多个领域和不同难度级别，具有较强的代表性和挑战性。</p>
+<p><strong>对比方法</strong>：与多种方法对比，包括骨干模型（Qwen2.5-Coder 系列）、基于现有数据集训练的模型（Nex-N1、SETA）以及其他开源智能体框架。</p>
+<p><strong>消融实验</strong>：通过逐步去除流水线中的关键组件（ScoreModel 筛选、验证代码等），验证每个组件的贡献。</p>
+<p><strong>主要实验发现</strong>：</p>
+<ul>
+<li>TerminalTraj-32B 在 TB 1.0 上达到 77.08%（pass@1），比骨干模型提升 20+ 分</li>
+<li>TerminalTraj-32B 在 TB 2.0 上达到 63.89%（pass@1），比骨干模型提升 10+ 分</li>
+<li>在 pass@8 设置下，TerminalTraj-32B 在 TB 1.0 上达到 87.50%，在 TB 2.0 上达到 76.39%</li>
+<li>与 Nex-N1 数据集训练的模型相比，TerminalTraj 在 TB 1.0 上有 1.7 倍的提升，在 TB 2.0 上有 1.3 倍的提升</li>
+<li>与 SETA 相比，pass@8 从 12.5% 提升到 45%</li>
+</ul>
+</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+<ul>
+<li><strong>Figure 1（流水线概览图）</strong>：展示了 TerminalTraj 从 GitHub 仓库到最终轨迹的完整四阶段流水线，包括数据源收集、Docker 策展、实例生成和轨迹验证。清晰呈现了数据的漏斗式筛选过程。</li>
+<li><strong>Figure 2（ScoreModel 效果图）</strong>：对比了使用 ScoreModel 筛选与随机选择的 Docker 构建成功率，展示质量预测模型在资源优化上的显著效果。</li>
+<li><strong>Table 2（主实验结果）</strong>：在 TB 1.0 和 TB 2.0 上的完整实验结果对比，涵盖不同模型规模和 pass@k 设置下的性能。TerminalTraj-32B 在所有设置下均为最优。</li>
+<li><strong>Table 3（与现有数据集对比）</strong>：TerminalTraj 与 Nex-N1、SETA 等现有数据集的训练效果对比，证明 TerminalTraj 数据质量的优越性。</li>
+<li><strong>Figure 4（Test-time Scaling 曲线）</strong>：展示 pass@k 随 k 增大的变化趋势，TerminalTraj 训练的模型展现出更优的缩放特性。</li>
+<li><strong>Table 5（消融实验）</strong>：验证流水线各组件（ScoreModel、验证代码、数据规模）的贡献，证明每个设计选择的必要性。</li>
+<li><strong>附录领域分布图</strong>：展示了 8 个领域和 8 种编程语言在数据集中的分布情况，体现了数据的多样性。</li>
+</ul>
+</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+<ul>
+<li><strong>计算成本高昂</strong>：整个流水线需要构建数万个 Docker 镜像并在其中运行大规模轨迹生成，计算资源消耗巨大。论文未详细报告总计算成本，但可以推测需要大量的 GPU 和 CPU 资源。</li>
+<li><strong>Docker 构建成功率仍然较低</strong>：即使使用 ScoreModel 筛选，Docker 构建成功率仍仅 19.5%，意味着约 80% 的计算资源被浪费。如何进一步提高构建成功率是一个开放问题。</li>
+<li><strong>轨迹质量依赖滚动模型</strong>：轨迹的生成质量在很大程度上取决于 Qwen3-Coder-480B 的能力。如果滚动模型在某些领域表现不佳，生成的轨迹可能存在系统性偏差或遗漏。</li>
+<li><strong>验证代码的覆盖度</strong>：pytest 验证代码只能检查预定义的测试用例，无法保证任务的完整正确性。可能存在"通过了测试但实际解决方案不正确"的情况。</li>
+<li><strong>领域覆盖的均衡性</strong>：虽然覆盖了 8 个领域，但从附录数据来看，各领域的数据量分布不均匀，某些领域（如多模态、SQL）的数据量可能远大于其他领域。</li>
+<li><strong>语言覆盖有限</strong>：仅覆盖 8 种编程语言，对于一些重要的语言（如 Rust、Go、TypeScript 等）可能覆盖不足。</li>
+</ul>
+</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2602.01244</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-02-04</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Terminal Agent, Code Generation</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">TerminalBench 1.0, TerminalBench 2.0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">pass@1, pass@8</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">TB 1.0: 77.08% (pass@1), TB 2.0: 63.89% (pass@1)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Qwen2.5-Coder, Nex-N1, SETA, OpenHands, SWE-Agent</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">TerminalTraj 的工作代表了数据工程在 AI 训练中日益重要的趋势。其核心思想——环境可复现 + 自动化验证 + 预测性筛选——可以推广到其他类型的智能体数据生成。ScoreModel 用小模型指导大模型的数据生成是一种高效的资源分配策略，可能成为未来数据工程的标准范式。当前仅使用 SFT 训练，若结合 RL 可能获得更大提升。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

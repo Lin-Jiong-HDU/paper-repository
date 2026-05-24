@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Endless Terminals: Scaling RL Environments for Terminal Agents - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Endless Terminals: Scaling RL Environments for Terminal Agents</h1>
+  <div class="meta">
+    <span>Kanishk Gandhi, Shivam Garg, Noah D. Goodman, Dimitris Papailiopoulos</span>
+    <span>2026-01-23</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2601.16443" target="_blank">arXiv:2601.16443</a>
+  </div>
+  <div class="tags">
+    <span class="tag">强化学习</span>
+<span class="tag">程序化生成</span>
+<span class="tag">终端代理</span>
+<span class="tag">PPO</span>
+<span class="tag">任务自动化</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>通过程序化生成大规模终端任务环境（Endless Terminals，3255个任务），使用最朴素的PPO算法和二元奖励信号即可训练出具备终端操作能力的语言模型代理，在TerminalBench 2.0基准上超越了需要复杂脚手架系统的Claude Sonnet 4.5。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body"><p>理解本文需要以下基础概念：</p>
+
+<p><strong>强化学习（RL）与PPO</strong>：强化学习是让智能体通过与环境交互、获取奖励来学习策略的方法。PPO（Proximal Policy Optimization）是目前最常用的RL算法之一，它通过限制策略更新幅度来保证训练稳定性。在本文中，每个终端任务就是一个RL episode，模型执行一系列命令，最终根据任务是否完成获得1或0的奖励。</p>
+
+<p><strong>语言模型代理（LLM Agent）</strong>：指能够理解自然语言指令、并通过工具调用（如执行终端命令）来完成任务的LLM。与单纯的文本生成不同，代理需要在多轮交互中规划、执行、观察反馈并调整策略。</p>
+
+<p><strong>程序化生成（Procedural Generation）</strong>：通过算法自动创建内容的方法。本文用LLM自动生成任务描述，再用自动化流程将其转化为可执行的训练环境，从而绕过人工设计的瓶颈。</p>
+
+<p><strong>终端环境与容器化</strong>：本文的训练环境运行在Docker容器中，每个任务对应一个独立的Linux终端环境，模型通过shell命令与之交互。容器化确保了任务之间的隔离性和可重复性。</p>
+
+<p><strong>脚手架系统（Scaffolding）</strong>：在Agent领域，脚手架指围绕LLM构建的辅助系统，包括多Agent协作、记忆管理、工具调用编排等。本文的核心发现之一是：当环境规模足够大时，简单的RL训练可以替代复杂的脚手架。</p></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body"><p>本文的核心洞察可以用一句话概括：<strong>与其花精力设计复杂的训练方法，不如把精力花在扩大环境规模上</strong>。</p>
+
+<p>打个比方：教一个人做饭，与其精心设计一套包含10道菜的详细教学大纲（复杂脚手架），不如给他1000道不同的菜让他自己摸索（大规模环境）。菜谱够多、够多样，学习者自然能从中学到通用的烹饪技巧。</p>
+
+<p>具体来说，作者构建了一个名为"Endless Terminals"的环境系统，通过4阶段流水线自动生成终端任务：</p>
+
+<ul>
+<li><strong>LLM生成任务描述</strong>：让语言模型编写各种终端操作任务的详细说明书</li>
+<li><strong>容器化环境搭建</strong>：根据描述自动创建Docker容器，安装所需软件包</li>
+<li><strong>完成测试生成</strong>：自动编写测试脚本来判断任务是否被正确完成</li>
+<li><strong>基于解的过滤</strong>：尝试运行参考解答，过滤掉不可解或环境有问题的任务</li>
+</ul>
+
+<p>这个流程产生了3255个训练任务，覆盖了文件操作、文本处理、系统管理、网络操作等多种终端技能领域。</p>
+
+<p>训练方法极其简单——标准的PPO算法，没有任何花哨的技巧：</p>
+<ul>
+<li>二元奖励：任务完成给1，否则给0</li>
+<li>没有过程奖励、没有课程学习、没有奖励塑形</li>
+<li>每个episode最多允许30轮交互</li>
+</ul></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden"><h4>第一步：任务描述生成</h4>
+<p>使用LLM生成终端任务的详细描述。每个描述包含：任务目标、所需工具、预期结果、难度等级。生成的任务覆盖多种领域：文件管理、数据处理、系统配置、网络操作等。这一步是整个流水线的起点，任务描述的多样性和质量直接影响后续所有步骤。</p>
+
+<h4>第二步：容器环境搭建与验证</h4>
+<p>根据任务描述自动创建Docker容器，在容器中安装任务所需的所有软件包和依赖，运行验证脚本确保环境正确配置。这一阶段的通过率约为描述生成量的某个比例，过滤掉环境搭建失败的任务。</p>
+
+<h4>第三步：完成测试生成</h4>
+<p>自动编写shell测试脚本，用于判定任务是否被正确完成。测试脚本检查：文件是否存在且内容正确、进程是否运行、配置是否正确等。测试的准确性至关重要——它既是训练的奖励信号来源，也是质量控制的关卡。</p>
+
+<h4>第四步：基于解的过滤</h4>
+<p>使用LLM尝试生成每个任务的参考解答，在容器中运行参考解答，验证其能否通过完成测试。过滤掉三类有问题的任务：(1) LLM无法解决的任务；(2) 容器环境有bug的任务；(3) 测试脚本有误的任务。最终保留3255个经过验证的高质量任务。</p>
+
+<h4>第五步：RL训练</h4>
+<p>使用标准PPO算法训练语言模型。状态为当前终端输出（历史命令和响应），动作为下一条要执行的终端命令，奖励为episode结束时任务完成得1否则得0。最大30轮交互per episode。训练了三个不同规模的基础模型：Llama-3.2-3B、Qwen2.5-7B、Qwen3-8B-openthinker-sft。</p></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden"><h4>PPO目标函数</h4>
+<p>PPO的核心是一个裁剪目标函数，限制策略更新幅度：L = min(r(&theta;) &times; A, clip(r(&theta;), 1-&epsilon;, 1+&epsilon;) &times; A)。其中r(&theta;)是新旧策略的概率比，A是优势函数估计，&epsilon;是裁剪参数（通常为0.2）。clip操作确保策略不会在单步更新中变化过大，保证训练稳定性。</p>
+
+<h4>二元奖励函数</h4>
+<p>本文使用最简单的奖励设计：R = 1 if task_completed else 0。这个奖励只在episode结束时给出，中间步骤没有任何奖励信号。这种设计的优势是不需要人工设计密集的奖励函数，劣势是信用分配更困难——模型需要自己发现哪一步做对了。</p>
+
+<h4>pass@k指标</h4>
+<p>评估时使用pass@k来衡量模型的代码生成能力：pass@k = 1 - C(n-c, k) / C(n, k)，其中n是总采样数，c是成功数，k是取的top-k。pass@1就是单次通过率，pass@5表示5次尝试中至少成功一次的概率。</p></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden"><h4>数据集选择逻辑</h4>
+<ul>
+<li><strong>Endless Terminals dev set（3255任务）</strong>：作为训练数据，规模足够大且覆盖面广</li>
+<li><strong>TerminalBench 2.0</strong>：作为分布外（OOD）评估基准，测试模型在未见过的任务上的泛化能力</li>
+<li><strong>OpenThinker dev set</strong>：用于对比RL训练数据来源的影响</li>
+</ul>
+
+<h4>指标选择逻辑</h4>
+<p>使用pass rate / pass@5 / pass@16等不同粒度的成功率指标。pass@1最严格，pass@16最宽松。使用多个k值可以全面了解模型的可靠性——高pass@1意味着高可靠性，高pass@16但低pass@1意味着有潜力但不稳定。</p>
+
+<h4>基线选择逻辑</h4>
+<ul>
+<li><strong>Base models</strong>：展示RL训练的绝对提升</li>
+<li><strong>RL(OpenThinker)</strong>：用不同来源的RL数据训练，验证Endless Terminals数据的优势</li>
+<li><strong>Terminus-2 scaffold</strong>：在基础模型上叠加复杂的脚手架系统</li>
+<li><strong>Claude Sonnet 4.5 + Terminus-2</strong>：用最强闭源模型+脚手架作为上限参考</li>
+</ul>
+
+<h4>结果分析</h4>
+<p>Endless Terminals RL训练在所有模型上都有显著提升，即使是最小的3B模型也提升了14个百分点。在TerminalBench 2.0上的正向迁移证明了方法学到了可泛化的终端操作技能。Qwen3模型甚至超越了Claude Sonnet 4.5+脚手架的组合，说明简单RL+大规模环境的威力。</p></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden"><h4>Figure 1（系统概览）</h4>
+<p>展示了Endless Terminals的完整流水线——从任务描述生成到容器创建、测试生成、基于解的过滤，再到PPO训练。直观呈现了"自动化环境创建→大规模RL训练"的端到端流程。</p>
+
+<h4>Figure 2（训练曲线）</h4>
+<p>展示了三个模型在训练过程中的pass rate变化。所有模型都呈现稳定的上升趋势，没有明显的过拟合迹象，且训练曲线平滑，验证了vanilla PPO在此设置下的有效性。</p>
+
+<h4>Figure 3（TerminalBench 2.0结果对比）</h4>
+<p>关键结果图——展示了不同方法在OOD基准上的表现。最引人注目的是，经过Endless Terminals训练的Qwen3-8B模型在pass@16上超过了Claude Sonnet 4.5配合Terminus-2脚手架的复杂系统。</p>
+
+<h4>Figure 4（失败模式分析）</h4>
+<p>饼图展示了三种主要失败模式的分布——循环行为(39%)、轮次耗尽(26%)、特定领域提前终止(49%)。这为未来改进提供了明确方向。</p></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden"><ul>
+<li><strong>规模天花板</strong>：虽然3255个任务已经比现有工作多很多，但与代码生成领域的预训练数据规模相比仍然很小。更大的环境规模是否还能持续带来改进，目前未知。</li>
+<li><strong>任务多样性受限</strong>：程序化生成的任务天然倾向于LLM擅长描述的模式，可能存在系统性盲区——某些类型的终端任务很难通过LLM生成出来。</li>
+<li><strong>奖励信号稀疏</strong>：二元episode级奖励在长episode中的信用分配问题仍然严重。30轮交互中只有最后一步有信号，中间过程的优化完全依赖模型自己摸索。</li>
+<li><strong>评估基准局限</strong>：TerminalBench 2.0作为OOD评估基准，其任务分布可能与Endless Terminals的训练分布仍有一定重叠，真正的泛化能力可能需要更异构的评估来验证。</li>
+<li><strong>计算成本</strong>：虽然算法简单，但在3255个任务上运行PPO训练（每个任务多次rollout、容器化环境）的计算开销仍然不小。</li>
+</ul></div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2601.16443</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-01-23</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">机器学习, NLP</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">Endless Terminals, TerminalBench 2.0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">pass rate, pass@5, pass@16</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">Dev: 4.0%→18.2% (Llama), 10.7%→53.3% (Qwen), 42.6%→59.0% (Qwen3); TB2.0: Qwen3 超越 Claude Sonnet 4.5+脚手架</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Base models, RL(OpenThinker), Terminus-2, Claude Sonnet 4.5+Terminus-2</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">本文最有价值的贡献在于提供了清晰的实验证据：在Agent训练中，环境规模可能比算法复杂度更重要。这与"苦涩教训"(Bitter Lesson)的思想一脉相承。程序化生成环境的4阶段流水线设计很实用，特别是"基于解的过滤"巧妙地将环境质量控制和训练数据筛选统一在同一流程中。方法论具有很强的可迁移性——同样的流水线可以用于生成其他类型Agent的训练环境。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Towards Scalable Terminal Task Synthesis via Skill Graphs - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Towards Scalable Terminal Task Synthesis via Skill Graphs</h1>
+  <div class="meta">
+    <span>Zhiyuan Fan, Tinghao Yu, Yuanjun Cai, Jiangtao Guan, Yun Yang, Dingxin Hu, Jiang Zhou, Xing Wu, Zhuo Han, Feng Zhang, Lilin Wang</span>
+    <span>2026年4月28日</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.25727" target="_blank">arXiv:2604.25727</a>
+  </div>
+  <div class="tags">
+    <span class="tag">Terminal Agents</span>
+    <span class="tag">Skill Graph</span>
+    <span class="tag">Task Synthesis</span>
+    <span class="tag">Synthetic Data</span>
+    <span class="tag">Multi-Agent Systems</span>
+    <span class="tag">CLI Automation</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>SkillSynth 通过构建场景中介的技能图谱，从图中采样路径并利用多智能体系统自动合成多样化的终端任务实例，从而为训练终端智能体提供高质量、可扩展的执行轨迹数据。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>终端智能体（Terminal Agents）</h4>
+        <p>大型语言模型通过命令行界面（CLI）与计算系统交互，自主执行复杂任务。这类智能体不依赖专有 API，而是将终端作为通用的动作空间。核心挑战在于：如何获取足够多样、高质量的训练轨迹？</p>
+        <h4>场景（Scenario）与技能（Skill）</h4>
+        <p>终端智能体的执行轨迹可以抽象为"场景-技能"的交替序列。场景描述环境在某个决策点的语义状态（如"含有失败单元测试的 Python 项目"），技能是在该场景下执行的一系列连贯动作（如"运行 pytest 并捕获输出"），将环境从当前场景转移到下一个场景。</p>
+        <h4>技能图谱（Skill Graph）</h4>
+        <p>以场景为节点、技能为有向边构建的图结构。图中的有向路径对应一个真实的工作流程——技能的后置条件恰好是下一个技能的前置条件。</p>
+        <h4>层次强化学习中的 Options</h4>
+        <p>论文中的场景-技能抽象借鉴了层次强化学习中 options 的概念，将低级的动作序列提升到高级的语义层面来分析和优化。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>SkillSynth 的核心洞察是：<strong>训练终端智能体的关键不只是任务数量，而是执行轨迹在场景和技能两个维度上的多样性</strong>。</p>
+        <p>用一个类比来理解：想象一个厨师学徒的训练。传统方法只是不断增加菜谱数量（更多任务实例），但学徒反复练习的烹饪场景和手法可能高度重叠。SkillSynth 的做法是先构建一张"烹饪技能图谱"——节点是厨房中的各种状态（如"准备好的食材"、"半成品"），边是烹饪技能（如"切配"、"翻炒"），然后从图中采样路径来设计训练菜单，确保学徒在多样的厨房状态中练习多样的烹饪技能。</p>
+        <p>这个框架有三层结构：</p>
+        <ul>
+          <li><strong>技能图谱构建</strong>：从 ClawHub 和 GitHub 收集真实终端技能，用 LLM 推断每个技能的前置/后置场景，通过聚类去重和跨技能对齐，构建出包含 82,073 个场景节点和 57,214 条技能边的有向图。</li>
+          <li><strong>图引导路径采样</strong>：使用逆频率加权采样算法，从图中采样有向路径作为工作流程的抽象。逆频率策略避免了高频节点和边的过度覆盖。</li>
+          <li><strong>多智能体合成</strong>：将采样的路径通过 Planner-Constructor 分工的多智能体系统实例化为可执行的任务，双重验证确保任务可解且质量达标。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一阶段：技能图谱构建</h4>
+        <ol>
+          <li><strong>技能过滤</strong>：从 ClawHub 和公开 GitHub 仓库收集原始技能，保留满足四个条件的技能——可在 Linux 终端执行、有结构化工作流定义、无恶意内容、产生确定性可验证输出。</li>
+          <li><strong>场景推断</strong>：对每个保留的技能，用 LLM 推断其前置场景和后置场景，形成原子转移。</li>
+          <li><strong>场景去重</strong>：将所有推断的场景用 embedding 进行聚类去重，合并描述同一状态但措辞不同的场景。通过实验比较了九种聚类算法，发现基于 Louvain 粗分桶的层次聚合聚类效果最好。</li>
+          <li><strong>跨技能对齐</strong>：将一个技能的后置条件与另一个技能的前置条件对齐——通过 embedding 相似度检索 top-1000 候选，再用 LLM 判断语义兼容性。</li>
+          <li><strong>合并与过滤</strong>：将对齐的前置-后置对合并为统一场景节点，最后用 LLM 过滤所有三元组，保留有效转移。</li>
+        </ol>
+        <h4>第二阶段：图引导路径采样</h4>
+        <ol>
+          <li><strong>逆频率采样</strong>：维护每个场景的访问计数和每个技能的使用计数，起始场景和每一步的边选择都以逆频率为权重，偏向尚未被充分覆盖的节点和边。</li>
+          <li><strong>单调性约束</strong>：在同一条路径内，已访问的场景和技能不再重复，确保路径单调递进。</li>
+          <li><strong>路径过滤</strong>：只接受长度在 [1, 7] 范围内且技能组合未出现过的新路径。</li>
+        </ol>
+        <h4>第三阶段：多智能体合成</h4>
+        <ol>
+          <li><strong>Planner 规划</strong>：将采样路径转化为结构化的子目标和预期输出计划。</li>
+          <li><strong>Constructor 构建</strong>：根据计划生成完整的任务实例（指令、文件系统、Docker 环境、测试脚本、Oracle 解）。</li>
+          <li><strong>双重验证</strong>：执行验证 + 规则评估（LLM-as-a-Judge）。</li>
+          <li><strong>修复循环</strong>：验证失败时返回诊断信息修复，最多 3 轮、每轮最多 20 次工具调用。</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>场景-技能抽象（公式 1-2）</h4>
+        <p>κ_t: σ_{t-1} → σ_t 表示技能 κ_t 将环境从场景 σ_{t-1} 转移到 σ_t。一条完整的执行轨迹 ξ = (σ_0, κ_1, σ_1, ..., κ_L, σ_L) 是场景和技能的交替序列。</p>
+        <h4>技能级训练目标（公式 3）</h4>
+        <p>J(π) = E_{ξ~D} [Σ log π(κ_t | σ_{t-1}, g)]，即在训练轨迹的经验分布 D 下，最大化智能体在每个场景下选择正确技能的对数似然。等价于标准 next-token prediction loss。</p>
+        <h4>覆盖准则分解（公式 4）</h4>
+        <p>将目标分解为场景分布和条件技能分布的乘积。关键洞察：智能体只能学到 D 支撑集内的场景和技能，因此训练数据需要密集覆盖 {(σ, κ)} 的条件乘积空间。这直接 motivating 了通过最大化轨迹多样性来提升学习能力的思路。</p>
+        <h4>逆频率路径采样（Algorithm 1）</h4>
+        <p>核心思想是用逆频率权重偏向采样尚未充分覆盖的场景和技能，逐步将经验分布推向均匀覆盖。结合单调性约束和技能组合去重，确保采样路径的多样性。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>为什么选 Terminal-Bench？</strong> 它是目前终端智能体最权威的评测基准，1.0 有 80 个任务，2.0 有 89 个更难的任务，要求在 Docker 容器中完成端到端工作流。</p>
+        <p><strong>为什么用 Qwen3 系列？</strong> 选择 8B、14B、32B 三个规模研究模型规模效应，Qwen3-32B 作为主要消融实验模型。</p>
+        <p><strong>关键发现：</strong></p>
+        <ul>
+          <li>单次全自动运行合成 3,560 个可用任务，Oracle 通过率 95.7%，平均成本仅 $27.3/任务。</li>
+          <li>Claude Opus 4.6 平均需要 37 步来解，121 个任务在三次运行中无法解决。</li>
+          <li>Qwen3-32B + SkillSynth 在 TB 2.0 上超越更大的 Qwen 3 Coder 480B，说明领域特定数据比模型规模更重要。</li>
+          <li>相比单技能和随机多技能基线，场景-技能对覆盖率分别高 31% 和 19%。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>Figure 1</strong>：对比 SkillSynth 与 Nemotron、TerminalTraj 在 1000 条轨迹采样下的多样性，SkillSynth 在场景/技能/配对三个维度上均领先。</li>
+          <li><strong>Figure 2</strong>：SkillSynth 整体流程——技能图谱采样路径 → 多智能体合成系统（Planner → Constructor → 验证/修复循环） → 可执行任务实例。</li>
+          <li><strong>Figure 4</strong>：视频领域的路径采样示例——依次应用 Video Analyzer → Frame Extractor → GIF Generator，合成完整的 GIF 制作任务。</li>
+          <li><strong>Table 3</strong>：Terminal-Bench 全面对比，涵盖 GPT-5.3-Codex、Claude Opus 4.6、Gemini 3 Pro 等闭源模型和 SkillSynth 训练的 Qwen3 开源模型。</li>
+          <li><strong>Table 5</strong>：失败轨迹错误分析——部分实现（42.2%）、过度信任内联自测（29.5%）、过早终止（12.9%）是三大主要失败模式。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>依赖 LLM 进行场景推断、对齐和质量评估，成本和 LLM 本身的不确定性会影响图谱质量。</li>
+          <li>路径采样仅考虑链式结构（线性序列），不支持子图采样（技能并行执行），限制了更复杂任务的合成。</li>
+          <li>首轮生成质量差的任务难以通过修复循环恢复，主要瓶颈是损坏的文件系统快照。</li>
+          <li>评测主要集中在 Terminal-Bench，在其他基准上的泛化性尚未验证。</li>
+          <li>训练轨迹收集依赖特定教师模型，不同教师模型的效果未探索。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.25727</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026年4月28日</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">终端智能体 / 合成数据</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">Terminal-Bench 1.0, 2.0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">任务通过率 (Accuracy)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">Qwen3-32B+SS: TB1.0 33.8%, TB2.0 29.6%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Single-skill, Multi-skill, Nemotron, TerminalTraj</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">将终端任务多样性形式化为场景-技能对覆盖问题，用图结构实现可控采样，是很有创意的做法。场景中介的设计让技能之间有了语义桥梁。端到端自动化程度高（95.7% 通过率、$27.3/任务），对工业界很有吸引力。如果能扩展到子图采样和增量更新，以及迁移到浏览器/代码编辑智能体，价值会更大。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

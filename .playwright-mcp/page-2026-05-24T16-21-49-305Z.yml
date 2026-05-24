@@ -1,0 +1,1079 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Back to arXiv" [ref=e4] [cursor=pointer]:
+      - /url: https://arxiv.org/
+      - generic [ref=e5]: Back to arXiv
+    - banner [ref=e6]:
+      - paragraph [ref=e7]:
+        - text: This is
+        - strong [ref=e8]: experimental HTML
+        - text: to improve accessibility. We invite you to report rendering errors.
+        - generic [ref=e9]: Use Alt+Y to toggle on accessible reporting links and Alt+Shift+Y to toggle off.
+        - text: Learn more
+        - link "about this project" [ref=e10] [cursor=pointer]:
+          - /url: https://info.arxiv.org/about/accessible_HTML.html
+        - text: and
+        - link "help improve conversions" [ref=e11] [cursor=pointer]:
+          - /url: https://info.arxiv.org/help/submit_latex_best_practices.html
+        - text: .
+    - navigation [ref=e12]:
+      - link "Why HTML?" [ref=e13] [cursor=pointer]:
+        - /url: https://info.arxiv.org/about/accessible_HTML.html
+      - link "Report Issue" [ref=e14] [cursor=pointer]:
+        - /url: "#myForm"
+      - link "Back to Abstract" [ref=e15] [cursor=pointer]:
+        - /url: https://arxiv.org/abs/2601.16443v2
+      - link "Download PDF" [ref=e16] [cursor=pointer]:
+        - /url: https://arxiv.org/pdf/2601.16443v2
+      - 'link "Color scheme: System preference. Click to switch to light mode." [ref=e17] [cursor=pointer]':
+        - /url: javascript:toggleColorScheme()
+        - generic "Switch to light mode" [ref=e18]:
+          - img [ref=e19]
+  - generic [ref=e21]:
+    - navigation "Table of Contents" [ref=e22]:
+      - generic [ref=e23] [cursor=pointer]:
+        - img
+      - list [ref=e24]:
+        - listitem [ref=e25]:
+          - link "Abstract" [ref=e26] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#abstract
+            - generic [ref=e27]: Abstract
+        - listitem [ref=e28]:
+          - link "1 Introduction" [ref=e29] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#S1
+            - generic [ref=e30]:
+              - generic [ref=e31]: "1"
+              - text: Introduction
+        - listitem [ref=e32]:
+          - link "2 Related Work" [ref=e33] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#S2
+            - generic [ref=e34]:
+              - generic [ref=e35]: "2"
+              - text: Related Work
+        - listitem [ref=e36]:
+          - link "3 Procedural Generation of Tasks" [ref=e37] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#S3
+            - generic [ref=e38]:
+              - generic [ref=e39]: "3"
+              - text: Procedural Generation of Tasks
+        - listitem [ref=e40]:
+          - link "4 Interacting with the Terminal" [ref=e41] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#S4
+            - generic [ref=e42]:
+              - generic [ref=e43]: "4"
+              - text: Interacting with the Terminal
+        - listitem [ref=e44]:
+          - link "5 Experiments" [ref=e45] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#S5
+            - generic [ref=e46]:
+              - generic [ref=e47]: "5"
+              - text: Experiments
+        - listitem [ref=e48]:
+          - link "6 Discussion" [ref=e49] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#S6
+            - generic [ref=e50]:
+              - generic [ref=e51]: "6"
+              - text: Discussion
+        - listitem [ref=e52]:
+          - link "References" [ref=e53] [cursor=pointer]:
+            - /url: https://arxiv.org/html/2601.16443v2#bib
+            - generic [ref=e54]: References
+    - generic [ref=e55]:
+      - generic [ref=e56]:
+        - 'link "License: CC BY 4.0" [ref=e57] [cursor=pointer]':
+          - /url: https://info.arxiv.org/help/license/index.html#licenses-available
+        - generic [ref=e58]: arXiv:2601.16443v2 [cs.LG] 27 Jan 2026
+      - article [ref=e59]:
+        - 'heading "Endless Terminals: Scaling RL Environments for Terminal Agents" [level=1] [ref=e60]'
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - text: Kanishk Gandhi
+            - text: Stanford University &Shivam Garg Microsoft Research &Noah D. Goodman Stanford University &Dimitris Papailiopoulos Microsoft Research UW-Madison
+          - generic [ref=e64]: Part of the work was done during a summer internship at Microsoft Research
+        - generic [ref=e65]:
+          - heading "Abstract" [level=6] [ref=e66]
+          - paragraph [ref=e67]:
+            - text: "Environments are the bottleneck for self-improving agents. Current terminal benchmarks were built for evaluation, not training; reinforcement learning requires a scalable pipeline, not just a dataset. We introduce Endless Terminals, a fully autonomous pipeline that procedurally generates terminal-use tasks without human annotation. The pipeline has four stages: generating diverse task descriptions, building and validating containerized environments, producing completion tests, and filtering for solvability. From this pipeline we obtain 3255 tasks spanning file operations, log management, data processing, scripting, and database operations. We train agents using vanilla PPO with binary episode level rewards and a minimal interaction loop: no retrieval, multi-agent coordination, or specialized tools. Despite this simplicity, models trained on Endless Terminals show substantial gains: on our held-out dev set, Llama-3.2-3B improves from 4.0% to 18.2%, Qwen2.5-7B from 10.7% to 53.3%, and Qwen3-8B-openthinker-sft from 42.6% to 59.0%. These improvements transfer to human-curated benchmarks: models trained on Endless Terminals show substantial gains on held out human curated benchmarks: on TerminalBench 2.0, Llama-3.2-3B improves from 0.0% to 2.2%, Qwen2.5-7B from 2.2% to 3.4%, and Qwen3-8B-openthinker-sft from 1.1% to 6.7%, in each case outperforming alternative approaches including models with more complex agentic scaffolds. These results demonstrate that simple RL succeeds when environments scale."
+            - superscript [ref=e69]: "1"
+        - 'figure "Figure 1: Endless Terminals. Tasks are procedurally generated through four phases: (I) task description generation, (II) container setup with iterative validation, (III) completion test generation, and (IV) solution-based filtering using o3. The pipeline yields 3255 verified tasks for training terminal agents with PPO." [ref=e70]':
+          - img "Refer to caption" [ref=e71]
+          - generic [ref=e72]:
+            - generic [ref=e73]: "Figure 1:"
+            - text: "Endless Terminals. Tasks are procedurally generated through four phases: (I) task description generation, (II) container setup with iterative validation, (III) completion test generation, and (IV) solution-based filtering using o3. The pipeline yields 3255 verified tasks for training terminal agents with PPO."
+        - generic [ref=e74]:
+          - heading "1 Introduction" [level=2] [ref=e75]:
+            - generic [ref=e76]: "1"
+            - text: Introduction
+          - paragraph [ref=e78]:
+            - text: Reinforcement learning is hungry for environments. Successes of RL in improving language model reasoning, from mathematical problem solving to code generation have relied on access to a large set of diverse, and automatically verifiable tasks. Yet for training LLM agents to perform multi-turn computer tasks in a terminal, no such scalable environment exists. Real world terminal use requires agents to reason across multiple interactions, recover from errors, and interactively execute sequences of commands that transform the stat of a system. Manual curation of such environments is expensive, and existing benchmarks offer at most hundreds of tasks, far too few to support robust RL training
+            - generic [ref=e79]:
+              - text: (Team,
+              - link "2025b" [ref=e80] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib1
+              - text: ; Prime Intellect,
+              - link "2025" [ref=e81] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib13
+              - text: ; Team,
+              - link "2025a" [ref=e82] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib17
+              - text: )
+            - text: .
+          - paragraph [ref=e84]:
+            - text: Prior approaches to building capable terminal agents have largely sidestepped this environment bottleneck. Some rely on fixed evaluation benchmarks repurposed for training, risking overfitting to narrow task distributions. Others distill behavior from stronger proprietary models through supervised finetuning
+            - generic [ref=e85]:
+              - text: (Guha et al.,
+              - link "2025" [ref=e86] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib2
+              - text: )
+            - text: ", inheriting the ceiling of the teacher and requiring expensive API access. A third line of work"
+            - generic [ref=e87]:
+              - text: (Team,
+              - link "2025a" [ref=e88] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib17
+              - text: ; Lin et al.,
+              - link "2018" [ref=e89] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib15
+              - text: )
+            - text: "uses human curated datasets of coding or shell tasks, but the annotation cost limits scale and diversity. What remains missing is a fully autonomous pipeline that can generate an endless stream of terminal tasks: complete with initial environments, task specifications, and verification tests, with minimal human supervision."
+          - paragraph [ref=e91]:
+            - text: We introduce Endless Terminals, a procedural generation pipeline that synthesizes terminal-use tasks without human annotation or distillation. The pipeline operates in four stages (see
+            - link "Fig. 2" [ref=e92] [cursor=pointer]:
+              - /url: https://arxiv.org/html/2601.16443v2#S1.F2
+            - text: "): 1) generating diverse task descriptions by sampling across categories, complexity levels, and scenario contexts; 2) building containerized environments and validating them with automatically generated prerequisite tests; 3) generating completion tests that verify the expected end state; and 4) filtering tasks by sampling solutions from a capable model to ensure solvability."
+          - paragraph [ref=e94]:
+            - text: We train models with a minimal agent architecture, a simple interaction loop where the model reasons, executes commands, and observes the output every turn, with no retrieval, tool use, or multi-agent scaffolding. Vanilla PPO
+            - generic [ref=e95]:
+              - text: (Schulman et al.,
+              - link "2017" [ref=e96] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib32
+              - text: )
+            - text: "with 16 turns on Endless Terminals yields substantial gains: on our held-out dev set, Llama-3.2-3B"
+            - generic [ref=e97]:
+              - text: (Grattafiori et al.,
+              - link "2024" [ref=e98] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib31
+              - text: )
+            - text: improves from 4.0% to 18.2%, Qwen-2.5-7B
+            - generic [ref=e99]:
+              - text: (Qwen et al.,
+              - link "2024" [ref=e100] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib30
+              - text: )
+            - text: from 10.7% to 53.3%, and Qwen-3-8B-openthinker-sft
+            - generic [ref=e101]:
+              - text: (Yang et al.,
+              - link "2025" [ref=e102] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib33
+              - text: ; Team,
+              - link "2025a" [ref=e103] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib17
+              - text: )
+            - text: from 42.6% to 59.0%. These gains transfer to difficult, human curated benchmarks. On TerminalBench 2.0
+            - generic [ref=e104]:
+              - text: (Team,
+              - link "2025b" [ref=e105] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib1
+              - text: )
+            - text: ", Llama-3.2-3B improves from 0.0% to 2.2%, Qwen-2.5-7B from 2.2% to 3.4%, and Qwen-3-8B-Open-Thoughts from 1.1% to 6.7%, in each case outperforming other finetuned versions of the corresponding models on TerminalBench."
+          - paragraph [ref=e107]: These results demonstrate that an autonomous pipeline to scale environments can lead to improvements on human curated benchmarks and that simple RL setups succeed if we can scale them up.
+          - 'figure "Figure 2: Overview of the Endless Terminals procedural generation pipeline. Phase I generates diverse task descriptions by sampling across categories, complexity levels, and scenario contexts, producing both a task description and privileged ground truth data for verification. Phase II creates containerized environments and validates them with self written prerequisite tests. Phase III generates completion tests that verify the expected end state. Phase IV filters tasks by sampling 16 solutions from o3, retaining only tasks where at least one solution succeeds. Some example tasks include shell configuration, log analysis, and checksum generation." [ref=e108]':
+            - img "Refer to caption" [ref=e109]
+            - generic [ref=e110]:
+              - generic [ref=e111]: "Figure 2:"
+              - text: Overview of the Endless Terminals procedural generation pipeline. Phase I generates diverse task descriptions by sampling across categories, complexity levels, and scenario contexts, producing both a task description and privileged ground truth data for verification. Phase II creates containerized environments and validates them with self written prerequisite tests. Phase III generates completion tests that verify the expected end state. Phase IV filters tasks by sampling 16 solutions from o3, retaining only tasks where at least one solution succeeds. Some example tasks include shell configuration, log analysis, and checksum generation.
+        - generic [ref=e112]:
+          - heading "2 Related Work" [level=2] [ref=e113]:
+            - generic [ref=e114]: "2"
+            - text: Related Work
+          - generic [ref=e115]:
+            - heading "Agentic Scaffolds." [level=3] [ref=e116]
+            - paragraph [ref=e118]:
+              - text: Prior work develops scaffolds for LLM agents with custom tools, retrieval, context management, and multi-agent coordination. SWE-agent
+              - generic [ref=e119]:
+                - text: (Yang et al.,
+                - link "2024" [ref=e120] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib11
+                - text: )
+              - text: provides specialized commands for code navigation and editing. OpenHands
+              - generic [ref=e121]:
+                - text: (Wang et al.,
+                - link "2024" [ref=e122] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib8
+                - text: )
+              - text: combines an agent with tools for bash execution, file editing, and browser interaction. Terminus
+              - generic [ref=e123]:
+                - text: (Team,
+                - link "2025b" [ref=e124] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib1
+                - text: )
+              - text: "takes a simpler approach, giving the agent only an interactive tmux session controlled via keystrokes. Our scaffold is simpler still: the agent reasons and emits commands, with the full history of prior thoughts, actions and shell outputs in context."
+          - generic [ref=e125]:
+            - heading "Supervised Finetuning and Distillation" [level=3] [ref=e126]
+            - paragraph [ref=e128]:
+              - text: One approach to building capable agents is to curate high quality datasets for supervised finetuning.
+              - generic [ref=e129]:
+                - text: Guha et al. (
+                - link "2025" [ref=e130] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib2
+                - text: )
+              - text: (OpenThoughts) distill reasoning traces from frontier models, showing that data quality drives downstream improvement with RL.
+              - generic [ref=e131]:
+                - text: Gandhi et al. (
+                - link "2025" [ref=e132] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib6
+                - text: )
+              - text: "identify cognitive behaviors: verification, backtracking, subgoal setting that enable self-improvement via RL, and show these can be instilled."
+              - generic [ref=e133]:
+                - text: Olmo et al. (
+                - link "2025" [ref=e134] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib29
+                - text: )
+              - text: demonstrate how midtraining on targeted data mixes to elicit capabilities like math and coding aids improvement with RL. Finally, OpenThinker-Agent
+              - generic [ref=e135]:
+                - text: (Team,
+                - link "2025a" [ref=e136] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib17
+                - text: )
+              - text: "applies this recipe to terminal tasks, distilling traces from strong teachers. These approaches are complementary: SFT can provide a warm start for RL training."
+          - generic [ref=e137]:
+            - heading "Benchmarks and Interactive Environments." [level=3] [ref=e138]
+            - paragraph [ref=e140]:
+              - text: Progress on coding agents has been driven by human curated benchmarks with execution based evaluation, including SWEBench
+              - generic [ref=e141]:
+                - text: (Jimenez et al.,
+                - link "2023" [ref=e142] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib27
+                - text: )
+              - text: for GitHub issue resolution and TerminalBench 2.0
+              - generic [ref=e143]:
+                - text: (Team,
+                - link "2025b" [ref=e144] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib1
+                - text: )
+              - text: for terminal tasks. These benchmarks require multiturn interaction where agents issue commands and observe outputs before deciding the next action, a format shared by InterCode
+              - generic [ref=e145]:
+                - text: (Yang et al.,
+                - link "2023" [ref=e146] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib12
+                - text: )
+              - text: for interactive coding, and WebArena
+              - generic [ref=e147]:
+                - text: (Zhou et al.,
+                - link "2023" [ref=e148] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib9
+                - text: )
+              - text: for web navigation. Our procedurally generated tasks follow this multiturn format, with agents interacting with a persistent shell.
+          - generic [ref=e149]:
+            - heading "Synthetic Environment Generation" [level=3] [ref=e150]
+            - paragraph [ref=e152]:
+              - text: Some recent works construct environments for training agents on verifiable tasks. SWEGym
+              - generic [ref=e153]:
+                - text: (Pan et al.,
+                - link "2024" [ref=e154] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib10
+                - text: )
+              - text: provides 2438 Python tasks with executable tests, but relies on existing GitHub issues rather than procedural generation. In single turn domains,
+              - generic [ref=e155]:
+                - text: Poesia et al. (
+                - link "2024" [ref=e156] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib5
+                - text: )
+              - text: propose models that posit and solve increasingly difficult problems training them through self-play. OpenThoughts Agent
+              - generic [ref=e157]:
+                - text: (Team,
+                - link "2025a" [ref=e158] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib17
+                - text: )
+              - text: is closest to our work, introducing terminal-use tasks for SFT and RL. However, their RL dataset involves human generated queries and commands from NL2Bash
+              - generic [ref=e159]:
+                - text: (Lin et al.,
+                - link "2018" [ref=e160] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib15
+                - text: )
+              - text: ", and doesn’t yield gains on benchmarks like Terminal Bench 2.0, or an autonomously generated endless terminals dev set. Endless Terminals generates tasks fully autonomously at arbitrary scale, and vanilla PPO yields substantial improvements that transfer to held out benchmarks."
+        - generic [ref=e161]:
+          - heading "3 Procedural Generation of Tasks" [level=2] [ref=e162]:
+            - generic [ref=e163]: "3"
+            - text: Procedural Generation of Tasks
+          - paragraph [ref=e165]:
+            - text: Our procedural generation pipeline (
+            - link "Fig. 2" [ref=e166] [cursor=pointer]:
+              - /url: https://arxiv.org/html/2601.16443v2#S1.F2
+            - text: ") for EndlessTerminals consists of four stages: 1) generating task descriptions, 2) setting up an environment while validating it with self-written tests, 3) generating tests to verify completion of a task, and 4) generating several solutions from a strong model to ensure the validity of a task. Each stage builds on the previous, with automatic verification ensuring validity at every step."
+          - generic [ref=e167]:
+            - heading "Generating Task Descriptions" [level=3] [ref=e168]
+            - paragraph [ref=e170]:
+              - text: We prompt (
+              - link "Fig. 2" [ref=e171] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S1.F2
+              - text: ", Phase I) a language model to generate task descriptions paired with privileged ground truth information. To ensure diversity, each prompt samples randomly from three dimensions: task categories (like file management, text processing, log analysis, git operations, database queries, security scanning, among others), complexity levels (from single commands to multi-step sequences), and scenario contexts (like developer organizing files, DevOps engineer debugging logs, data analyst processing CSVs). The model outputs a task instruction, written as a request someone might pose to an AI assistant, along with a separate privileged information section containing exact file contents, paths, and expected states that automated tests will use for verification. The privileged information section is never revealed to the agent interacting with the environment."
+          - generic [ref=e172]:
+            - heading "Setting up and validating containers" [level=3] [ref=e173]
+            - paragraph [ref=e175]:
+              - text: Given the task description and ground truth, we generate two files (
+              - link "Fig. 2" [ref=e176] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S1.F2
+              - text: ", Phase II): an initial state test file that validates the container before the agent begins, and an Apptainer container definition or Dockerfile that establishes the required environment. The initial state tests verify prerequisites for the task: the presence of specific files, directories, running processes, or cloned repositories. For container generation, we employ an iterative refinement loop: the model generates a container definition, we build it and run the initial tests inside, and if tests fail, we feed the failure output back to the model for correction. This continues for up to"
+              - math [ref=e177]:
+                - generic [ref=e179]:
+                  - generic [ref=e180]: k
+                  - generic [ref=e181]: =
+                  - generic [ref=e182]: "3"
+              - text: rounds or until tests pass. Tasks that cannot produce a valid container are discarded.
+          - generic [ref=e183]:
+            - heading "Final Test Generation." [level=3] [ref=e184]
+            - paragraph [ref=e186]:
+              - text: We generate a second test file that validates the system state after successful task completion. Given the task description, ground truth, and initial state tests, the model produces tests verifying expected outcomes, for example checking for the created files with correct contents, modified configurations, computed results (
+              - link "Fig. 2" [ref=e187] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S1.F2
+              - text: ", Phase III). These tests use paths, instructions and explicit data derived from the privileged ground truth. We verify that these tests do not pass in the initial state, ensuring they meaningfully assess task completion rather than trivially succeeding."
+          - generic [ref=e188]:
+            - heading "Solution Based Filtering." [level=3] [ref=e189]
+            - paragraph [ref=e191]:
+              - text: To ensure tasks are solvable, we sample
+              - math [ref=e192]:
+                - generic [ref=e194]:
+                  - generic [ref=e195]: "n"
+                  - generic [ref=e196]: =
+                  - generic [ref=e197]: "16"
+              - text: solution attempts from a capable model (o3
+              - generic [ref=e198]:
+                - text: (OpenAI,
+                - link "2025" [ref=e199] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib34
+                - text: )
+              - text: ) using our agent framework (
+              - link "Fig. 2" [ref=e200] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S1.F2
+              - text: ", Phase IV). Each attempt consists of an interactive session where the agent issues commands, observes outputs, and continues until declaring completion or exhausting its action budget. We retain tasks where at least one solution succeeds (pass@16"
+              - math [ref=e201]:
+                - generic [ref=e203]:
+                  - generic [ref=e204]: ">"
+                  - generic [ref=e205]: "0"
+              - text: ) and discard the rest (see
+              - link "Fig. 6" [ref=e206] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F6
+              - text: ", right). This filtering removes under specified or impossible tasks while confirming that retained tasks are achievable by strong models."
+            - paragraph [ref=e208]: The complete pipeline processes tasks in parallel, failed tasks are discarded automatically. This approach gives us a controlled, automated and procedural way to generate tasks in a target domain while remaining automatically verifiable.
+        - generic [ref=e209]:
+          - heading "4 Interacting with the Terminal" [level=2] [ref=e210]:
+            - generic [ref=e211]: "4"
+            - text: Interacting with the Terminal
+          - generic [ref=e212]:
+            - heading "Interaction Loop." [level=3] [ref=e213]
+            - paragraph [ref=e215]: "At each turn, the model receives the conversation history, including its own previous reasoning and the shell outputs from prior commands, and produces either a command to execute or a signal that the task is complete. We use minimal XML tags to structure outputs: <command>...</command> wraps shell commands, and <command>done</command> indicates task completion. The model can include arbitrary reasoning before its command, which becomes part of the conversation history visible in subsequent turns. This means that the model can reference prior reasoning, correct mistakes, or build on partial progress."
+          - generic [ref=e216]:
+            - heading "Shell Environment." [level=3] [ref=e217]
+            - paragraph [ref=e219]: "For the shell, we support two types of containers: Docker and Apptainer. For Docker, we use the harbor framework. For Apptainer, we maintain a persistent interactive shell session using a pseudo-terminal (PTY). The agent connects to an Apptainer container instance that remains alive across all turns of an episode, preserving filesystem state, environment variables, and running processes between commands. Each command executes in this persistent context. We capture both stdout and stderr, along with the exit code, and return a structured observation: whether the command succeeded or failed, followed by the output. This feedback is appended to the conversation as the next user message, and the loop continues."
+          - generic [ref=e220]:
+            - heading "Minimal Scaffolding." [level=3] [ref=e221]
+            - paragraph [ref=e223]: "The system prompt contains only basic instructions: output one command per turn, use non-interactive flags, verify solutions before declaring completion. So, tools like vim, htop etc. cannot be used by the agent."
+          - generic [ref=e224]:
+            - heading "Episode Termination." [level=3] [ref=e225]
+            - paragraph [ref=e227]: An episode ends when the agent emits the done action, reaches a maximum number of turns (16 while training) or tokens (16k while training). We execute the held-out final tests inside the container to determine success.
+            - paragraph [ref=e229]: So, we get a minimal loop between the model and the environment. The model reasons, acts, and observes, the conversation history accumulates, and the model reasons again with full context of what it has tried.
+        - generic [ref=e230]:
+          - heading "5 Experiments" [level=2] [ref=e231]:
+            - generic [ref=e232]: "5"
+            - text: Experiments
+          - 'figure "Figure 3: Training and evaluation results. Top row: Reward curves during PPO training on Endless Terminals for (left) Llama-3.2-3B, (center) Qwen2.5-7B, and (right) Qwen3-8B-openthinker-sft, showing consistent improvement across all models. Bottom row: Pass rates on (left) our development set, (center) OpenThinker development set , and (right) TerminalBench 2.0 . Models trained with our RL approach (+RL Ours) outperform base models and alternative finetuned variants across all evaluations. Here, RL (OpenThinker) denotes RL training in OpenThoughts-Agent (Team, 2025a ). Results on Terminal Bench 2.0 are averaged over 5 runs for our methods." [ref=e233]':
+            - img "Refer to caption" [ref=e234]
+            - generic [ref=e235]:
+              - generic [ref=e236]: "Figure 3:"
+              - text: "Training and evaluation results. Top row: Reward curves during PPO training on Endless Terminals for (left) Llama-3.2-3B, (center) Qwen2.5-7B, and (right) Qwen3-8B-openthinker-sft, showing consistent improvement across all models. Bottom row: Pass rates on (left) our development set, (center) OpenThinker development set , and (right) TerminalBench 2.0 . Models trained with our RL approach (+RL Ours) outperform base models and alternative finetuned variants across all evaluations. Here, RL (OpenThinker) denotes RL training in OpenThoughts-Agent"
+              - generic [ref=e237]:
+                - text: (Team,
+                - link "2025a" [ref=e238] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib17
+                - text: )
+              - text: . Results on Terminal Bench 2.0 are averaged over 5 runs for our methods.
+          - 'figure "Figure 4: Distribution of tasks in Endless Terminals. Left: Task categories, with file operations and log management comprising the largest shares." [ref=e239]':
+            - img "Refer to caption" [ref=e240]
+            - generic [ref=e241]:
+              - generic [ref=e242]: "Figure 4:"
+              - text: "Distribution of tasks in Endless Terminals. Left: Task categories, with file operations and log management comprising the largest shares."
+          - paragraph [ref=e244]:
+            - text: Task Generation. Our pipeline produces 3255 tasks in Apptainer format, of which approximately 2500 are also converted to Harbor
+            - generic [ref=e245]:
+              - text: (Shaw,
+              - link "2025" [ref=e246] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib25
+              - text: )
+            - text: format. We use the Apptainer pipeline for all experiments. Solvability filtering discards roughly half of all generated candidates, those where o3
+            - generic [ref=e247]:
+              - text: (OpenAI,
+              - link "2025" [ref=e248] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib34
+              - text: )
+            - text: fails all 16 attempts, removing underspecified or invalid tasks from the training distribution.
+          - generic [ref=e249]:
+            - heading "Endless Terminals produces a diverse distribution of solvable tasks." [level=3] [ref=e250]
+            - paragraph [ref=e252]:
+              - link "Fig. 4" [ref=e253] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F4
+              - text: shows the composition of our generated dataset. Task categories span file operations (the largest category), log management, data processing, text processing, scripting, archiving and compression and database operations. Solution lengths (
+              - link "Fig. 6" [ref=e254] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F6
+              - text: ", left) vary considerably, with most tasks requiring between 1,000 and 4,000 characters of interaction, though the distribution has a long tail extending beyond 10,000 characters for more complex tasks. The distribution of the success rate of solutions sampled from o3 ("
+              - link "Fig. 6" [ref=e255] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F6
+              - text: ", right) shows that roughly half the tasks are solved by all 16 attempts, with the remainder spanning a range of difficulties: though all are, by construction, within reach of current frontier models."
+          - generic [ref=e256]:
+            - heading "Training Setup." [level=3] [ref=e257]
+            - paragraph [ref=e259]:
+              - text: We train our agent with Proximal Policy Optimization (PPO)
+              - generic [ref=e260]:
+                - text: (Schulman et al.,
+                - link "2017" [ref=e261] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib32
+                - text: )
+              - text: . Our implementation uses SkyRL
+              - generic [ref=e262]:
+                - text: (Griggs et al.,
+                - link "2025" [ref=e263] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib23
+                - text: )
+              - text: For each training batch, we sample 16 rollouts per prompt for up to 16 turns, with a maximum of 2048 tokens generated per turn and a total context window of 16k tokens for the full conversation history. We use a temperature of 0.6 for both training and evaluation.
+            - paragraph [ref=e265]:
+              - text: "We treat each complete episode as a single reward signal: the agent receives reward 1 if the final tests pass and 0 otherwise, with no intermediate rewards. For the PPO objective, we use clipping bounds"
+              - math [ref=e266]:
+                - generic [ref=e268]:
+                  - generic [ref=e269]:
+                    - generic [ref=e270]: ϵ
+                    - generic [ref=e271]: low
+                  - generic [ref=e272]: =
+                  - generic [ref=e273]: "0.2"
+              - text: and
+              - math [ref=e274]:
+                - generic [ref=e276]:
+                  - generic [ref=e277]:
+                    - generic [ref=e278]: ϵ
+                    - generic [ref=e279]: high
+                  - generic [ref=e280]: =
+                  - generic [ref=e281]: "0.28"
+              - generic [ref=e282]:
+                - text: (Yu et al.,
+                - link "2025" [ref=e283] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib19
+                - text: )
+              - text: ", with sequence level loss averaging. We do not use a KL penalty since anecdotally we found that this hurt performance. To reduce the time for collecting rollouts, we add a 5 minute environment timeout. At inference time, we allow the model to interact for 64 turns, collapsing history when the context limit is reached by add the history of previous commands to the first user message."
+            - paragraph [ref=e285]:
+              - text: "We train three models: Llama-3.2-3B-Instruct, Qwen2.5-7B-Instruct, and Qwen3-8B-openthinker-sft as our base models. Qwen3-8B-openthinker-sft is finetuned on 15000 traces from two sources: NL2Bash"
+              - generic [ref=e286]:
+                - text: (Lin et al.,
+                - link "2018" [ref=e287] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib15
+                - text: )
+              - text: ", synthetically generated tasks for shell command formatting, and InferredBugs"
+              - generic [ref=e288]:
+                - text: (Jin et al.,
+                - link "2023" [ref=e289] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib18
+                - text: )
+              - text: ", a collection of C# and Java bugs converted into interactive tasks. Traces are distilled from GLM-4.6"
+              - generic [ref=e290]:
+                - text: (Zeng et al.,
+                - link "2025" [ref=e291] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib26
+                - text: )
+              - text: . Llama-3.2-3b and Qwen2.5-7b were trained on 4 A100s for about 2 days. Qwen3-8b-openthoughts-sft was trained on 8 B200s for about 8 hours.
+          - generic [ref=e292]:
+            - heading "Endless Terminals yields consistent improvement across models." [level=3] [ref=e293]
+            - paragraph [ref=e295]:
+              - text: Training with PPO on procedurally generated tasks produces steady gains regardless of model size or starting capability. As shown in
+              - link "Fig. 3" [ref=e296] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F3
+              - text: "(top row), reward increases throughout training for all three base models—Llama-3.2-3B, Qwen2.5-7B, and Qwen3-8B-openthinker-sft. On our held-out development set, Llama-3.2-3B improves from 4.0% to 18.2%, Qwen2.5-7B from 10.7% to 53.3%, and Qwen3-8B-openthinker-sft from 42.6% to 59.0% This demonstrates that our procedural generation pipeline provides a reliable training signal. On the OpenThinker development set, we observe similar trends: Llama-3.2-3B improves from 0.0% to 1.0%, Qwen2.5-7B from 3.9% to 8.5%, and Qwen3-8B-openthinker-sft from 9.7% to 10.2%. Gains on the OpenThinker development set are smaller, as this benchmark includes general software engineering tasks like issue resolution rather than purely terminal based tasks."
+          - generic [ref=e297]:
+            - heading "Simple RL succeeds when environments scale." [level=3] [ref=e298]
+            - paragraph [ref=e300]: Our setup uses vanilla PPO with binary episode level rewards, no intermediate shaping, no KL penalty, and a minimal agent architecture without retrieval or multi-agent scaffolding. The gains come not from algorithmic sophistication but from scaling the environments, Endless Terminals provides the diverse, automatically verifiable tasks that RL requires.
+            - 'figure "Figure 5: Failure Analysis. Failure modes are dominated by loop behaviors (39%) and turn exhaustion (26%), with remaining failures terminating early on specialized domains like cryptanalysis and bioinformatics (right)." [ref=e301]':
+              - img "Refer to caption" [ref=e302]
+              - generic [ref=e303]:
+                - generic [ref=e304]: "Figure 5:"
+                - text: Failure Analysis. Failure modes are dominated by loop behaviors (39%) and turn exhaustion (26%), with remaining failures terminating early on specialized domains like cryptanalysis and bioinformatics (right).
+          - generic [ref=e305]:
+            - heading "Gains transfer to held out human-curated benchmarks." [level=3] [ref=e306]
+            - paragraph [ref=e308]:
+              - text: "The improvements from training on Endless Terminals generalize beyond our procedurally generated distribution. On TerminalBench 2.0, a human curated benchmark the models never see during training, we observe substantial improvements: llama-3.2-3b improves from 0.0% to 2.2%, qwen-2.5-7b from 2.2% to 3.4%, and qwen-3-8b-open-thoughts-sft from 1.1% to 6.7%. In each case our RL trained models outperform other versions of the same base architectures ("
+              - link "Fig. 3" [ref=e309] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F3
+              - text: ", bottom right), including models trained with alternative RL recipes"
+              - generic [ref=e310]:
+                - text: (Team,
+                - link "2025a" [ref=e311] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib17
+                - text: )
+              - text: with agentic scaffolds like Terminus-2
+              - generic [ref=e312]:
+                - text: (Team,
+                - link "2025b" [ref=e313] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib1
+                - text: )
+              - text: . Finally, our tasks were generated before the release of TerminalBench 2.0, ensuring no data leakage.
+            - 'figure "Figure 6: Distribution of Generated Solutions. (left) Distribution of solution lengths (in characters, log scale), showing most tasks require 1000-4000 characters of interaction with a long tail for complex tasks. (right) Distribution of pass rates across 16 o3 solution attempts, showing roughly half of tasks are solved by all attempts while the remainder span a range of difficulties." [ref=e314]':
+              - img "Refer to caption" [ref=e315]
+              - generic [ref=e316]:
+                - generic [ref=e317]: "Figure 6:"
+                - text: Distribution of Generated Solutions. (left) Distribution of solution lengths (in characters, log scale), showing most tasks require 1000-4000 characters of interaction with a long tail for complex tasks. (right) Distribution of pass rates across 16 o3 solution attempts, showing roughly half of tasks are solved by all attempts while the remainder span a range of difficulties.
+            - 'figure "Figure 7: Analysis of successes on TerminalBench 2.0. (right) vary substantially across categories, with software engineering tasks showing the best performance. and (left) Success rates (pass@5) decline with task difficulty" [ref=e318]':
+              - img "Refer to caption" [ref=e319]
+              - generic [ref=e320]:
+                - generic [ref=e321]: "Figure 7:"
+                - text: Analysis of successes on TerminalBench 2.0. (right) vary substantially across categories, with software engineering tasks showing the best performance. and (left) Success rates (pass@5) decline with task difficulty
+          - generic [ref=e322]:
+            - heading "Failure Modes." [level=3] [ref=e323]
+            - paragraph [ref=e325]:
+              - text: "We analyze the tasks where our best model, qwen-3-8b-openthoguhts-sft achieved zero success on TerminalBench 2.0. For context, Claude Sonnet 4.5 with Terminus-2 achieves 42.8% on this benchmark with a 200 turn limit and an agentic scaffold, compared to our 6.7% with 64 turns and a no agentic scaffold. Pass@5 rates (at least one success in 5 attempts) decrease with task difficulty: 25% (1/4) easy, 14.5% (8/55) medium, and 10% (3/30) hard tasks ("
+              - link "Fig. 7" [ref=e326] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F7
+              - text: ).
+            - paragraph [ref=e328]:
+              - text: We identify two primary failure modes (
+              - link "Fig. 5" [ref=e329] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#S5.F5
+              - text: "): 1) loop failures"
+              - generic [ref=e330]:
+                - text: (Pipis et al.,
+                - link "2025" [ref=e331] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib24
+                - text: )
+              - text: ", where the model becomes stuck repeating the same command sequence, accounting for 39% of failures (30 tasks), and 2) turn exhaustion, where the model hits the turn limit (we train with 16 turns and evaluate with 64 turns with a sliding window), affecting 26% of failures (20 tasks). These categories overlap, with 11 tasks exhibiting both behaviors. The remaining failures (49%) terminate early with incorrect solutions, often in specialized domains like cryptanalysis, machine learning model extraction, and bioinformatics where the model lacks domain knowledge. By category (pass@5), the model performs best on software-engineering (6/26), followed by data-science (1/8), optimization (1/2), scientific-computing (1/8), system-administration (1/9), data-processing (1/4), and security (1/8), while achieving zero success on mathematics (0/4), machine-learning (0/3), and model-training (0/4) tasks. To understand loop failures, we measure"
+              - emphasis [ref=e332]: command diversity
+              - text: ": the ratio of unique commands to total commands issued after the first error. Successful tasks exhibit significantly higher command diversity (0.49 on average) compared to failed tasks with loop behavior (0.18 on average), indicating that successful runs explore alternative approaches after errors while failed runs repeat commands."
+          - generic [ref=e333]:
+            - heading "Distillation and RL are complementary." [level=3] [ref=e334]
+            - paragraph [ref=e336]:
+              - text: Our results show that starting from a stronger base amplifies gains from RL. Qwen3-8B-openthinker-sft, which was first finetuned on 15,000 distilled traces from NL2Bash and InferredBugs, achieves the highest final performance after RL training (6.7% on TerminalBench 2.0). This suggests that SFT provides a warm start that RL can build upon more effectively
+              - generic [ref=e337]:
+                - text: (Gandhi et al.,
+                - link "2025" [ref=e338] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib6
+                - text: ; Guha et al.,
+                - link "2025" [ref=e339] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#bib.bib2
+                - text: )
+              - text: .
+        - generic [ref=e340]:
+          - heading "6 Discussion" [level=2] [ref=e341]:
+            - generic [ref=e342]: "6"
+            - text: Discussion
+          - paragraph [ref=e344]: "We introduced Endless Terminals, a procedural generation pipeline that synthesizes terminal-use tasks without human annotation or distillation from stronger models. The pipeline operates autonomously across four stages—task description generation, container setup with self, validation, completion test generation, and solution based filtering, producing 3,255 valid tasks spanning tasks like file operations, log management, data processing, text processing, etc. Training with PPO on these tasks yields consistent improvements across model scales, and these gains transfer to TerminalBench 2.0., a human curated benchmark. Our results demonstrate that simple RL setups can succeed when environments scale. Our failure mode analysis on TerminalBench 2.0 revealed two patterns: loop failures, where models repeat the same command sequences (39% of failures), and turn exhaustion (26%). Successful tasks exhibit significantly higher command diversity after the first error (0.49 vs 0.18 for looping failures), suggesting that exploring alternative approaches is crucial. Performance also varies by domain: software engineering tasks achieve 23% success while mathematics, machine learning, and model training show zero success. This gap may reflect insufficient coverage of these domains in our procedural generation pipeline."
+          - paragraph [ref=e346]:
+            - text: Our approach has several limitations worth noting. First, the procedurally generated tasks tend to resemble competitive programming problems more than the messy, underspecified requests that users actually pose to AI assistants. Real terminal use often involves ambiguous goals, implicit context, and might require clarifying questions. These are difficult to capture in automatically generated specifications without sacrificing verifiability. However, better user modeling
+            - generic [ref=e347]:
+              - text: (Shaikh et al.,
+              - link "2025" [ref=e348] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib16
+              - text: ; Weston and Foerster,
+              - link "2025" [ref=e349] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib21
+              - text: ; Gandhi et al.,
+              - link "2026" [ref=e350] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib22
+              - text: )
+            - text: might enable building of such “fuzzy” environments. Conditioning the generation prompt to produce more naturalistic requests while maintaining sufficient specification for verification remains an open challenge.
+          - paragraph [ref=e352]:
+            - text: Our filter for solvability introduces a capability ceiling. We filter using pass@16 from o3, retaining only tasks where at least one solution succeeds. This process that discards roughly half of all generated candidates. This filtering confirms that retained tasks are solvable and removes potentially underspecified or invalid tasks but also tasks that are beyond the capabilities of o3. This means that our pipeline cannot generate tasks beyond the frontier model’s capability. As stronger models emerge, this ceiling will rise, but the dependence on a frontier validator limits our ability to train agents on truly novel problems. Self-play approaches, where models iteratively generate tasks just beyond their current capability and learn to solve them, could adaptively scale difficulty without relying on a fixed frontier validator
+            - generic [ref=e353]:
+              - text: (Poesia et al.,
+              - link "2024" [ref=e354] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib5
+              - text: ; Zhao et al.,
+              - link "2025" [ref=e355] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib7
+              - text: )
+            - text: .
+          - paragraph [ref=e357]:
+            - text: Incorporating humans in the loop, either to validate generated tasks or to provide naturalistic task descriptions, could improve both task quality and diversity beyond what purely synthetic generation achieves, albeit at the increasing the cost of generating tasks, making the pipeline less scalable. Testing RL with richer agentic scaffolds (retrieval, multi-agent coordination, tool use) may yield further gains. Partial rewards based on the number of test cases passed, rather than binary episode-level rewards, could provide denser training signal and accelerate learning
+            - generic [ref=e358]:
+              - text: (Sun et al.,
+              - link "2025" [ref=e359] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib20
+              - text: )
+            - text: . Finally, learning world models of terminal dynamics
+            - generic [ref=e360]:
+              - text: (Copet et al.,
+              - link "2025" [ref=e361] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib4
+              - text: )
+            - text: or distilling environment dynamics into reasoning-based experience models
+            - generic [ref=e362]:
+              - text: (Chen et al.,
+              - link "2025" [ref=e363] [cursor=pointer]:
+                - /url: https://arxiv.org/html/2601.16443v2#bib.bib3
+              - text: )
+            - text: could enable more sample-efficient training by allowing agents to plan and simulate outcomes through imagined rollouts before executing commands.
+          - paragraph [ref=e365]: These directions, task verification, richer scaffolds, denser reward signals, and learned world models, highlight that building capable terminal agents remains a multifaceted challenge. Endless Terminals represents one cog in this greater effort, demonstrating that scalable environment generation can unlock substantial gains even with simple RL setups. We hope this work encourages the community to invest in automated task generation pipelines alongside algorithmic advances, richer scaffolds, and improved training objectives.
+        - generic [ref=e366]:
+          - heading "Acknowledgments" [level=2] [ref=e367]
+          - paragraph [ref=e369]: The authors would like to thank Vaish Shrivastava, Sahaj Agarwal, Vasilis Kontonis, Ahmed Awadallah, Corby Rossett and Shital Shah for discussions and their support. This work was started during KG’s internship at Microsoft Research. KG was supported by an HAI-SAP Grant and an NSF Expeditions grant during his time at Stanford.
+        - generic [ref=e370]:
+          - heading "References" [level=2] [ref=e371]
+          - list [ref=e372]:
+            - listitem [ref=e373]:
+              - generic [ref=e374]:
+                - text: Z. Chen, Z. Zhao, K. Zhang, B. Liu, Q. Qi, Y. Wu, T. Kalluri, S. Cao, Y. Xiong, H. Tong, et al. (2025)
+                - button "Back to the article" [ref=e375] [cursor=pointer]: ↑
+              - generic [ref=e376]: Scaling agent learning via experience synthesis.
+              - generic [ref=e377]: arXiv preprint arXiv:2511.03773.
+              - generic [ref=e378]:
+                - text: "Cited by:"
+                - link "§6" [ref=e379] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p4.1
+                - text: .
+            - listitem [ref=e380]:
+              - generic [ref=e381]:
+                - text: J. Copet, Q. Carbonneaux, G. Cohen, J. Gehring, J. Kahn, J. Kossen, F. Kreuk, E. McMilin, M. Meyer, Y. Wei, et al. (2025)
+                - button "Back to the article" [ref=e382] [cursor=pointer]: ↑
+              - generic [ref=e383]: "Cwm: an open-weights llm for research on code generation with world models."
+              - generic [ref=e384]: arXiv preprint arXiv:2510.02387.
+              - generic [ref=e385]:
+                - text: "Cited by:"
+                - link "§6" [ref=e386] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p4.1
+                - text: .
+            - listitem [ref=e387]:
+              - generic [ref=e388]:
+                - text: K. Gandhi, A. Bhatia, and N. D. Goodman (2026)
+                - button "Back to the article" [ref=e389] [cursor=pointer]: ↑
+              - generic [ref=e390]: Learning to simulate human dialogue.
+              - generic [ref=e391]: arXiv preprint arXiv:2601.04436.
+              - generic [ref=e392]:
+                - text: "Cited by:"
+                - link "§6" [ref=e393] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p2.1
+                - text: .
+            - listitem [ref=e394]:
+              - generic [ref=e395]:
+                - text: K. Gandhi, A. Chakravarthy, A. Singh, N. Lile, and N. D. Goodman (2025)
+                - button "Back to the article" [ref=e396] [cursor=pointer]: ↑
+              - generic [ref=e397]: Cognitive behaviors that enable self-improving reasoners, or, four habits of highly effective stars.
+              - generic [ref=e398]: arXiv preprint arXiv:2503.01307.
+              - generic [ref=e399]:
+                - text: "Cited by:"
+                - link "§2" [ref=e400] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px2.p1.1
+                - text: ","
+                - link "§5" [ref=e401] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px7.p1.1
+                - text: .
+            - listitem [ref=e402]:
+              - generic [ref=e403]:
+                - text: A. Grattafiori, A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman, A. Mathur, A. Schelten, A. Vaughan, et al. (2024)
+                - button "Back to the article" [ref=e404] [cursor=pointer]: ↑
+              - generic [ref=e405]: The llama 3 herd of models.
+              - generic [ref=e406]: arXiv preprint arXiv:2407.21783.
+              - generic [ref=e407]:
+                - text: "Cited by:"
+                - link "§1" [ref=e408] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p4.1
+                - text: .
+            - listitem [ref=e409]:
+              - generic [ref=e410]:
+                - text: T. Griggs, S. Hegde, E. Tang, S. Liu, S. Cao, D. Li, C. Ruan, P. Moritz, K. Hakhamaneshi, R. Liaw, A. Malik, M. Zaharia, J. E. Gonzalez, and I. Stoica (2025)
+                - button "Back to the article" [ref=e411] [cursor=pointer]: ↑
+              - generic [ref=e412]: Evolving skyrl into a highly-modular rl framework.
+              - generic [ref=e413]: "Note: Notion Blog"
+              - generic [ref=e414]:
+                - text: "Cited by:"
+                - link "§5" [ref=e415] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px2.p1.1
+                - text: .
+            - listitem [ref=e416]:
+              - generic [ref=e417]:
+                - text: E. Guha, R. Marten, S. Keh, N. Raoof, G. Smyrnis, H. Bansal, M. Nezhurina, J. Mercat, T. Vu, Z. Sprague, A. Suvarna, B. Feuer, L. Chen, Z. Khan, E. Frankel, S. Grover, C. Choi, N. Muennighoff, S. Su, W. Zhao, J. Yang, S. Pimpalgaonkar, K. Sharma, C. C. Ji, Y. Deng, S. Pratt, V. Ramanujan, J. Saad-Falcon, J. Li, A. Dave, A. Albalak, K. Arora, B. Wulfe, C. Hegde, G. Durrett, S. Oh, M. Bansal, S. Gabriel, A. Grover, K. Chang, V. Shankar, A. Gokaslan, M. A. Merrill, T. Hashimoto, Y. Choi, J. Jitsev, R. Heckel, M. Sathiamoorthy, A. G. Dimakis, and L. Schmidt (2025)
+                - button "Back to the article" [ref=e418] [cursor=pointer]: ↑
+              - generic [ref=e419]: "OpenThoughts: data recipes for reasoning models."
+              - generic [ref=e420]:
+                - text: "External Links:"
+                - generic [ref=e421]:
+                  - text: 2506.04178,
+                  - link "Link" [ref=e422] [cursor=pointer]:
+                    - /url: https://arxiv.org/abs/2506.04178
+              - generic [ref=e423]:
+                - text: "Cited by:"
+                - link "§1" [ref=e424] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p2.1
+                - text: ","
+                - link "§2" [ref=e425] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px2.p1.1
+                - text: ","
+                - link "§5" [ref=e426] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px7.p1.1
+                - text: .
+            - listitem [ref=e427]:
+              - generic [ref=e428]:
+                - text: C. E. Jimenez, J. Yang, A. Wettig, S. Yao, K. Pei, O. Press, and K. Narasimhan (2023)
+                - button "Back to the article" [ref=e429] [cursor=pointer]: ↑
+              - generic [ref=e430]: "Swe-bench: can language models resolve real-world github issues?."
+              - generic [ref=e431]: arXiv preprint arXiv:2310.06770.
+              - generic [ref=e432]:
+                - text: "Cited by:"
+                - link "§2" [ref=e433] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px3.p1.1
+                - text: .
+            - listitem [ref=e434]:
+              - generic [ref=e435]:
+                - text: M. Jin, S. Shahriar, M. Tufano, X. Shi, S. Lu, N. Sundaresan, and A. Svyatkovskiy (2023)
+                - button "Back to the article" [ref=e436] [cursor=pointer]: ↑
+              - generic [ref=e437]: "Inferfix: end-to-end program repair with llms."
+              - generic [ref=e438]: In Proceedings of the 31st ACM joint european software engineering conference and symposium on the foundations of software engineering,
+              - generic [ref=e439]: pp. 1646–1656.
+              - generic [ref=e440]:
+                - text: "Cited by:"
+                - link "§5" [ref=e441] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px2.p3.1
+                - text: .
+            - listitem [ref=e442]:
+              - generic [ref=e443]:
+                - text: X. V. Lin, C. Wang, L. Zettlemoyer, and M. D. Ernst (2018)
+                - button "Back to the article" [ref=e444] [cursor=pointer]: ↑
+              - generic [ref=e445]: "Nl2bash: a corpus and semantic parser for natural language interface to the linux operating system."
+              - generic [ref=e446]: arXiv preprint arXiv:1802.08979.
+              - generic [ref=e447]:
+                - text: "Cited by:"
+                - link "§1" [ref=e448] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p2.1
+                - text: ","
+                - link "§2" [ref=e449] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px4.p1.1
+                - text: ","
+                - link "§5" [ref=e450] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px2.p3.1
+                - text: .
+            - listitem [ref=e451]:
+              - generic [ref=e452]:
+                - text: T. Olmo, A. Ettinger, A. Bertsch, B. Kuehl, D. Graham, D. Heineman, D. Groeneveld, F. Brahman, F. Timbers, H. Ivison, et al. (2025)
+                - button "Back to the article" [ref=e453] [cursor=pointer]: ↑
+              - generic [ref=e454]: Olmo 3.
+              - generic [ref=e455]: arXiv preprint arXiv:2512.13961.
+              - generic [ref=e456]:
+                - text: "Cited by:"
+                - link "§2" [ref=e457] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px2.p1.1
+                - text: .
+            - listitem [ref=e458]:
+              - generic [ref=e459]:
+                - text: OpenAI (2025)
+                - button "Back to the article" [ref=e460] [cursor=pointer]: ↑
+              - generic [ref=e461]: OpenAI o3 and o4-mini system card.
+              - generic [ref=e462]:
+                - text: "Note:"
+                - link "https://openai.com/index/o3-o4-mini-system-card/" [ref=e464] [cursor=pointer]:
+                  - /url: https://openai.com/index/o3-o4-mini-system-card/
+              - generic [ref=e465]:
+                - text: "Cited by:"
+                - link "§3" [ref=e466] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S3.SS0.SSS0.Px4.p1.2
+                - text: ","
+                - link "§5" [ref=e467] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.p1.1
+                - text: .
+            - listitem [ref=e468]:
+              - generic [ref=e469]:
+                - text: J. Pan, X. Wang, G. Neubig, N. Jaitly, H. Ji, A. Suhr, and Y. Zhang (2024)
+                - button "Back to the article" [ref=e470] [cursor=pointer]: ↑
+              - generic [ref=e471]: Training software engineering agents and verifiers with swe-gym.
+              - generic [ref=e472]: arXiv preprint arXiv:2412.21139.
+              - generic [ref=e473]:
+                - text: "Cited by:"
+                - link "§2" [ref=e474] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px4.p1.1
+                - text: .
+            - listitem [ref=e475]:
+              - generic [ref=e476]:
+                - text: C. Pipis, S. Garg, V. Kontonis, V. Shrivastava, A. Krishnamurthy, and D. Papailiopoulos (2025)
+                - button "Back to the article" [ref=e477] [cursor=pointer]: ↑
+              - generic [ref=e478]: Wait, wait, wait… why do reasoning models loop?.
+              - generic [ref=e479]: arXiv preprint arXiv:2512.12895.
+              - generic [ref=e480]:
+                - text: "Cited by:"
+                - link "§5" [ref=e481] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px6.p2.1
+                - text: .
+            - listitem [ref=e482]:
+              - generic [ref=e483]:
+                - text: G. Poesia, D. Broman, N. Haber, and N. Goodman (2024)
+                - button "Back to the article" [ref=e484] [cursor=pointer]: ↑
+              - generic [ref=e485]: Learning formal mathematics from intrinsic motivation.
+              - generic [ref=e486]: Advances in Neural Information Processing Systems 37, pp. 43032–43057.
+              - generic [ref=e487]:
+                - text: "Cited by:"
+                - link "§2" [ref=e488] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px4.p1.1
+                - text: ","
+                - link "§6" [ref=e489] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p3.1
+                - text: .
+            - listitem [ref=e490]:
+              - generic [ref=e491]:
+                - text: Prime Intellect (2025)
+                - button "Back to the article" [ref=e492] [cursor=pointer]: ↑
+              - generic [ref=e493]: Environments hub.
+              - generic [ref=e494]:
+                - text: "Note:"
+                - generic [ref=e495]:
+                  - link "https://app.primeintellect.ai/dashboard/environments" [ref=e496] [cursor=pointer]:
+                    - /url: https://app.primeintellect.ai/dashboard/environments
+                  - text: "A community hub for discovering and sharing environments for RL training and downstream evaluation. Accessed: 2025-01-17"
+              - generic [ref=e497]:
+                - text: "Cited by:"
+                - link "§1" [ref=e498] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p1.1
+                - text: .
+            - listitem [ref=e499]:
+              - generic [ref=e500]:
+                - text: A. Y. Qwen, B. Yang, B. Zhang, B. Hui, B. Zheng, B. Yu, C. Li, D. Liu, F. Huang, H. Wei, et al. (2024)
+                - button "Back to the article" [ref=e501] [cursor=pointer]: ↑
+              - generic [ref=e502]: Qwen2. 5 technical report.
+              - generic [ref=e503]: arXiv preprint.
+              - generic [ref=e504]:
+                - text: "Cited by:"
+                - link "§1" [ref=e505] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p4.1
+                - text: .
+            - listitem [ref=e506]:
+              - generic [ref=e507]:
+                - text: J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov (2017)
+                - button "Back to the article" [ref=e508] [cursor=pointer]: ↑
+              - generic [ref=e509]: Proximal policy optimization algorithms.
+              - generic [ref=e510]: arXiv preprint arXiv:1707.06347.
+              - generic [ref=e511]:
+                - text: "Cited by:"
+                - link "§1" [ref=e512] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p4.1
+                - text: ","
+                - link "§5" [ref=e513] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px2.p1.1
+                - text: .
+            - listitem [ref=e514]:
+              - generic [ref=e515]:
+                - text: O. Shaikh, S. Sapkota, S. Rizvi, E. Horvitz, J. S. Park, D. Yang, and M. S. Bernstein (2025)
+                - button "Back to the article" [ref=e516] [cursor=pointer]: ↑
+              - generic [ref=e517]: Creating general user models from computer use.
+              - generic [ref=e518]: In Proceedings of the 38th Annual ACM Symposium on User Interface Software and Technology,
+              - generic [ref=e519]: pp. 1–23.
+              - generic [ref=e520]:
+                - text: "Cited by:"
+                - link "§6" [ref=e521] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p2.1
+                - text: .
+            - listitem [ref=e522]:
+              - generic [ref=e523]:
+                - text: A. Shaw (2025)
+                - button "Back to the article" [ref=e524] [cursor=pointer]: ↑
+              - generic [ref=e525]: Harbor Framework.
+              - generic [ref=e526]:
+                - text: "External Links:"
+                - link "Link" [ref=e528] [cursor=pointer]:
+                  - /url: https://github.com/laude-institute/harbor
+              - generic [ref=e529]:
+                - text: "Cited by:"
+                - link "§5" [ref=e530] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.p1.1
+                - text: .
+            - listitem [ref=e531]:
+              - generic [ref=e532]:
+                - text: Y. Sun, Y. Cao, P. Huang, H. Bai, H. Hajishirzi, N. Dziri, and D. Song (2025)
+                - button "Back to the article" [ref=e533] [cursor=pointer]: ↑
+              - generic [ref=e534]: "RL grokking recipe: how does rl unlock and transfer new algorithms in llms?."
+              - generic [ref=e535]: arXiv preprint arXiv:2509.21016.
+              - generic [ref=e536]:
+                - text: "Cited by:"
+                - link "§6" [ref=e537] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p4.1
+                - text: .
+            - listitem [ref=e538]:
+              - generic [ref=e539]:
+                - text: O. Team (2025a)
+                - button "Back to the article" [ref=e540] [cursor=pointer]: ↑
+              - generic [ref=e541]: OpenThoughts-Agent.
+              - generic [ref=e542]: "Note: https://open-thoughts.ai/agent"
+              - generic [ref=e543]:
+                - text: "Cited by:"
+                - link "§1" [ref=e544] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p1.1
+                - text: ","
+                - link "§1" [ref=e545] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p2.1
+                - text: ","
+                - link "§1" [ref=e546] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p4.1
+                - text: ","
+                - link "§2" [ref=e547] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px2.p1.1
+                - text: ","
+                - link "§2" [ref=e548] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px4.p1.1
+                - text: ","
+                - link "Figure 3" [ref=e549] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.F3
+                - text: ","
+                - link "§5" [ref=e550] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px5.p1.1
+                - text: .
+            - listitem [ref=e551]:
+              - generic [ref=e552]:
+                - text: T. T. Team (2025b)
+                - button "Back to the article" [ref=e553] [cursor=pointer]: ↑
+              - generic [ref=e554]: "Terminal-bench: a benchmark for ai agents in terminal environments."
+              - generic [ref=e555]:
+                - text: "External Links:"
+                - link "Link" [ref=e557] [cursor=pointer]:
+                  - /url: https://github.com/laude-institute/terminal-bench
+              - generic [ref=e558]:
+                - text: "Cited by:"
+                - link "§1" [ref=e559] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p1.1
+                - text: ","
+                - link "§1" [ref=e560] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p4.1
+                - text: ","
+                - link "§2" [ref=e561] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px1.p1.1
+                - text: ","
+                - link "§2" [ref=e562] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px3.p1.1
+                - text: ","
+                - link "§5" [ref=e563] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px5.p1.1
+                - text: .
+            - listitem [ref=e564]:
+              - generic [ref=e565]:
+                - text: X. Wang, B. Li, Y. Song, F. F. Xu, X. Tang, M. Zhuge, J. Pan, Y. Song, B. Li, J. Singh, et al. (2024)
+                - button "Back to the article" [ref=e566] [cursor=pointer]: ↑
+              - generic [ref=e567]: "Openhands: an open platform for ai software developers as generalist agents."
+              - generic [ref=e568]: arXiv preprint arXiv:2407.16741.
+              - generic [ref=e569]:
+                - text: "Cited by:"
+                - link "§2" [ref=e570] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px1.p1.1
+                - text: .
+            - listitem [ref=e571]:
+              - generic [ref=e572]:
+                - text: J. Weston and J. Foerster (2025)
+                - button "Back to the article" [ref=e573] [cursor=pointer]: ↑
+              - generic [ref=e574]: AI & human co-improvement for safer co-superintelligence.
+              - generic [ref=e575]: arXiv preprint arXiv:2512.05356.
+              - generic [ref=e576]:
+                - text: "Cited by:"
+                - link "§6" [ref=e577] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p2.1
+                - text: .
+            - listitem [ref=e578]:
+              - generic [ref=e579]:
+                - text: A. Yang, A. Li, B. Yang, B. Zhang, B. Hui, B. Zheng, B. Yu, C. Gao, C. Huang, C. Lv, et al. (2025)
+                - button "Back to the article" [ref=e580] [cursor=pointer]: ↑
+              - generic [ref=e581]: Qwen3 technical report.
+              - generic [ref=e582]: arXiv preprint arXiv:2505.09388.
+              - generic [ref=e583]:
+                - text: "Cited by:"
+                - link "§1" [ref=e584] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S1.p4.1
+                - text: .
+            - listitem [ref=e585]:
+              - generic [ref=e586]:
+                - text: J. Yang, C. E. Jimenez, A. Wettig, K. Lieret, S. Yao, K. R. Narasimhan, and O. Press (2024)
+                - button "Back to the article" [ref=e587] [cursor=pointer]: ↑
+              - generic [ref=e588]: "SWE-agent: agent-computer interfaces enable automated software engineering."
+              - generic [ref=e589]: In The Thirty-eighth Annual Conference on Neural Information Processing Systems,
+              - generic [ref=e590]:
+                - text: "External Links:"
+                - link "Link" [ref=e592] [cursor=pointer]:
+                  - /url: https://arxiv.org/abs/2405.15793
+              - generic [ref=e593]:
+                - text: "Cited by:"
+                - link "§2" [ref=e594] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px1.p1.1
+                - text: .
+            - listitem [ref=e595]:
+              - generic [ref=e596]:
+                - text: J. Yang, A. Prabhakar, K. Narasimhan, and S. Yao (2023)
+                - button "Back to the article" [ref=e597] [cursor=pointer]: ↑
+              - generic [ref=e598]: "Intercode: standardizing and benchmarking interactive coding with execution feedback."
+              - generic [ref=e599]: Advances in Neural Information Processing Systems 36, pp. 23826–23854.
+              - generic [ref=e600]:
+                - text: "Cited by:"
+                - link "§2" [ref=e601] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px3.p1.1
+                - text: .
+            - listitem [ref=e602]:
+              - generic [ref=e603]:
+                - text: Q. Yu, Z. Zhang, R. Zhu, Y. Yuan, X. Zuo, Y. Yue, W. Dai, T. Fan, G. Liu, L. Liu, et al. (2025)
+                - button "Back to the article" [ref=e604] [cursor=pointer]: ↑
+              - generic [ref=e605]: "Dapo: an open-source llm reinforcement learning system at scale."
+              - generic [ref=e606]: arXiv preprint arXiv:2503.14476.
+              - generic [ref=e607]:
+                - text: "Cited by:"
+                - link "§5" [ref=e608] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px2.p2.2
+                - text: .
+            - listitem [ref=e609]:
+              - generic [ref=e610]:
+                - text: A. Zeng, X. Lv, Q. Zheng, Z. Hou, B. Chen, C. Xie, C. Wang, D. Yin, H. Zeng, J. Zhang, et al. (2025)
+                - button "Back to the article" [ref=e611] [cursor=pointer]: ↑
+              - generic [ref=e612]: "Glm-4.5: agentic, reasoning, and coding (arc) foundation models."
+              - generic [ref=e613]: arXiv preprint arXiv:2508.06471.
+              - generic [ref=e614]:
+                - text: "Cited by:"
+                - link "§5" [ref=e615] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S5.SS0.SSS0.Px2.p3.1
+                - text: .
+            - listitem [ref=e616]:
+              - generic [ref=e617]:
+                - text: A. Zhao, Y. Wu, Y. Yue, T. Wu, Q. Xu, M. Lin, S. Wang, Q. Wu, Z. Zheng, and G. Huang (2025)
+                - button "Back to the article" [ref=e618] [cursor=pointer]: ↑
+              - generic [ref=e619]: "Absolute zero: reinforced self-play reasoning with zero data."
+              - generic [ref=e620]: arXiv preprint arXiv:2505.03335.
+              - generic [ref=e621]:
+                - text: "Cited by:"
+                - link "§6" [ref=e622] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S6.p3.1
+                - text: .
+            - listitem [ref=e623]:
+              - generic [ref=e624]:
+                - text: S. Zhou, F. F. Xu, H. Zhu, X. Zhou, R. Lo, A. Sridhar, X. Cheng, T. Ou, Y. Bisk, D. Fried, et al. (2023)
+                - button "Back to the article" [ref=e625] [cursor=pointer]: ↑
+              - generic [ref=e626]: "Webarena: a realistic web environment for building autonomous agents."
+              - generic [ref=e627]: arXiv preprint arXiv:2307.13854.
+              - generic [ref=e628]:
+                - text: "Cited by:"
+                - link "§2" [ref=e629] [cursor=pointer]:
+                  - /url: https://arxiv.org/html/2601.16443v2#S2.SS0.SSS0.Px3.p1.1
+                - text: .
+  - button "Report Issue" [ref=e630] [cursor=pointer]
+  - button "Report Issue for Selection" [ref=e631] [cursor=pointer]
+  - generic [ref=e633]:
+    - text: Generated by
+    - link "L A T E xml [LOGO]" [ref=e634] [cursor=pointer]:
+      - /url: https://math.nist.gov/~BMiller/LaTeXML/
+      - generic [ref=e635]: L A T E
+      - text: xml
+      - img "[LOGO]" [ref=e636]
+  - contentinfo [ref=e637]:
+    - generic [ref=e638]:
+      - heading "Instructions for reporting errors" [level=2] [ref=e639]
+      - paragraph [ref=e640]: "We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the methods listed below:"
+      - list [ref=e641]:
+        - listitem [ref=e642]: Click the "Report Issue" button.
+        - listitem [ref=e643]:
+          - text: Open a report feedback form via keyboard, use "
+          - strong [ref=e644]: Ctrl + ?
+          - text: "\"."
+        - listitem [ref=e645]: Make a text selection and click the "Report Issue for Selection" button near your cursor.
+        - listitem [ref=e646]: You can use Alt+Y to toggle on and Alt+Shift+Y to toggle off accessible reporting links at each section.
+      - paragraph [ref=e647]:
+        - text: Our team has already identified
+        - link "the following issues" [ref=e648] [cursor=pointer]:
+          - /url: https://github.com/arXiv/html_feedback/issues
+        - text: . We appreciate your time reviewing and reporting rendering errors we may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability should not be a barrier to accessing research. Thank you for your continued support in championing open access for all.
+      - paragraph [ref=e649]:
+        - text: Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a
+        - link "list of packages that need conversion" [ref=e650] [cursor=pointer]:
+          - /url: https://github.com/brucemiller/LaTeXML/wiki/Porting-LaTeX-packages-for-LaTeXML
+        - text: ", and welcome"
+        - link "developer contributions" [ref=e651] [cursor=pointer]:
+          - /url: https://github.com/brucemiller/LaTeXML/issues
+        - text: .
+  - text: beta
