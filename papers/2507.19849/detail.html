@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic Reinforced Policy Optimization - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Agentic Reinforced Policy Optimization</h1>
+  <div class="meta">
+    <span>Guanting Dong, Hangyu Mao, Kai Ma, Licheng Bao, Yifei Chen, Zhongyuan Wang 等</span>
+    <span>2025年7月</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2507.19849" target="_blank">arXiv:2507.19849</a>
+  </div>
+  <div class="tags">
+    <span class="tag">ARPO</span>
+    <span class="tag">Agentic RL</span>
+    <span class="tag">Multi-turn RL</span>
+    <span class="tag">Tool Use</span>
+    <span class="tag">LLM Agents</span>
+    <span class="tag">Entropy-based Rollout</span>
+    <span class="tag">Adaptive Sampling</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>ARPO 是一种面向多轮工具交互场景的智能体强化学习算法，通过基于熵的自适应展开机制和优势归因估计，在工具调用后的高不确定步骤进行分支采样，仅用一半的工具调用预算即超越传统轨迹级 RL 方法。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>RLVR（基于可验证奖励的强化学习）</h4>
+        <p>RLVR 是当前提升大语言模型推理能力的主流范式。它通过可验证的奖励信号（如数学题的正确与否）来训练 LLM，已在单轮推理任务（如数学、代码生成）中取得了显著成效。代表作包括 OpenAI o1、DeepSeek-R1、QwQ 等。</p>
+        <h4>多轮工具使用</h4>
+        <p>多轮工具使用是指 LLM 在推理过程中与外部工具（搜索引擎、代码解释器、浏览器等）进行多轮交互的能力。不同于单轮推理，多轮工具使用要求模型不仅能进行长链推理，还需在推理中动态调用工具、解析反馈、做出决策。</p>
+        <h4>LLM Agents</h4>
+        <p>LLM Agents 是以 LLM 为核心决策引擎的智能体系统，需要具备长程规划、自适应决策和与外部环境动态交互的能力。Agentic RL 是为此设计的训练范式，将 LLM 训练从静态任务求解扩展到动态的智能体-环境交互推理。</p>
+        <h4>当前方法的局限</h4>
+        <p>主流 Agentic RL 方法（如 GRPO、DAPO）采用轨迹级算法，独立采样完整工具使用轨迹，基于最终输出提供奖励信号。这些方法忽略了工具调用反馈后模型推理的不确定性变化，无法有效探索细粒度的逐步工具使用行为。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>ARPO 的核心思想源于一个关键发现：<strong>LLM 在接收到工具调用反馈后，其生成 token 的熵值会显著升高</strong>，表明模型在这些步骤面临高度不确定性。</p>
+        <h4>现象解释</h4>
+        <ul>
+          <li>外部工具反馈与模型内部推理之间存在分布偏移，导致模型需要重新适应新的信息分布</li>
+          <li>搜索引擎返回的丰富文本内容比 Python 执行的确定性数值带来更大的熵值波动</li>
+          <li>每次工具调用后的前 10-50 个 token 的熵值上升最为明显</li>
+        </ul>
+        <h4>Entropy-based Adaptive Rollout（基于熵的自适应展开）</h4>
+        <p>不是对完整轨迹进行均等采样，而是在工具调用后熵值显著变化的步骤进行分支采样。这样可以在高不确定性的推理节点投入更多探索资源，发现更优的逐步工具使用策略。</p>
+        <h4>Advantage Attribution Estimation（优势归因估计）</h4>
+        <p>由于自适应展开会产生包含共享前缀和分支路径的轨迹，需要一种区分共享 token 和分支 token 的优势估计策略，使模型能有效内化逐步工具使用行为中的优势差异。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤一：Rollout 初始化</h4>
+        <p>给定全局展开大小 M，LLM 首先通过轨迹级采样生成 N 条轨迹，剩余 M-N 条轨迹预算保留给部分采样。计算每条轨迹前 k 个 token 的熵值，形成初始熵矩阵。</p>
+        <h4>步骤二：熵变化监控</h4>
+        <p>模型开始带有工具的智能体推理。每次工具调用后，模型生成 k 个额外 token，计算步骤级熵矩阵，并通过归一化公式计算相对于初始状态的熵变化量。</p>
+        <h4>步骤三：基于熵的自适应分支</h4>
+        <p>定义部分采样概率 P_t = alpha + beta * Delta_H_t。当 P_t 超过预设阈值 tau 时，从当前节点分支 Z 条部分推理路径；否则继续沿当前轨迹推理。这种机制使模型能自适应地将探索资源分配给高不确定性的推理空间。</p>
+        <h4>步骤四：终止条件</h4>
+        <p>迭代直到分支路径总数达到预算 M-N，或所有路径已终止。若所有路径提前终止，则补充额外的轨迹级采样以满足预算。</p>
+        <h4>步骤五：优势归因估计</h4>
+        <ul>
+          <li><strong>硬优势估计</strong>：共享 token 获得包含该共享段的所有轨迹的平均优势值；独立 token 获得各自的归一化奖励优势</li>
+          <li><strong>软优势估计</strong>：利用 GRPO 的重要性采样比率自动区分共享和独立 token，共享前缀的 token 具有相同的重要性权重</li>
+          <li>实验表明软优势估计在训练中更稳定、奖励更高，ARPO 默认使用软设置</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>1. 智能体 RL 训练目标（公式1）</h4>
+        <p>训练目标是在最大化期望奖励的同时约束策略偏移：max E[r(x,y)] - beta * D_KL[pi_theta || pi_ref]。其中 T 为可用工具集合，pi_theta 为策略 LLM，pi_ref 为参考 LLM。</p>
+        <h4>2. 智能体推理展开分解（公式2）</h4>
+        <p>将推理过程分解为工具调用推理阶段 R（与工具交互）和最终答案生成阶段 y，体现了多轮交互的本质。</p>
+        <h4>3. Token 熵计算（公式3）</h4>
+        <p>H_t = -sum(p_{t,j} * log p_{t,j})，计算每个 token 位置上生成分布的熵值，反映模型在该步骤的不确定性程度。</p>
+        <h4>4. 归一化熵变化（公式4）</h4>
+        <p>Delta_H_t = Normalize(H_t - H_initial)，量化工具调用后熵值相对于初始状态的变化，正值表示不确定性增加。</p>
+        <h4>5. 自适应分支概率（公式5）</h4>
+        <p>P_t = alpha + beta * Delta_H_t，当 P_t &gt; tau 时触发分支采样。alpha 为基础采样概率，beta 为熵权重系数，tau 为阈值。</p>
+        <h4>6. 分层奖励设计（公式8）</h4>
+        <p>综合正确性奖励和格式奖励，并引入多工具协作奖励 r_M：当模型正确回答、遵循工具调用格式且同时使用搜索和代码工具时获得额外奖励。</p>
+        <h4>7. 广义策略梯度定理（公式9）</h4>
+        <p>将 Transformer 的输出 token 序列划分为 K 个宏动作段，推导出适用于所有 Transformer 策略的广义策略梯度定理，为 ARPO 的部分展开机制提供理论基础。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>数据集覆盖</h4>
+        <p>共 13 个基准测试，涵盖三大领域：</p>
+        <ul>
+          <li><strong>数学推理</strong>：AIME2024、AIME2025、MATH500、MATH、GSM8K（5 个）</li>
+          <li><strong>知识密集型推理</strong>：WebWalker、HotpotQA、2WikiMultihopQA、MuSiQue、Bamboogle（5 个）</li>
+          <li><strong>深度搜索</strong>：GAIA、WebWalkerQA、HLE、xbench-DeepSearch（4 个）</li>
+        </ul>
+        <h4>基线方法</h4>
+        <ul>
+          <li>直接推理：Qwen2.5-Instruct、Llama3.1-Instruct、Qwen3 系列、GPT-4o、DeepSeek-R1-671B</li>
+          <li>轨迹级 RL：GRPO、DAPO、REINFORCE++</li>
+          <li>工作流方法：Vanilla RAG、Search-o1、WebThinker、ReAct</li>
+        </ul>
+        <h4>关键实验结果</h4>
+        <ul>
+          <li>ARPO 在所有 10 个推理基准上平均提升约 4%，在不同骨干模型上一致优于 GRPO、DAPO、REINFORCE++</li>
+          <li>Qwen3-14B + ARPO 在 GAIA 达 43.7%，HLE 达 10.0%，仅用 1K RL 样本即超越 GPT-4o</li>
+          <li>ARPO 仅需 GRPO 一半的工具调用预算即可达到更优性能</li>
+          <li>Pass@K 分析显示 ARPO 具有更好的采样多样性和推理效率</li>
+          <li>缩放分析表明 ARPO 性能随全局展开大小增加而提升，具有可扩展性</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>：ARPO 算法性能总览。左：工具使用后 token 熵值可视化；右：深度搜索任务性能及工具调用预算对比</li>
+          <li><strong>图2</strong>：高/低平均熵 token 的频率统计分析，揭示工具调用后熵值上升的规律</li>
+          <li><strong>图3</strong>：ARPO 算法整体架构，包含 Rollout 模块和 Advantage Attribution Estimation</li>
+          <li><strong>图4</strong>：两个核心组件的详细示意图（左：基于熵的自适应分支；右：共享/独立优势估计）</li>
+          <li><strong>图5</strong>：硬/软优势估计的奖励训练曲线对比</li>
+          <li><strong>图6</strong>：Pass@1 到 Pass@5 的采样分析，展示 ARPO 的推理效率</li>
+          <li><strong>图7</strong>：工具调用效率对比，ARPO 以一半调用达到更优性能</li>
+          <li><strong>图8</strong>：核心超参数（熵权重、初始采样大小、全局展开大小）的缩放分析</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>实验主要在 Qwen 和 Llama 系列模型上验证，对其他模型架构的泛化性有待进一步确认</li>
+          <li>熵阈值、分支概率参数（alpha、beta、tau）需要针对不同任务进行调整</li>
+          <li>深度搜索任务仅使用 1K 训练样本，更大规模训练下的表现未充分探索</li>
+          <li>浏览器智能体能力与推理模型表现高度相关，更强的外部工具是否同样适用尚不明确</li>
+          <li>论文未讨论 ARPO 在非工具使用场景（如纯文本推理）中是否也能带来增益</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2507.19849</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025年7月</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Agentic RL / LLM Agents</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">AIME24/25, MATH500, GSM8K, HotpotQA, GAIA, HLE, xbench 等 13 个基准</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Accuracy, Pass@1/3/5, F1</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">平均提升约 4%，工具调用仅需基线一半，GAIA 53.9%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">GRPO, DAPO, REINFORCE++, GPT-4o, DeepSeek-R1-671B</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">ARPO 从 token 级不确定性出发设计采样策略，将探索资源集中在模型最"困惑"的推理步骤上，这与人类在面对新信息时需要更多思考的直觉一致。优势归因估计通过重要性采样比率自然区分共享和独立 token，避免了复杂的显式分段操作。值得关注的是 ARPO 的高效性：仅用一半工具调用预算和 1K RL 样本就超越了大规模模型。一个潜在的研究方向是将熵引导的自适应采样扩展到其他多模态交互场景。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

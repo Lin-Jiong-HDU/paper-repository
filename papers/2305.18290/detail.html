@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Direct Preference Optimization: Your Language Model is Secretly a Reward Model - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Direct Preference Optimization: Your Language Model is Secretly a Reward Model</h1>
+  <div class="meta">
+    <span>Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher D. Manning, Chelsea Finn</span>
+    <span>2023年5月</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2305.18290" target="_blank">arXiv:2305.18290</a>
+  </div>
+  <div class="tags">
+    <span class="tag">RLHF</span>
+    <span class="tag">Preference Optimization</span>
+    <span class="tag">LLM Alignment</span>
+    <span class="tag">DPO</span>
+    <span class="tag">Bradley-Terry Model</span>
+    <span class="tag">Reward Model</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>DPO 通过将 RLHF 中的奖励模型隐式地表达为语言策略本身，把复杂的"训练奖励模型 + 强化学习优化"两阶段流程简化为一个简单的二元分类损失，无需强化学习即可直接从人类偏好数据中优化语言模型。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>大语言模型的对齐问题</h4>
+        <p>大规模无监督语言模型在大量文本上训练后获得了广泛的世界知识和一定的推理能力，但要精确控制其行为却非常困难。训练数据来自各种目标、优先级和技能水平的用户，模型可能模仿不良行为。因此，如何从模型的广泛知识和能力中"选择"出安全、高效、可控的行为模式，是构建 AI 系统的关键问题。</p>
+
+        <h4>强化学习从人类反馈（RLHF）</h4>
+        <p>当前最成功的对齐方法族是 RLHF。标准 RLHF 流程分为三个阶段：</p>
+        <ul>
+          <li><strong>监督微调（SFT）</strong>：用高质量数据对预训练语言模型进行监督微调，得到基础模型。</li>
+          <li><strong>偏好采样与奖励学习</strong>：用 SFT 模型对提示生成成对回答，由人类标注偏好，然后训练一个奖励模型来拟合这些偏好数据。</li>
+          <li><strong>强化学习优化</strong>：使用 RL（通常为 PPO）来最大化奖励模型的输出，同时用 KL 散度约束防止策略偏离参考模型太远。</li>
+        </ul>
+
+        <h4>Bradley-Terry（BT）偏好模型</h4>
+        <p>RLHF 中常用的偏好建模框架。给定两个回答和提示，BT 模型假设人类偏好概率与奖励值的指数成正比。奖励模型通过最大似然估计来训练，损失函数是负对数似然。</p>
+
+        <h4>KL 约束的奖励最大化</h4>
+        <p>RLHF 的 RL 阶段目标是最大化期望奖励减去 beta 倍的 KL 散度。这个约束防止模型偏离奖励模型准确的有效分布区域，同时保持生成多样性，避免模式坍缩。</p>
+
+        <h4>RLHF 的痛点</h4>
+        <p>虽然 RLHF 效果显著，但流程极其复杂：需要训练多个模型（SFT 模型、奖励模型、策略模型、价值网络），需要在训练循环中从 LM 策略采样，计算成本高昂，且 RL 训练本身不稳定。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>DPO 的核心洞察是：<strong>语言模型本身就隐式地包含了一个奖励函数。</strong> 如果我们知道 KL 约束奖励最大化问题的最优策略的解析形式，就可以将奖励函数用策略和参考策略来表达，从而把"拟合奖励模型"的问题转化为"直接优化策略"的问题。</p>
+
+        <h4>从奖励到策略的映射</h4>
+        <p>KL 约束奖励最大化问题的最优策略有解析解：最优策略正比于参考策略乘以奖励的指数。给定任何奖励函数，都可以直接写出对应的最优策略。</p>
+
+        <h4>从策略到奖励的逆映射</h4>
+        <p>更关键的是，这个关系可以反转——给定最优策略和参考策略，可以用对数概率比来恢复奖励函数（加上一个仅与提示有关的配分函数项）。</p>
+
+        <h4>配分函数的消除</h4>
+        <p>BT 偏好模型只依赖于两个回答的奖励差，配分函数在计算偏好概率时会相互抵消。因此偏好概率可以完全用策略的概率比来表达，不需要知道配分函数。</p>
+
+        <h4>直接优化策略</h4>
+        <p>既然偏好概率可以直接用策略表达，就不需要先训练奖励模型再优化策略。取而代之，可以直接用最大似然来训练策略，使其产生的偏好概率与人类标注一致。这就是 DPO 的损失函数——一个简单的二元交叉熵损失。</p>
+
+        <h4>与朴素方法的区别</h4>
+        <p>朴素地增加偏好回答的概率、降低非偏好回答的概率（即 Unlikelihood 方法）会导致模型退化。DPO 引入了动态的、按样本调整的重要性权重：当隐式奖励模型错误地将非偏好回答排在偏好回答之上时，该样本获得更高权重，自动调节优化力度。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：建立 KL 约束优化问题的解析解</h4>
+        <p>从标准 RLHF 目标出发，通过引入配分函数 Z(x)，可以证明最优策略为：最优策略等于参考策略按奖励指数加权后归一化的分布。</p>
+
+        <h4>第二步：反转奖励与策略的关系</h4>
+        <p>对解析解取对数并重新整理，得到奖励可以用最优策略和参考策略的对数比来表达，加上一个仅与提示有关的配分函数项。</p>
+
+        <h4>第三步：代入 BT 偏好模型并消去配分函数</h4>
+        <p>将奖励表达式代入 BT 模型，配分函数在做差时抵消，得到偏好概率完全用策略表达的公式。</p>
+
+        <h4>第四步：构造最大似然目标</h4>
+        <p>现在偏好概率完全用策略表达，可以对参数化策略构造最大似然目标（负对数似然损失），即 DPO 的最终损失函数——一个标准的二元交叉熵损失。</p>
+
+        <h4>第五步：梯度分析理解优化行为</h4>
+        <p>DPO 损失的梯度同时增加偏好回答的概率、降低非偏好回答的概率，且按隐式奖励模型"犯错的严重程度"加权。这种自适应加权机制防止了模型退化。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>公式 (4)：最优策略的解析解</h4>
+        <p>最优策略是参考策略按奖励重新加权后的归一化分布。配分函数 Z(x) 保证这是一个有效的概率分布。</p>
+
+        <h4>公式 (5)：奖励的重参数化</h4>
+        <p>奖励可以用最优策略和参考策略的对数比来表达，加上配分函数项。这个关键等式建立了从策略到奖励的逆向映射，是 DPO 方法的理论基础。</p>
+
+        <h4>公式 (6)：用策略表达的偏好概率</h4>
+        <p>配分函数项在做差时被消去，使得偏好概率仅依赖策略，无需显式奖励模型。</p>
+
+        <h4>公式 (7)：DPO 损失函数（核心公式）</h4>
+        <p>DPO 的完整目标函数，输入是偏好数据对，输出是一个标量损失。本质上是 Bradley-Terry 模型下的二元交叉熵损失。</p>
+
+        <h4>DPO 算法流程</h4>
+        <ul>
+          <li>对每个提示 x，从参考策略采样两个回答</li>
+          <li>由人类标注偏好，构建离线偏好数据集</li>
+          <li>初始化参考策略为 SFT 模型</li>
+          <li>优化策略以最小化 DPO 损失</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>为什么选择这三个任务？</h4>
+        <ul>
+          <li><strong>受控情感生成（IMDb）</strong>：使用预训练情感分类器作为真实奖励函数，可以精确计算 reward-KL 前沿，在受控环境下公平比较不同算法的优化效率。</li>
+          <li><strong>文本摘要（Reddit TL;DR）</strong>：RLHF 领域的经典基准任务，已有标准人类偏好数据集，验证 DPO 在真实偏好数据上的可扩展性。</li>
+          <li><strong>单轮对话（Anthropic HH）</strong>：对话是 LLM 对齐的核心应用场景，使用 170k 对话数据测试 DPO 在更大规模、更开放任务上的表现。</li>
+        </ul>
+
+        <h4>结果说明了什么？</h4>
+        <ul>
+          <li><strong>Reward-KL 前沿</strong>：DPO 在所有 KL 值下都取得最高期望奖励，前沿严格优于 PPO，甚至优于使用真实奖励的 PPO-GT（oracle）。</li>
+          <li><strong>摘要任务</strong>：DPO 在温度 0.0 时胜率为 61%，超过 PPO 的 57%，且对采样温度更鲁棒。</li>
+          <li><strong>对话任务</strong>：DPO 是唯一能稳定超越数据集中偏好回答的计算高效方法。</li>
+          <li><strong>分布外泛化</strong>：DPO 在 CNN/DailyMail 新闻文章上仍以 36% vs 26% 超越 PPO。</li>
+          <li><strong>人类评估</strong>：DPO 样本在人类评估中以 58% 胜率超越 PPO 样本。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>Figure 1</strong>：DPO 与 RLHF 的流程对比图。RLHF 先训练奖励模型再用 RL 优化，DPO 直接用分类目标优化策略。直观展示了 DPO 如何简化整个流程。</li>
+          <li><strong>Figure 2 (左)</strong>：IMDb 情感任务的 Reward-KL 前沿。DPO 在所有 KL 值下提供最高期望奖励，前沿严格优于 PPO 和 PPO-GT。</li>
+          <li><strong>Figure 2 (右)</strong>：TL;DR 摘要任务胜率 vs 参考摘要。DPO 在温度 0.0 时达到 61%，超过 PPO 的 57%，且对温度更鲁棒。</li>
+          <li><strong>Figure 3 (左)</strong>：Anthropic HH 对话胜率。DPO 是唯一稳定超越数据集偏好回答的方法。</li>
+          <li><strong>Figure 3 (右)</strong>：对话任务胜率随训练步骤的变化。DPO 收敛快且稳定。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>论文仅评估了最大 6B 参数的模型，DPO 能否扩展到更大规模模型尚未验证。</li>
+          <li>DPO 策略的分布外泛化能力需要更系统的研究，初步结果虽积极但范围有限。</li>
+          <li>奖励过度优化在 DPO 中如何体现尚不清楚，Figure 3 右图中出现的轻微性能下降可能是其征兆。</li>
+          <li>GPT-4 评估的胜率受提示词影响，不同提示模板会导致不同的评估结果。</li>
+          <li>DPO 依赖离线偏好数据，无法像在线 RLHF 那样在训练过程中利用未标注的提示进行自我标注。</li>
+          <li>理论分析中的奖励等价类选择是否有实际影响未深入探讨。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2305.18290</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2023年5月</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">LLM Alignment / RLHF</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">IMDb, Reddit TL;DR, Anthropic HH, CNN/DailyMail</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Reward-KL 前沿, GPT-4 胜率, 人类评估胜率</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">DPO 在所有任务上匹配或超越 PPO；摘要胜率 61% vs 57%；人类评估 58% 胜 PPO</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">PPO, PPO-GT, Preferred-FT, Unlikelihood, Best-of-N, SFT</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">DPO 是 LLM 对齐领域的里程碑式工作，其优雅之处在于用一个简单的数学技巧（变量替换）将复杂的 RL 问题转化为简单的分类问题。从实践角度看，DPO 大幅降低了 RLHF 的门槛——不需要 RL 工程经验、不需要复杂的采样和价值网络，一个简单的分类损失就能实现同等甚至更好的效果。DPO 的成功也揭示了一个有趣的事实：语言模型本身就编码了某种"奖励信号"，只是我们之前没有找到正确的方式来提取和利用它。后续工作（如 IPO、KTO、ORPO 等）在 DPO 基础上进一步探索了不同的偏好建模方式和训练策略，表明 DPO 开辟的研究方向具有持续的影响力。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

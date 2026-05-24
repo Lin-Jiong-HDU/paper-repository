@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models</h1>
+  <div class="meta">
+    <span>Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Mingchuan Zhang, Y.K. Li, Y. Wu, Daya Guo</span>
+    <span>2024年2月</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2402.03300" target="_blank">arXiv:2402.03300</a>
+  </div>
+  <div class="tags">
+    <span class="tag">Mathematical Reasoning</span>
+    <span class="tag">GRPO</span>
+    <span class="tag">Reinforcement Learning</span>
+    <span class="tag">LLM</span>
+    <span class="tag">DeepSeek</span>
+    <span class="tag">PPO</span>
+    <span class="tag">Data Selection</span>
+    <span class="tag">Common Crawl</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>DeepSeekMath 通过从 Common Crawl 中精选 120B 数学 token 进行持续预训练，并提出 GRPO（Group Relative Policy Optimization）强化学习算法，使 7B 模型在竞赛级 MATH 基准上达到 51.7%，接近 GPT-4 水平。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>数学推理与语言模型</h4>
+        <p>数学推理是语言模型面临的核心挑战之一，因其要求复杂的多步逻辑推理和精确的计算能力。此前，闭源模型 GPT-4 和 Gemini-Ultra 在数学推理方面遥遥领先，而开源模型的表现则显著落后。</p>
+        <h4>PPO（Proximal Policy Optimization）</h4>
+        <p>PPO 是一种经典的 actor-critic 强化学习算法，广泛应用于 LLM 的 RLHF 阶段。其核心思路是通过截断概率比（clipping）来限制策略更新幅度，保证训练稳定性。但 PPO 需要同时维护策略模型（policy model）和价值函数（value function），后者通常与策略模型同等规模，带来显著的内存和计算开销。</p>
+        <h4>RL for LLM 的关键挑战</h4>
+        <p>在 LLM 场景下，奖励模型通常只对最后一个 token 给出奖励分数，这使得训练一个在每个 token 上都准确的价值函数变得困难。同时，PPO 中使用 GAE（Generalized Advantage Estimation）计算优势函数时依赖价值函数的质量。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>DeepSeekMath 的核心贡献分为两大支柱：</p>
+        <h4>支柱一：可扩展的数学数据工程</h4>
+        <p>论文提出了一个迭代式的数据收集管道，从 Common Crawl 的 40B HTML 页面中筛选出 120B 数学相关 token（DeepSeekMath Corpus），规模约为 OpenWebMath 的 9 倍、Minerva 所用数据的 7 倍。关键创新在于利用 fastText 分类器配合人工标注的迭代式领域发现方法，逐步扩充正例种子集合。</p>
+        <h4>支柱二：GRPO 算法</h4>
+        <p>论文提出的 Group Relative Policy Optimization 是 PPO 的高效变体。其核心思想极其优雅：放弃 PPO 中独立的价值模型（critic），转而对同一问题采样一组输出，用组内奖励的统计量（均值和标准差）来归一化计算优势函数。这一设计既减少了约一半的模型内存开销，又天然契合了奖励模型的比较性质（reward model 本身就是在同一问题的不同输出之间做比较训练的）。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：数据收集与去污染</h4>
+        <ul>
+          <li>以 OpenWebMath 作为初始种子语料</li>
+          <li>使用 50 万正例和 50 万负例训练 fastText 二分类器</li>
+          <li>从去重后的 40B HTML 页面中召回数学内容</li>
+          <li>将 Common Crawl 按域名分组，超过 10% 页面被召回的域名标记为数学相关域</li>
+          <li>人工标注域内的数学 URL 路径，将未收集的页面加入种子集合</li>
+          <li>经过 4 次迭代后停止，最终获得 35.5M 数学网页、120B token</li>
+          <li>使用 10-gram 精确匹配进行基准去污染</li>
+        </ul>
+        <h4>第二步：两阶段预训练</h4>
+        <ul>
+          <li>基础模型选择：以 DeepSeek-Coder-Base-v1.5 7B 为起点（而非通用 LLM）</li>
+          <li>数据配比：56% DeepSeekMath Corpus + 4% AlgebraicStack + 10% arXiv + 20% GitHub 代码 + 10% 中英通用数据</li>
+          <li>训练 500B token，学习率上限 4.2e-4，batch size 10M token</li>
+        </ul>
+        <h4>第三步：指令微调（SFT）</h4>
+        <ul>
+          <li>收集 776K 数学指令数据，涵盖 CoT、PoT 和工具集成推理格式</li>
+          <li>训练 500 步，batch size 256，恒定学习率 5e-5</li>
+        </ul>
+        <h4>第四步：GRPO 强化学习</h4>
+        <ul>
+          <li>对每个问题采样 64 个输出</li>
+          <li>使用奖励模型对每个输出打分</li>
+          <li>对组内奖励做 Z-score 归一化计算优势值</li>
+          <li>最大化 GRPO 目标函数（含 clip 机制 + KL 正则化）</li>
+          <li>学习率 1e-6，KL 系数 0.04</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>GRPO 目标函数（核心）</h4>
+        <p>GRPO 对同一问题 q 采样一组 G 个输出 {o_1, ..., o_G}，使用奖励模型打分后，在组内做 Z-score 归一化得到优势值 A_hat = (r_i - mean(r)) / std(r)。这完全替代了 PPO 中的价值函数和 GAE。</p>
+        <h4>KL 正则化位置变更</h4>
+        <p>PPO 将 KL 惩罚加入每步奖励中，而 GRPO 直接将 KL 散度项加到最终损失函数中，避免 KL 惩罚影响优势函数的计算。KL 散度使用 Schulman (2020) 的无偏估计器，保证非负性。</p>
+        <h4>Outcome vs Process Supervision</h4>
+        <ul>
+          <li><strong>结果监督（Outcome Supervision）</strong>：整个输出使用同一个归一化奖励作为所有 token 的优势</li>
+          <li><strong>过程监督（Process Supervision）</strong>：对每个推理步骤分别打分，每个 token 的优势为后续所有步骤归一化奖励之和</li>
+        </ul>
+        <h4>迭代 GRPO</h4>
+        <p>支持多轮迭代训练。每轮迭代中：(1) 更新参考模型为当前策略；(2) 用策略模型采样训练数据更新奖励模型（含 10% 历史数据回放）；(3) 用更新后的奖励模型继续训练策略模型。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>数学基准评估</h4>
+        <p>覆盖英汉双语，从小学到大学不同难度：英文包括 GSM8K（小学算术）、MATH（竞赛级）、SAT、OCW（大学课程）、MMLU-STEM；中文包括 MGSM-zh、CMATH、Gaokao-MathCloze、Gaokao-MathQA。</p>
+        <h4>核心实验结果</h4>
+        <ul>
+          <li>DeepSeekMath-Base 7B 在 MATH 上达到 36.2%，超过 Minerva 540B（33.6%）</li>
+          <li>DeepSeekMath-RL 7B 在 MATH 上达到 51.7%，在 GSM8K 上达到 88.2%</li>
+          <li>GRPO 在域内和域外任务上均带来显著提升（GSM8K: 82.9% -> 88.2%，MATH: 46.8% -> 51.7%，CMATH: 84.6% -> 88.8%）</li>
+        </ul>
+        <h4>RL 消融实验关键发现</h4>
+        <ul>
+          <li>在线采样（Online RFT）显著优于离线采样（RFT）</li>
+          <li>GRPO 优于 Online RFT，证明基于奖励值调整梯度系数的有效性</li>
+          <li>过程监督（GRPO+PS）优于结果监督（GRPO+OS）</li>
+          <li>迭代 RL 带来进一步提升，尤其是第一轮迭代</li>
+          <li>RL 提升 Maj@K 但不提升 Pass@K，说明 RL 主要使输出分布更鲁棒</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>Figure 1</strong>: MATH 基准上开源模型的 Top-1 准确率对比，DeepSeekMath-RL 7B 遥遥领先</li>
+          <li><strong>Figure 2</strong>: 迭代式数学数据收集管道示意图，展示从种子到大规模语料的四轮迭代过程</li>
+          <li><strong>Figure 4</strong>: PPO 与 GRPO 的架构对比图，直观展示了 GRPO 用组内计算替代价值模型的设计</li>
+          <li><strong>Figure 5</strong>: 不同 RL 方法（RFT、Online RFT、GRPO+OS、GRPO+PS）的训练曲线对比</li>
+          <li><strong>Figure 6</strong>: 迭代 RL 的性能变化，第一轮迭代带来最大提升</li>
+          <li><strong>Figure 7</strong>: Maj@K 和 Pass@K 的对比分析，揭示 RL 的工作机制——增强分布鲁棒性而非基础能力</li>
+          <li><strong>Table 2</strong>: 基础模型在 8 个数学基准上的全面对比</li>
+          <li><strong>Table 5</strong>: 最终模型（Instruct + RL）与开源/闭源模型的全面对比</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>几何与定理证明较弱：</strong>模型在处理三角形、椭圆等几何问题时表现不佳，可能反映了预训练和微调中的数据选择偏差</li>
+          <li><strong>Few-shot 能力受限：</strong>受限于 7B 模型规模，DeepSeekMath 的 few-shot 能力不如 GPT-4</li>
+          <li><strong>RL 提升机制有限：</strong>RL 主要提升 Maj@K 而非 Pass@K，说明改善的是输出分布的鲁棒性而非根本推理能力</li>
+          <li><strong>arXiv 数据效果存疑：</strong>论文发现 arXiv 论文在提升数学推理方面似乎无效，但该结论有待进一步验证</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2402.03300</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2024年2月</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Mathematical Reasoning / RL for LLM</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">GSM8K, MATH, SAT, OCW, MMLU-STEM, CMATH, miniF2F, HumanEval, BBH</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Top-1 准确率, Maj@K, Pass@K</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">MATH 51.7%, GSM8K 88.2%（开源最优，接近 GPT-4）</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">GPT-4, Gemini-Ultra, Minerva 540B, Llemma 34B, WizardMath, MetaMath 70B</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        <p>GRPO 的设计哲学值得关注——用简单优雅的"组内相对"机制替代复杂的价值函数。这一思路后来在 DeepSeek-R1 等后续工作中被进一步发展。核心洞察在于：奖励模型本质上是在做比较判断，与其训练独立的价值函数来估计基线，不如直接利用多次采样的组内统计量。</p>
+        <p>从数据工程角度看，论文证明了公开网络数据中蕴含大量高质量数学内容，迭代式领域发现方法具有很强的通用性。</p>
+        <p>关于 RL 局限性（提升 Maj@K 而非 Pass@K）值得深思——当前 RL 方法可能更多在做"对齐"而非"提升"，如何突破这一限制仍是开放问题。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
