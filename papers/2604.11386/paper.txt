@@ -1,0 +1,1131 @@
+Building Scalable Real-World Robot Data
+Generation via Compositional Simulation
+Yiran Qin1,6∗ Jiahua Ma2∗ Li Kang3∗ Wenzhan Li2∗
+Yihang Jiao2 Xin Wen2 Xiufeng Song3 Heng Zhou4 Jiwen Yu5
+Zhenfei Yin6 Xihui Liu5 Philip Torr6 Yilun Du7 Ruimao Zhang2†
+
+arXiv:2604.11386v1 [cs.RO] 13 Apr 2026
+
+1
+
+CUHK-Shenzhen 2 Sun Yat-sen University 3 Shanghai Jiao Tong University 4 USTC
+5
+The University of Hong Kong 6 University of Oxford 7 Harvard University
+∗
+Equal contribution † Corresponding author
+
+Abstract. Recent advancements in foundational models, such as large
+language models and world models, have greatly enhanced the capabilities
+of robotics, enabling robots to autonomously perform complex tasks. However, acquiring large-scale, high-quality training data for robotics remains
+a challenge, as it often requires substantial manual effort and is limited in
+its coverage of diverse real-world environments. To address this, we propose a novel hybrid approach called Compositional Simulation, which
+combines classical simulation and neural simulation to generate accurate
+action-video pairs while maintaining real-world consistency. Our approach
+utilizes a closed-loop real-sim-real data augmentation pipeline, leveraging
+a small amount of real-world data to generate diverse, large-scale training
+datasets that cover a broader spectrum of real-world scenarios. We train
+a neural simulator to transform classical simulation videos into real-world
+representations, improving the accuracy of policy models trained in realworld environments. Through extensive experiments, we demonstrate
+that our method significantly reduces the sim2real domain gap, resulting
+in higher success rates in real-world policy model training. Our approach
+offers a scalable solution for generating robust training data and bridging
+the gap between simulated and real-world robotics.
+
+1
+
+Introduction
+
+With the rapid advancements in foundational models, such as large language
+models [37, 42, 45] and world models [8, 34, 36], there has been significant progress
+in the field of robotics [14, 53]. These innovations have enabled robots to autonomously perform increasingly complex tasks, opening the door to more capable
+and adaptable robotic systems. Data-driven paradigms have led to impressive
+results in various domains, yet robotics presents unique challenges compared to
+fields like language and video modeling. In particular, the need for manually
+collected video-action pairs poses a significant barrier. Unlike self-supervised
+learning techniques in other domains, acquiring large-scale data for robotics requires substantial human effort, which is both costly and insufficient for capturing
+the vast diversity of real-world environments.
+
+2
+
+Y. Qin, J. Ma, L. Kang, W. Li et al.
+Real World Data Collection
+Trajectory Generation with Classical Simulation
+Master Arm
+Scaling
+
+VR
+Appearance
+
+Physics
+
+K&M
+Action Consistency
+
+Isaac Lab
+
+...
+
+ManiSkill
+
+Diverse Trajectory
+
+Mujoco
+
+Classical Simulation
+
+...
+
+...
+Diverse Object
+
+Isaac Lab
+Scaling
+
+ManiSkill
+Appearance
+
+Physics
+
+World Information Injection with Neural Simulation
+
+Mujoco
+Action Consistency
+
+Neural Simulation
+
+Sim
+Cosmos
+
+Genie-3
+Scaling
+
+Appearance
+
+Physics
+
+Share with same actions.
+
+Real
+
+Sora
+Action Consistency
+
+Scaling
+
+Appearance
+
+Physics
+
+Action Consistency
+
+Fig. 1: There are three main sources of real-world robotic data: (1) direct human
+collection, which yields high-quality samples but cannot scale; (2) classical simulators,
+which generate large datasets but suffer from appearance and physics gaps to reality;
+and (3) neural simulators trained on real data, which reduce these gaps but struggle
+with action-conditioned video generation, leading to weak action–video consistency. We
+introduce the concept of Compositional Simulation, a flexible and scalable approach that
+bridges the gap between classical simulation and real-world dynamics via compositional
+simulation.
+
+While some researchers have addressed this issue by relying on large-scale
+human data collection, this approach remains expensive and limited in covering
+the full spectrum of real-world distributions. An alternative method is to leverage
+simulation to scale data collection [32, 33, 38], thus reducing the costs associated
+with real-world data acquisition. Classical simulators, such as MuJoCo [43] and
+Isaac [30], offer the advantage of generating precise action-video pair data. These
+simulators use omniscient views, making it easy to generate vast amounts of data
+with diverse distributions. However, the performance gap between simulated and
+real-world environments often leads to poor joint training performance when
+directly transferring simulated data for real-world applications.
+To bridge this gap, neural simulators [8, 34, 56] based on video generation
+models [4, 47, 60] have recently been proposed as a solution. These simulators
+generate corresponding video data from input trajectories or action signals,
+producing action-video pairs for training. Although the generated videos appear
+visually consistent with the real world, issues like hallucination—where videos
+lack physical consistency and lead to poor action control—undermine the quality
+of the generated data.
+In this work, we introduce the concept of Compositional Simulation
+shown in Fig 1, advocating for a hybrid approach that combines the strengths
+of classical simulation and neural simulation. This approach aims to generate
+accurate action-video pairs while ensuring that the videos are consistent with
+real-world dynamics. We propose a closed-loop real-sim-real data augmentation
+pipeline that utilizes a small amount of real-world data to create training datasets
+
+Compositional Simulation
+
+3
+
+for policy models. These datasets are designed to cover a broader distribution of
+real-world scenarios.
+The real-sim-real pipeline consists of two key steps. First, we collect a small
+set of real-world trajectory data and obtain the corresponding videos. In a
+classical simulation environment, we then replicate the same scenario, replaying
+the real-world trajectories to generate simulated videos. A neural simulator
+using Compositional Dynamic Video Generation is subsequently trained to
+transform the classical simulation videos into real-world videos, ensuring that the
+actions remain consistent. The second part of our approach involves generating a
+large and diverse set of action-video pairs through action primitives scheduling
+within the classical simulator. These pairs are then transformed into real-world
+representations using the trained neural simulator, facilitating large-scale data
+augmentation for real-world applications. Our main contributions are as follows:
+– Concept & Paradigm. We introduce the concept of Compositional Simulation,
+a flexible and scalable approach that bridges the gap between classical
+simulation and real-world dynamics via compositional simulation.
+– Data Pipeline & Model. We propose a real–sim–real data augmentation
+pipeline that builds a neural simulator with Compositional Dynamic Video
+Generation ensuring accurate and consistent action–video alignment while
+simultaneously mitigating the sim2real domain gap.
+– Experimental Results. Extensive experiments demonstrate that Compositional Simulation substantially enhances the policy models by simultaneously
+increasing task success rates and achieving strong generalization across both
+spatial layouts and object variations.
+
+2
+
+Related Work
+
+2.1
+
+Robotic Simulation
+
+General-purpose simulators such as Isaac Lab [30] and MuJoCo [43] provide
+GPU-parallel capabilities and ready-to-use environments for reinforcement and
+imitation learning. Frameworks including RoboCasa [33], Habitat [41], AI2THOR [22], OmniGibson [23], and RoboFactory [38] offer logically structured
+APIs that standardize action interfaces, enable systematic domain randomization,
+and facilitate large-scale dataset generation. ManiSkill3 builds upon the opensource SAPIEN simulator [51] for GPU-parallel simulation, emphasizing clean
+action semantics and deterministic stepping to enforce logical action consistency.
+Despite these advancements, current simulators still fall short of real-world
+fidelity, with persistent gaps in appearance statistics, sensor characteristics, and
+contact physics—limitations that often hinder robust policy transfer to real-world
+dynamics.
+2.2
+
+Data Augmentation for Robotic Manipulation
+
+Recent works have explored leveraging synthetic data to enhance policies in
+robotic manipulation. Real-to-sim-to-real pipelines, such as URDFormer [11], RialTo [44] and [13], demonstrate effective policy transfer by constructing simulation
+
+4
+
+Y. Qin, J. Ma, L. Kang, W. Li et al.
+
+environments from real-world data. Diffusion models have also been employed
+for data augmentation in robotics, with [57] using inpainting to generate diverse
+object appearances and backgrounds. Other synthetic demonstration generation
+methods, including MimicGen [31] and DemoGen [52], adapt action trajectories
+to novel object configurations. While these approaches advance the field, our
+work specifically targets systematic evaluation of model generalization under
+controlled scene variations.
+2.3
+
+Robot Learning in Manipulation
+
+Specialized policy architectures [12, 18, 25–27, 48, 49, 58] often excel on narrowly
+defined tasks yet struggle to carry over to new robot embodiments. In contrast, foundation models trained on million-scale, multi-robot corpora exhibit
+strong zero-shot transfer: RT-1 [6] unifies vision, language, and action in a single
+transformer for real-time kitchen manipulation; RT-2 [5] jointly finetunes large
+vision–language models on web and robot data to support semantic planning and
+object reasoning; diffusion-based RDT-1B [28] and π [3] learn diverse bimanual
+dynamics from over a million episodes. Vision–language–action systems such
+as OpenVLA [20] and CogACT [24], together with adaptations like Octo [35],
+LAPA [55], and OpenVLA-OFT [19], further demonstrate efficient finetuning
+across robots and sensing modalities. Collectively, these results point to a datadriven bottleneck: robust cross-task and cross-embodiment generalization hinges
+on large, diverse, and high-fidelity datasets that faithfully capture real-world
+appearance, sensing, and physics.
+2.4
+
+World Simulator for Robotic Manipulation
+
+Scalable robot learning [2, 7, 9, 29, 63] depends on abundant, realistic data, yet
+collecting real-world trajectories via human demonstrations is slow and laborintensive, limiting broad access. Generative video models [1, 50] offer a costeffective way to synthesize policy training data. UniPi [14] and AVDC [21] cast
+robot planning as text-to-video generation (AVDC further estimates inverse
+dynamics with a pretrained flow network); UniSim [53] learns a unified real-world
+simulator across text and control inputs; RoboDreamer [61] targets compositional
+generalization via text parsing; and IRASim [62] performs trajectory-conditioned
+video generation but focuses on arm motion only. In this work, our world simulator
+turns action-consistent simulation trajectories into high-fidelity, real-style data.
+
+3
+
+Compositional World Simulation
+
+3.1
+
+Problem Formulation
+
+In the context of robotic manipulation, collecting real-world data is often a
+challenging and resource-intensive task. Traditional methods leverage classical
+simulators [15, 30, 43] to train online reinforcement learning policies [40]. These
+
+Compositional Simulation
+
+5
+
+simulators generate large amounts of trajectory data by simulating various robot
+behaviors. Another approach [32, 38] utilizes pre-designed primitive functions,
+called via large language models (LLMs), to generate extensive trajectory data,
+thereby aiming to cover as much of the decision space as possible. These trajectories are commonly used for pre-training or joint training with real-world
+data.
+Despite the large volume of video-action pairs generated, the disparity between
+the distributions of simulated and real-world data creates significant challenges.
+Let Dsim = {(vi , ai )}N
+i=1 represent the dataset of video-action pairs collected
+from a classical simulator, where vi denotes the video frame and ai the corresponding action. Similarly, let Dreal = {(vj′ , a′j )}M
+j=1 represent the real-world
+dataset, where vj′ and a′j are the video and action pairs from the real world.
+Directly training policies on the combined simulated and real data often fails to
+improve performance or generalization, as the domain gap between simulation
+and reality exacerbates this issue, leading to degraded policy performance in
+real-world settings. This gap is particularly evident in appearance and physics,
+where simulated data cannot fully capture the complexities of the real world.
+An alternative method involves using video generation models as neural world
+simulators. These models generate data that is intended to be as close as possible
+to real-world distributions. However, video generation models suffer from inherent
+issues, such as hallucinations, 3D scene consistency, and inaccurate action control.
+As a result, the generated actions and corresponding videos do not align perfectly,
+making this data unsuitable for policy training.
+To address these issues, we propose a compositional simulation approach. In
+this approach, we first collect a large number of trajectories in a classical simulator,
+Dsim . These trajectories are then transformed into video representations using a
+pre-trained neural simulator N , which maps the simulated data into the real-world
+distribution. Crucially, this process ensures that the generated data maintains
+action alignment with the original simulated trajectories. Formally, we aim to
+build a neural simulation function N (·), such that:
+
+  \mathcal {N}(\mathcal {D}_{\text {sim}}) \approx \mathcal {D}_{\text {real}} 
+
+(1)
+
+This neural simulation function N (·) maps the simulated video-action pairs
+to a distribution that is as close as possible to the real-world data, ensuring
+that the generated action ai aligns with the original action a′j , where ai ≈ a′j .
+Additionally, the consistency of the 3D scene and the video quality must be
+maintained, addressing the inherent challenges in video generation models. Thus,
+we transform the simulated data Dsim to approximate the real-world distribution
+Dreal , while ensuring that the generated actions and videos are consistent with
+real-world expectations. By applying this compositional simulation approach, we
+can effectively utilize the large-scale data generated in simulators and adapt it
+to real-world environments, thereby mitigating the challenges posed by domain
+gaps in robotic manipulation tasks.
+
+6
+
+Y. Qin, J. Ma, L. Kang, W. Li et al.
+Neural Simulation with Compositional Dynamic Video Generation
+
+Sim2Real Neural Simulation
+1. Background, Object Alignment (Color, Size)
+
+2. Camera Calibration, Alignment
+
+3.Object Localization
+
+DiT
+
+Control Dynamic
+
+4. Real2Sim Data Collection
+
+Visual Dynamic
+
+{ [x,x,x,x,x,x,x]
+...
+[x,x,x,x,x,x,x] }
+
+Real
+Sim Replay
+Teleoperation
+Dataset: {(real video1, sim video1),...}
+
+Neural Simulation
+Training
+
+(a) Dynamic as Condition
+
+��
+�’�
+
+Dynamic
+Composition
+
+(b) Composing Dynamic scores
+
+Fig. 2: (Left) Alignment between real-world and simulation: trajectories collected in
+the real world are replayed in simulation to generate paired video data for training the
+sim-to-real neural simulator. (Right) A DiT can be used to estimate scores conditioned
+on different dynamics, including Control Dynamics (actions) and Visual Dynamics (simulated observations). These scores can be composed during sampling to enable Dynamic
+Guidance methods.
+
+3.2
+
+Real2Sim Data Collection
+
+To train the Sim2Real neural simulation that maps videos to real-world distributions while maintaining the correct actions, we need to construct a dataset
+composed of tuples (Vsim , Vreal , A), where Vsim and Vreal represent the results of
+executing the same action in the classical simulator and the real world, respectively. In other words, Vsim and Vreal share the same action sequence.
+To build such a dataset, we need to create a simulation data collection platform
+that aligns strictly with the real-world data collection platform. As shown in
+Fig. 2 (Left), to establish this digital twin simulation environment, we performed
+alignment at three levels:
+Background and Object Alignment: We first aligned the background
+and objects in the simulation, including their colors and sizes. The desktop and
+background colors in the classical simulator were aligned with those of the realworld data collection platform. Additionally, we applied a digital twin approach
+to assets to ensure visual consistency and real-world scale matching.
+Camera Calibration and Alignment: We then calibrated and aligned the
+cameras to ensure that the camera parameters and poses in the real world were
+consistent with those in the classical simulation.
+Object Position Alignment: During task initialization, we localized the
+objects in the real-world scene and strictly transferred their position information
+into the classical simulator.
+3.3
+
+Sim2Real Compositional Dynamic Video Generation
+
+To ensure precise action control and its seamless transfer to the real world, we
+train the neural simulator using Compositional Dynamic Video Generation. We
+leverage Control Dynamics (actions) and Visual Dynamics (simulated observations) to generate video sequences simulating real-world scenarios. As shown
+in Fig. 2 (Right), the DiT is conditioned on these dynamics, allowing it to estimate future states based on current actions and visual feedback. The scores,
+
+...
+
+...
+
+Compositional Simulation
+Classical Simulation
+
+Neural Simulation
+
+Diverse Trajectory
+
+{ x,x,x,x,x,x,x }
+
+7
+
+Real World
+
+Pseudo Real Data
+
+Real Data
+
+{ x,x,x,x,x,x,x }
+{ x,x,x,x,x,x,x }
+
+Diverse Object
+
+{ x,x,x,x,x,x,x }
+
+Joint
+training
+
+Diverse Layout
+
+{ x,x,x,x,x,x,x }
+
+{ x,x,x,x,x,x,x }
+
+{ x,x,x,x,x,x,x }
+
+{ x,x,x,x,x,x,x }
+
+Fig. 3: Real World Deployment with Compositional Simulation. Large volumes
+of (Vsim , A) pairs are collected from the classical simulator and transformed into
+corresponding (Vreal , A) pairs, referred to as Pseudo Real Data. These data, together
+with a small amount of real-world data, are used to train policies with improved success
+rates and generalization.
+
+conditioned on both Control and Visual Dynamics, are composited during the
+sampling process to generate a comprehensive representation of the evolving
+system state. This compositional approach enables the DiT to adaptively combine
+the influences of action and observation, enhancing generalization for complex,
+dynamic tasks. The composited scores guide the sampling process, ensuring that
+the video generation aligns closely with the task-specific dynamics, thus enabling
+Dynamic Guidance methods that steer the simulation towards accurate and
+robust video generation.
+Specifically, we collect data from the real-world simulation platform in Sec. 3.2
+to obtain the pair (Vreal , A). These action data are then replayed in the corresponding classical simulation environment to generate the tuple (Vsim , Vreal , A).
+We collected data for 10 tasks, resulting in 200 data pairs for training. To optimize the neural simulator for Sim2Real data generation, we aim to minimize
+the discrepancy between the simulated and real-world videos, while maintaining
+the correct action alignment. Since the actions in both Vsim and Vreal are already
+aligned, we focus solely on optimizing the video consistency. The optimization
+objective is formulated as:
+  \mathcal {L}_{\text {sim2real}} = \mathcal {L}_{\text {video}}(f_{\mathcal {N}}(\mathcal {V}_{\text {sim}}, \mathcal {A}, \theta ), \mathcal {V}_{\text {real}}) 
+
+(2)
+
+Where Lvideo measures the difference between the generated simulated video
+and the real-world video, and θ represents the neural simulator’s parameters. By
+minimizing this loss, the neural simulator learns to generate videos that closely
+match the real-world distribution, while preserving the correct action alignment.
+3.4
+
+Data Generation with Rule-Based Simulation
+
+To further scale up the data collection pipeline, we employ RoboTwin [10], a
+SAPIEN-based [51] dual-arm manipulation simulation environment. It provides a
+
+8
+
+Y. Qin, J. Ma, L. Kang, W. Li et al.
+
+rich library of digital assets and supports diverse trajectory distributions, making
+it well-suited for synthesizing large-scale visuomotor datasets. By systematically
+varying environmental conditions, object initialization states, and agent actions,
+we generate an extensive set of trajectories and corresponding videos that cover
+a broad spectrum of real-world task scenarios.
+Specifically, we define a comprehensive set of interaction rules, referred to as
+action primitives, governing how agents and objects interact within the simulation.
+These primitives serve as the atomic building blocks of complex behaviors,
+capturing low-level manipulations (e.g., grasp, push, align) as well as higher-order
+skills (e.g., stack blocks). We curate a suite of RoboTwin tasks and adapt them to
+support richer interaction patterns and object configurations, enabling a broader
+spectrum of physical reasoning scenarios. To automate the generation of complex
+behaviors, we employ GPT-5 [37] to synthesize executable code composed of
+these action primitives, while integrating compositional constraints [38] to ensure
+semantic correctness and physical feasibility. The action primitives encompass
+a variety of object types and interaction modalities, enabling diverse scenario
+generation. For each task, we construct a rich collection of trajectories τs spanning
+the action space, and carefully tune the primitive-based generation process to
+achieve comprehensive coverage. This allows us to traverse the global distribution
+of agent behaviors in the simulation, including different object initializations and
+heterogeneous object categories.
+The resulting dataset comprises temporally synchronized camera observations,
+corresponding action and state sequences. These elements are strictly aligned at
+the behavioral level, ensuring that every visual frame is paired with its underlying
+control command. Although the trajectories and interactions in simulation are
+faithful to their intended semantics, the rendered appearance of the videos still
+differs from real-world imagery due to discrepancies in lighting, textures, and
+sensor noise. To bridge this domain gap, we pass the simulated observation streams
+vs through a neural simulator N , which refines their visual characteristics while
+preserving the original dynamics and action consistency.
+3.5
+
+Real World Deploy with Compositional Simulation
+
+As shown in Fig. 3, after training the neural simulator, we proceeded with the
+process outlined in Sec. 3.4 to collect a large number of (Vsim , A) pairs from the
+classical simulation. These data are then fed into the neural simulator, which
+transforms them into corresponding (Vreal , A) pairs. We refer to these transformed
+data as Pseudo Real Data. Compared to the data produced by classical simulators,
+these Pseudo Real Data exhibit representations that are much closer to real-world
+data, with a reduced domain gap.
+By using these Pseudo Real Data, which cover a broader distribution of
+scenarios, in conjunction with a small amount of real-world data collected from
+the actual environment, we can jointly train a robot policy. This approach
+significantly improves the performance and generalization capability of the policy.
+The specific experimental results are presented in the Sec. 4.2.
+
+Compositional Simulation
+
+9
+
+Algorithm 1 Real World Deployment with Compositional Simulation
+1: Input:
+2:
+Classical simulation data (Vsim , A), Real-world data (Vreal , A)
+3: Functions:
+4:
+Neural Simulator N , Video Transformation Function fN
+5: Hyperparameters:
+6:
+Real-World Data Ratio α
+7: Initialize Dsim ← {Vsim , A}, Dreal ← {Vreal , A}
+\triangleright  Initialize datasets
+8: Ppseudo ← {}
+\triangleright  Initialize Pseudo Real Data set
+9: for each (Vsim , A) ∈ Dsim do
+10:
+Ppseudo ← Ppseudo ∪ fN (Vsim , A) \triangleright  Transform simulation data to Pseudo Real
+Data
+11: end for
+12: Dcombined ← α · Dreal + (1 − α) · Ppseudo \triangleright  Combine Pseudo Real Data with Real
+Data
+\triangleright  Train robot policy using combined data
+13: Train policy πrobot using Dcombined
+14: Return: Trained robot policy πrobot
+
+4
+
+Experiments
+
+4.1
+
+Sim2Real Transfer via Neural Simulation
+
+Baselines. To validate the effectiveness of our proposed Neural Simulation
+in recovering real-world data distributions from simulation, we consider the
+following set of diverse comparative approaches: 1) Classical Simulation(Sim),
+denoting the canonical raw simulation pipeline without neural-driven refinement;
+2) Baseline, a video-to-video generation model built on Stable Diffusion 1.5 [39]
+with temporal continuity post-processing [54]; 3) Zero-Shot, referring to the
+backbone model deployed without any sim-to-real fine-tuning; 4) Ours-CD, a
+variant of our proposed Neural Simulation framework, equipped with conditional
+generation capability guided solely by control dynamics for pseudo-realistic
+content synthesis; 5) Ours-VD, an alternative variant of our method, featuring
+conditional generation functionality driven exclusively by visual dynamics; and 6)
+Ours-Full, the full instantiation of our pipeline, with joint control-visual dynamics
+conditional generation capability. Comparisons across all approaches naturally
+form an ablation study to empirically evaluate our variants’ efficacy in bridging
+the sim-to-real gap. For fair comparison, our evaluation protocol is: all models
+take an identical simulation video and sim-to-real instruction as input, to generate
+the corresponding pseudo-realistic video.
+Quantitative Results. For quantitative evaluation, we employ a set of
+widely used perceptual and structural similarity metrics (PSNR, SSIM, CLIP
+Score [16], LPIPS [59]), alongside distributional measures (FID [17], FVD [46]),
+to assess both the visual fidelity of the generated videos with respect to real-world
+videos and their temporal coherence throughout the frame sequence. We conduct
+a comprehensive evaluation of all competing methods on a test suite comprising
+8 distinct tasks: Shake Bottle, Stack Blocks Two, Move Playing-Card Away, Move
+
+10
+
+Y. Qin, J. Ma, L. Kang, W. Li et al.
+
+Table 1: Comparison of the realism quality of generated videos across different methods.
+
+Sim
+Baseline
+Zero-Shot
+Ours-CD
+Ours-VD
+Ours-Full
+
+PSNR ↑
+
+SSIM ↑
+
+CLIP Score ↑
+
+LPIPS ↓
+
+FID ↓
+
+FVD ↓
+
+16.443
+16.849
+13.093
+8.4640
+18.153
+19.577
+
+0.4342
+0.5129
+0.5487
+0.1486
+0.5916
+0.6484
+
+0.7564
+0.7526
+0.7308
+0.7216
+0.7884
+0.8102
+
+0.3629
+0.3494
+0.4756
+0.8130
+0.2813
+0.2647
+
+187.40
+254.59
+219.74
+434.44
+153.12
+147.90
+
+61.048
+50.369
+163.83
+239.13
+22.311
+15.765
+
+Playing-Card Away (Cluttered), Move Playing-Card Away (Colored Background),
+Place Mouse Pad (Cluttered), Place Mouse Pad (Colored Background), and
+Handover Bottle (Cluttered). The quantitative comparison results are summarized
+in Tab. 1. First, conventional UNet-based diffusion model baseline exhibits
+subpar overall performance, while the base video generation model without simto-real domain adaptation conversely degrades the photorealism of generated
+results. Further, we observe that our Neural Simulation variant guided solely
+by control dynamics (Ours-CD) delivers negligible effectiveness, revealing that
+visual dynamics information plays a dominant role in the joint conditional
+generation process. Aligned with this, our full pipeline (Ours-Full) achieves top
+performance across all metrics. This demonstrates that joint control and visual
+dynamics guidance enables high perceptual realism video synthesis, validating
+its effectiveness in bridging the intrinsic sim-to-real gap.
+Qualitative Results. We conduct a visual comparison across four representative and generalization-demonstrative tasks, as shown in Fig. 4. These tasks
+are explicitly designed to cover generalization variations across two core dimensions: object attributes (including category and color) and desktop background
+configurations. For visualization, we select frames that either fully present the
+complete robotic gripper or capture the key interaction moments of each task,
+while strictly ensuring that the generated results across different tasks and all
+compared methods are sampled from the identical frame index. Note that the
+simulated objects exhibit visual discrepancies from their real-world counterparts
+in appearance. In particular, the robotic gripper appears dark black in reality, as
+opposed to white-gray in the simulator.
+As visualized in Fig. 4, while conventional diffusion baselines exhibit reasonable scene understanding capability, they fail to effectively preserve critical visual
+semantic information during generation, resulting in severe hallucination artifacts
+in their outputs. In comparison, our control dynamics-only variant (Ours-CD)
+accurately reproduces the target manipulation actions, yet lacks the scene semantic constraints provided by visual dynamics information. This leads to the
+viewpoint, object instances, and desktop background being purely generated
+from the model’s inherent prior knowledge, resulting in unsatisfactory overall
+performance. Conversely, our visual dynamics-only variant (Ours-VD) contributes
+the majority of our framework’s sim-to-real transfer capability, while still exhibiting non-negligible flaws in two core dimensions: action accuracy (including
+the opening/closing timing of the robotic gripper and overall task completion
+quality) and physical consistency (such as motion blur matching the robotic arm’s
+
+Compositional Simulation
+Move Playing-Card Away
+(Colored Background)
+
+Place Mouse Pad
+(Cluttered)
+
+Place Mouse Pad
+(Colored Background)
+
+Ours-Full
+
+Ours-VD
+
+Ours-CD
+
+Baseline
+
+Sim
+
+Real
+
+Move Playing-Card Away
+(Cluttered)
+
+11
+
+Fig. 4: Visual comparison of generated results across four different tasks.
+
+movement). Finally, our full pipeline (Ours-Full) not only achieves photorealistic
+visual generation of the agent and scene, but also leverages motion guidance from
+control dynamics to enable accurate reproduction of real-world manipulation
+actions, ultimately realizing precise sim-to-real alignment across both visual
+perception and action execution.
+4.2
+
+Real world Execution with Compositional World Simulation
+
+Baselines. To rigorously quantify the benefit of our proposed compositional
+world simulation pipeline under an extremely limited real-world demonstration
+budget, we trained six instances of Diffusion Policy (DP) [12] according to the
+following data-mixture regimes: 1) 10 Real: learning solely from 10 real-world
+demonstrations. 2) 20 Real: doubling the real-world budget to 20 demonstrations
+to isolate the gain of additional real-world data. 3) 200 Sim Pretrain + 10 Real:
+pre-training on 200 RoboTwin-simulated demonstrations followed by fine-tuning
+on the same 10 real-world demonstrations used in Regime 1. 4) 10 Real + 200 Sim:
+jointly training on the 200 RoboTwin-simulated and 10 real-world demonstrations
+from scratch. All demonstrations used here are same as Regime 3. 5) 10 Real +
+200 Pseudo-Real: jointly training on the 200 pseudo-real demonstrations, which
+were generated by our compositional world simulation pipeline previously, and
+10 real demonstrations used in Regime 1 from scratch. 6) 200 Pseudo-Real (ZeroShot): zero-shot training exclusively on the 200 pseudo-real demonstrations used
+in Regime 5, establishing an upper-bound on the performance achievable by DP
+without any real-world supervision.
+Quantitative Results. As shown in Tab. 2, DP performs poorly when only
+10 real-world demonstrations are available (cf. 10 Real), and its success rate
+improves steadily as more real-world data are provided (cf. 20 Real), underscoring
+
+12
+
+Y. Qin, J. Ma, L. Kang, W. Li et al.
+
+Table 2: Quantitative Results of Our Real-world Experiments. The compared methods
+include DP trained under six data-mixture regimes: 10 Real, 20 Real, 200 Sim Pretrain
++ 10 Real, 10 Real + 200 Sim, 10 Real + 200 Pseudo Real, and 200 Pseudo Real. “OOD”
+abbreviates out-of-distribution.
+Spatial
+Distribution
+
+10 Real
+
+20 Real
+
+200 Sim Pretrain
++ 10 Real
+
+Move Playing-Card Away
+(Cluttered)
+Move Playing-Card Away
+(Colored Background)
+Place Mouse Pad
+(Cluttered)
+Place Mouse Pad
+(Colored Background)
+Handover Bottle
+(Cluttered)
+
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+
+9/30
+0/30
+5/30
+0/30
+12/30
+0/30
+7/30
+0/30
+10/30
+0/30
+4/30
+0/30
+7/30
+0/30
+3/30
+0/30
+
+17/30
+1/30
+13/30
+0/30
+24/30
+3/30
+18/30
+1/30
+20/30
+2/30
+15/30
+0/30
+18/30
+1/30
+8/30
+0/30
+
+12/30
+0/30
+8/30
+0/30
+15/30
+2/30
+11/30
+1/30
+6/30
+1/30
+6/30
+1/30
+8/30
+1/30
+1/30
+0/30
+
+Real World
+Task
+
+Spatial
+Distribution
+
+10 Real
++ 200 Sim
+
+10 Real + 200
+Pseudo Real
+
+200 Pseudo Real
+(Zero Shot)
+
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+In Domain
+OOD
+
+6/30
+0/30
+2/30
+0/30
+6/30
+1/30
+3/30
+1/30
+8/30
+2/30
+7/30
+1/30
+5/30
+1/30
+1/30
+0/30
+
+28/30
+12/30
+15/30
+6/30
+29/30
+17/30
+25/30
+16/30
+23/30
+17/30
+19/30
+10/30
+22/30
+14/30
+13/30
+5/30
+
+10/30
+5/30
+7/30
+3/30
+18/30
+9/30
+15/30
+8/30
+17/30
+10/30
+8/30
+5/30
+12/30
+9/30
+11/30
+3/30
+
+Real World
+Task
+Shake Bottle
+Stack Blocks Two
+Move Playing-Card Away
+
+Shake Bottle
+Stack Blocks Two
+Move Playing-Card Away
+Move Playing-Card Away
+(Cluttered)
+Move Playing-Card Away
+(Colored Background)
+Place Mouse Pad
+(Cluttered)
+Place Mouse Pad
+(Colored Background)
+Handover Bottle
+(Cluttered)
+
+the importance of sufficient real-world experience. Simulated data from the
+traditional simulator (such as RoboTwin) also helps, yet the benefit is capped by
+the visual–physical gap between real-world and simulated environments (cf. 200
+Sim Pretrain + 10 Real and 10 Real + 200 Sim). In contrast, the Pseudo-Real
+demonstrations generated by our compositional world simulation pipeline narrow
+this gap and yield a substantial increase in task success rate (cf. 10 Real +
+200 Pseudo Real), and even delivering non-trivial performance in the complete
+absence of real data (200 Pseudo Real).
+4.3
+
+Generalization
+
+To further validate the fidelity of our pipeline in reproducing real-world scenarios,
+we conducted an ablation study on the ability of DP to generalize to new spatial
+
+Compositional Simulation
+
+13
+
+10 Real + 200
+Pseudo Real
+(Ours)
+
+In-Domain Spatial
+Distributions
+
+20 Real
+10 Real + 200
+Pseudo Real
+(Ours)
+
+Out-of-Domain Spatial
+Distributions
+
+20 Real
+10 Real + 200
+Pseudo Real
+(Ours)
+
+Colored Background
+with Ping-pang
+
+20 Real
+10 Real + 200
+Pseudo Real
+(Ours)
+
+Colored Background
+with Eraser
+
+20 Real
+
+Fig. 5: Visualization of DP performance on Move Playing-Card Away. Top two rows:
+objects lie initially within the region predefined in collected real-world demonstrations
+(in-domain spatial distribution). Middle two rows: initial positions are outside the region
+(out-of-domain spatial distribution). Bottom four rows: introduce a colored background
+with varying levels of object clustering. Policies shown are trained under 20 Real and
+10 Real + 200 Pseudo Real, respectively.
+
+layouts and new objects. All DP evaluated here are identical to those introduced
+in Sec. 4.2.
+Generalization to Novel Spatial Distributions. It is necessary to note
+the initialized position of every object in the collected real-world demonstrations
+was confined to a predefined limited region (see Sup. 8.2). At inference, we
+relocated the same objects to previously unseen regions and recorded the success
+rates of all DPs. Tab. 2 and Fig. 5 shows that DPs trained solely on real
+data exhibit almost zero generalization to the new regions; the spatial diversity
+present in traditional RoboTwin simulations is likewise rendered ineffective by
+the sim-to-real gap, yielding no measurable improvement. In contrast, the pseudoreal demonstrations generated by our compositional world simulation pipeline
+consistently lift performance across the relocated configurations, confirming that
+
+14
+
+Y. Qin, J. Ma, L. Kang, W. Li et al.
+
+Table 3: Quantitative evaluation of DP new-object generalization across six data
+mixtures.
+Real World Task
+
+10 Real
+
+20 Real
+
+Shake Bottle
+Move Playing-Card Away
+
+0/30
+1/30
+
+0/30
+2/30
+
+200 Sim Pretrain
++ 10 Real
+0/30
+1/30
+
+Real World Task
+
+10 Real
++ 200 Sim
+0/30
+0/30
+
+10 Real + 200
+Pseudo Real
+15/30
+21/30
+
+200 Pseudo Real
+(Zero Shot)
+9/30
+11/30
+
+Shake Bottle
+Move Playing-Card Away
+
+the synthesized scenes faithfully reproduce the spatial statistics of the real-world
+environments.
+Generalization to New Objects. We evaluate shape- and color-level
+generalization by substituting new objects at inference time. Concretely, in the
+real-world demonstrations we employ a Fanta bottle and a blue playing card, and
+at inference time these are replaced by other bottles (i.e. Coca-Cola, Sprite and
+Nongfu Spring Oriental Leaf Tea) and a red playing card, respectively. As shown
+in Table 3 and Fig. 6, simulated demonstrations collected from RoboTwin bring
+no improvement in the generalization to new objects, whereas the Pseudo-Real
+demonstrations generated by our compositional world simulation pipeline yield
+a clear boost in success rate. This demonstrates that our method preserves
+real-world properties and supports transfer to unseen objects.
+
+Fig. 6: Generalization visualization of DP on Shake Bottle under out-of-domain object
+distributions. Top: policy trained with 20 Real. Bottom: policy trained with 10 Real +
+200 Pseudo Real.
+
+5
+
+Conclusion
+
+We presented Compositional Simulation, a hybrid framework that integrates
+classical and neural simulation through a real–sim–real pipeline to generate
+accurate and consistent action–video pairs. Our approach leverages limited realworld data to create large-scale, diverse training datasets, substantially narrowing
+the sim2real domain gap. Experiments show that Compositional Simulation
+improves real-world policy success rates and enables stronger generalization
+across tasks, spaces, and objects. This work offers a scalable path toward robust
+data generation for embodied intelligence and opens avenues for extending to
+richer modalities and broader robotic embodiments.
+
+Compositional Simulation
+
+15
+
+Limitation and Future Work. Our experiments focus on tabletop manipulation, though the framework could be extended to more complex embodiments
+such as mobile manipulation with wheeled robot. Future work may try to use
+of unpaired data to enhance capability and generalization, which would further
+advance compositional simulation.
+
+References
+1. Agarwal, N., Ali, A., Bala, M., Balaji, Y., Barker, E., Cai, T., Chattopadhyay, P.,
+Chen, Y., Cui, Y., Ding, Y., et al.: Cosmos world foundation model platform for
+physical ai. arXiv preprint arXiv:2501.03575 (2025)
+2. Bjorck, J., Castañeda, F., Cherniadev, N., Da, X., Ding, R., Fan, L., Fang, Y., Fox,
+D., Hu, F., Huang, S., et al.: Gr00t n1: An open foundation model for generalist
+humanoid robots. arXiv preprint arXiv:2503.14734 (2025)
+3. Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., Groom,
+L., Hausman, K., Ichter, B., et al.: pi_0: A vision-language-action flow model for
+general robot control. arXiv preprint arXiv:2410.24164 (2024)
+4. Blattmann, A., Dockhorn, T., Kulal, S., Mendelevitch, D., Kilian, M., Lorenz, D.,
+Levi, Y., English, Z., Voleti, V., Letts, A., et al.: Stable video diffusion: Scaling
+latent video diffusion models to large datasets. arXiv preprint arXiv:2311.15127
+(2023)
+5. Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Chen, X., Choromanski, K.,
+Ding, T., Driess, D., Dubey, A., Finn, C., et al.: Rt-2: Vision-language-action models
+transfer web knowledge to robotic control. arXiv preprint arXiv:2307.15818 (2023)
+6. Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Dabis, J., Finn, C., Gopalakrishnan, K., Hausman, K., Herzog, A., Hsu, J., et al.: Rt-1: Robotics transformer
+for real-world control at scale. arXiv preprint arXiv:2212.06817 (2022)
+7. Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Dabis, J., Finn, C., Gopalakrishnan, K., Hausman, K., Herzog, A., Hsu, J., et al.: Rt-1: Robotics transformer
+for real-world control at scale. arXiv preprint arXiv:2212.06817 (2022)
+8. Bruce, J., Dennis, M.D., Edwards, A., Parker-Holder, J., Shi, Y., Hughes, E., Lai,
+M., Mavalankar, A., Steigerwald, R., Apps, C., et al.: Genie: Generative interactive
+environments. In: ICML (2024)
+9. Cheang, C.L., Chen, G., Jing, Y., Kong, T., Li, H., Li, Y., Liu, Y., Wu, H., Xu, J.,
+Yang, Y., et al.: Gr-2: A generative video-language-action model with web-scale
+knowledge for robot manipulation. arXiv preprint arXiv:2410.06158 (2024)
+10. Chen, T., Chen, Z., Chen, B., Cai, Z., Liu, Y., Liang, Q., Li, Z., Lin, X., Ge, Y.,
+Gu, Z., et al.: Robotwin 2.0: A scalable data generator and benchmark with strong
+domain randomization for robust bimanual robotic manipulation. arXiv preprint
+arXiv:2506.18088 (2025)
+11. Chen, Z., Walsman, A., Memmel, M., Mo, K., Fang, A., Vemuri, K., Wu, A.,
+Fox, D., Gupta, A.: Urdformer: A pipeline for constructing articulated simulation
+environments from real-world images. arXiv preprint arXiv:2405.11656 (2024)
+12. Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., Song, S.:
+Diffusion policy: Visuomotor policy learning via action diffusion. The International
+Journal of Robotics Research p. 02783649241273668 (2023)
+13. Dai, T., Wong, J., Jiang, Y., Wang, C., Gokmen, C., Zhang, R., Wu, J., Fei-Fei,
+L.: Automated creation of digital cousins for robust policy learning. arXiv preprint
+arXiv:2410.07408 (2024)
+
+

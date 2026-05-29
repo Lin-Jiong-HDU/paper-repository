@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GenAssets: 在潜空间中生成野外3D资产 - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>GenAssets: 在潜空间中生成野外3D资产</h1>
+  <div class="meta">
+    <span>Ze Yang, Jingkang Wang, Haowei Zhang et al. (Waabi, University of Toronto)</span>
+    <span>2026年4月</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.23010" target="_blank">arXiv:2604.23010</a>
+  </div>
+  <div class="tags">
+    <span class="tag">3D Assets</span>
+    <span class="tag">Autonomous Driving</span>
+    <span class="tag">Latent Diffusion</span>
+    <span class="tag">LiDAR</span>
+    <span class="tag">Neural Rendering</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>GenAssets 提出"先重建后生成"的两阶段框架，通过在潜空间中学习3D资产扩散模型，直接从真实世界稀疏、部分遮挡的自动驾驶传感器数据中生成高质量、完整的360度3D资产。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>自动驾驶仿真</h4>
+        <p>自动驾驶系统需要在各种长尾场景中进行安全测试。物理测试成本高且危险，因此高质量仿真至关重要。精确的3D资产（车辆、行人等）是仿真的基础。</p>
+        <h4>现有方法的困境</h4>
+        <ul>
+          <li><strong>手工建模</strong>：艺术家手动制作3D资产，耗时昂贵、数量有限</li>
+          <li><strong>重建方法</strong>：从传感器数据重建，但存在稀疏视角、部分遮挡问题</li>
+          <li><strong>生成方法</strong>：在合成数据上训练，无法直接处理真实世界的稀疏、遮挡数据</li>
+        </ul>
+        <h4>关键基础技术</h4>
+        <ul>
+          <li><strong>神经辐射场（NeRF）</strong>：用神经网络隐式表示3D场景</li>
+          <li><strong>潜空间扩散模型（LDM）</strong>：在压缩的隐空间中进行扩散生成</li>
+          <li><strong>三平面表示（Tri-plane）</strong>：将3D场景分解到三个正交平面</li>
+          <li><strong>组合场景表示</strong>：场景分解为静态背景和动态物体</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>想象你是一位考古学家，发现许多陶器碎片（稀疏观察），每个碎片只展示了陶器的一部分（部分遮挡）。你的目标是：根据碎片推断完整形状和纹饰 + 学习风格特点来生成新陶器。</p>
+        <p>GenAssets做的就是这件事，但对象是自动驾驶中的车辆和行人。</p>
+        <h4>"先重建后生成"的两阶段框架</h4>
+        <ul>
+          <li><strong>第一阶段（重建）</strong>：同时在多个场景上训练组合场景表示，将所有动态物体编码到低维隐空间。关键创新是考虑遮挡——同时学习背景和物体，让隐编码包含"看不见部分"的信息。</li>
+          <li><strong>第二阶段（生成）</strong>：在学到的隐空间上训练扩散模型。由于隐空间紧凑且有语义，扩散模型可高效生成高质量、多样化的3D资产，支持条件控制（类别、时间段等）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>Step 1: 组合场景表示</h4>
+        <p>每个场景分解为静态背景B和动态物体{Ai}。物体用三平面特征场表示（128x128x12），背景用256x256x12。通过MLP解码出SDF和神经特征。</p>
+        <h4>Step 2: 学习潜空间资产表示</h4>
+        <p>为每个物体分配低维隐编码ci（8x8x32），通过共享解码器映射为完整三平面。隐编码瓶颈迫使模型从稀疏观察推断不可见部分。</p>
+        <h4>Step 3: 传感器渲染</h4>
+        <ul>
+          <li>相机渲染：混合体积渲染+神经渲染</li>
+          <li>LiDAR渲染：体积渲染深度，提供几何监督</li>
+        </ul>
+        <h4>Step 4: 训练目标</h4>
+        <p>多目标联合优化：光度损失 + 感知损失 + 对抗损失 + LiDAR深度损失 + KL正则化</p>
+        <h4>Step 5: 潜空间扩散模型</h4>
+        <p>在隐编码库上训练U-Net扩散模型，支持无条件生成和条件生成（类别、时间段）。</p>
+        <h4>Step 6: 渲染指导去噪</h4>
+        <p>对条件生成，在每一步去噪后根据渲染损失梯度调整采样方向，使生成资产与给定输入一致。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>前向扩散过程</h4>
+        <p>c<sup>(t)</sup> = &radic;&alpha;&macr;<sup>(t)</sup> c<sup>(0)</sup> + &radic;(1 - &alpha;&macr;<sup>(t)</sup>) &epsilon;</p>
+        <p>逐步向隐编码加入高斯噪声，t越大信号越少，最终接近纯噪声。</p>
+        <h4>扩散训练目标</h4>
+        <p>L = E[ &frac12; w<sup>(t)</sup> || f(c<sup>(t)</sup>, t) - &epsilon; ||<sup>2</sup> ]</p>
+        <p>模型学习预测加入的噪声，然后减去它来去噪。</p>
+        <h4>渲染指导去噪</h4>
+        <p>c&#770;<sup>(t-1)</sup> &larr; c<sup>(t-1)</sup> - &lambda; &sdot; &nabla;(L<sub>rgb</sub> + &lambda;<sub>lid</sub> L<sub>lid</sub>)</p>
+        <p>利用可微渲染梯度引导生成资产匹配给定的单张图像或点云。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>数据集</h4>
+        <p>PandaSet：103个旧金山驾驶场景，每个8秒80帧，6个相机（1920x1080），360度机械旋转LiDAR。</p>
+        <h4>三种评估设置（难度递增）</h4>
+        <ul>
+          <li><strong>稀疏视角合成</strong>：仅用10%帧训练（8帧），其余测试</li>
+          <li><strong>新相机合成</strong>：前置相机训练，前左相机测试（需推理从未见过视角）</li>
+          <li><strong>360度视角合成</strong>：物体旋转0-360度</li>
+        </ul>
+        <h4>关键结果</h4>
+        <ul>
+          <li>重建360度FID 100.28 vs 最佳基线159.38</li>
+          <li>无条件生成FID 59.50 vs EG3D 80.56</li>
+          <li>数据增强：3D检测mAP提升2.24个点（27.08 -> 29.32）</li>
+          <li>图像到3D超越MeshLRM</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>：GenAssets概览——360度重建、可控生成、传感器仿真</li>
+          <li><strong>图2</strong>：潜空间资产表示学习流程</li>
+          <li><strong>图3</strong>：潜空间扩散模型训练和采样流程</li>
+          <li><strong>图4</strong>：稀疏视角/新相机/360度视角合成定性对比</li>
+          <li><strong>图5</strong>：无条件生成定性对比</li>
+          <li><strong>表1</strong>：重建定量对比</li>
+          <li><strong>表2</strong>：无条件生成定量对比</li>
+          <li><strong>表3</strong>：数据增强对3D检测的影响</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>需要3D边界框标注，依赖标注质量</li>
+          <li>两阶段训练流程复杂</li>
+          <li>背景模型逐场景训练，泛化需重新训练</li>
+          <li>生成资产无动态光照和动画</li>
+          <li>隐空间分辨率8x8限制极细粒度变化</li>
+          <li>极端稀疏视角（1-2帧）下质量下降</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.23010</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026年4月</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">3D Assets, Autonomous Driving</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">PandaSet (103 scenes)</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">PSNR, SSIM, LPIPS, FID, KID</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">360° FID 100.28, 生成FID 59.50, mAP +2.24</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">NeuRAD, Street Gaussian, EG3D, SSDNeRF, MeshLRM</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">GenAssets 的"先重建后生成"框架核心洞察在于：与其直接在高维3D空间做生成，不如先学一个紧凑、有意义的隐空间，再在上面做扩散生成。渲染指导去噪巧妙地将扩散模型生成能力和可微渲染结合，无需额外训练就能处理单图到3D等逆问题。实验设计中通过数据增强验证生成资产对下游任务的实用价值很有说服力。不过两阶段训练的复杂性可能限制其广泛应用。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

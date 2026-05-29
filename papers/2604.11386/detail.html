@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComSim: Building Scalable Real-World Robot Data Generation via Compositional Simulation - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+.header .meta span { margin-right: 1.5rem; }
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.header .links a:hover { text-decoration: underline; }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.section-header:hover { background: var(--bg-alt); }
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+.section-body.hidden { display: none; }
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+.sidebar {}
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.sidebar-card .info-row:last-child { border-bottom: none; }
+.sidebar-card .info-label { color: var(--text-muted); }
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ComSim: Building Scalable Real-World Robot Data Generation via Compositional Simulation</h1>
+  <div class="meta">
+    <span>Yiran Qin, Jiahua Ma, Li Kang, Wenzhan Li, et al.</span>
+    <span>2026-04-13</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.11386" target="_blank">arXiv:2604.11386</a>
+  </div>
+  <div class="tags">
+    <span class="tag">组合仿真</span>
+    <span class="tag">机器人数据</span>
+    <span class="tag">Real-Sim-Real</span>
+    <span class="tag">神经仿真</span>
+    <span class="tag">动作-视频生成</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>ComSim 提出"组合仿真"新范式，通过融合经典仿真（精确的动作-视频配对）和神经仿真（真实感渲染），构建闭环 "真实→仿真→真实"数据增强流水线，仅需少量真实数据就能生成大规模、多样化且动作一致的训练数据。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>经典仿真 vs 神经仿真</h4>
+        <p><strong>经典仿真</strong>（MuJoCo, Isaac Lab, ManiSkill）使用物理引擎模拟交互，优势是精确记录动作-视频配对，缺点是视觉不真实。<strong>神经仿真</strong>使用视频生成模型生成数据，优点是视觉真实，缺点是存在"幻觉"——生成的视频可能在物理上不一致，导致动作与视频对应关系被破坏。</p>
+        <h4>领域鸿沟</h4>
+        <p>经典仿真保证了动作精确性但视觉不真实；神经仿真保证了视觉真实性但动作控制不精确。两者各自擅长解决领域鸿沟的不同方面。</p>
+        <h4>扩散模型与 DiT</h4>
+        <p>扩散模型通过逐步加噪然后学习去噪来生成新样本。DiT（Diffusion Transformer）将 Transformer 架构应用于扩散模型。控制动态指机器人动作序列；视觉动态指摄像头观测图像序列。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>类比</strong>：想象你要为电影场景制作特效。传统CGI（经典仿真）每一帧都能精确控制但不够真实；AI视频生成（神经仿真）画面真实但无法精确控制角色动作。ComSim的做法是：先用CGI生成精确的动作画面，然后训练AI模型把CGI画面"翻译"成真实画面，同时确保角色动作保持不变。</p>
+        <p><strong>Real-Sim-Real 流水线</strong>：</p>
+        <ul>
+          <li>Real→Sim：用少量真实数据在仿真中复现场景和动作，生成配对的"真实视频-仿真视频"数据</li>
+          <li>Sim→Real（训练）：利用配对数据训练神经仿真器，学会将仿真视频转换为真实风格视频</li>
+          <li>Sim→Real（生成）：在经典仿真中生成大量多样化数据，用神经仿真器全部转换为"伪真实数据"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：Real2Sim 数据采集</h4>
+        <p>通过背景/物体、相机标定、物体位置三方面精确对齐，构建配对的 (仿真视频, 真实视频, 动作序列) 数据集。获取10个任务共200组配对数据。</p>
+        <h4>第二步：组合动态视频生成（训练神经仿真器）</h4>
+        <p>基于 DiT 架构，接受控制动态（动作）和视觉动态（仿真观测）双重条件引导，生成与真实世界分布一致的视频。优化目标是 L_{sim2real} = L_{video}(f_N(V_sim, A, θ), V_real)。</p>
+        <h4>第三步：大规模仿真数据生成</h4>
+        <p>使用 RoboTwin 仿真环境和 GPT-5 + 动作基元（action primitives）自动生成多样化轨迹。</p>
+        <h4>第四步：真实世界部署</h4>
+        <p>将大量仿真数据通过神经仿真器转换为伪真实数据，与少量真实数据混合训练策略。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>神经仿真映射</strong>：N(D_sim) ≈ D_real。神经仿真函数 N 将仿真数据映射到接近真实数据分布，关键是映射后的动作与原始动作保持一致。</p>
+        <p><strong>部署算法概要</strong>：</p>
+        <ol>
+          <li>初始化 D_sim 和 D_real</li>
+          <li>对每个仿真样本：用神经仿真器转换为伪真实数据并加入 P_pseudo</li>
+          <li>组合数据：D_combined = α·D_real + (1-α)·P_pseudo</li>
+          <li>在组合数据上训练策略 π_robot</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>视频生成质量</strong>：使用 PSNR, SSIM, CLIP Score, LPIPS, FID, FVD 等6个指标，在8个任务上评估。Ours-Full 在所有指标上最优（FID=147.90, FVD=15.765）。</p>
+        <p><strong>消融实验揭示</strong>：仅控制动态（Ours-CD）效果最差；仅视觉动态（Ours-VD）贡献了大部分迁移能力；两者结合（Ours-Full）实现最佳效果。</p>
+        <p><strong>真实世界策略训练</strong>：在仅10个真实演示条件下，200条伪真实数据 + 10个真实数据的效果远超同类方案。ID任务成功率从6-12/30提升到23-29/30。</p>
+        <p><strong>泛化能力</strong>：无论是空间布局泛化还是新物体泛化，只有 ComSim 的伪真实数据带来了显著提升。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>: 三种数据源对比——人工采集、经典仿真、神经仿真</li>
+          <li><strong>图2</strong>: Real2Sim数据采集与神经仿真器训练流程</li>
+          <li><strong>图3</strong>: 真实世界部署流程——大规模仿真→神经仿真→伪真实数据→联合训练</li>
+          <li><strong>图4</strong>: 四种任务上的生成结果可视化对比</li>
+          <li><strong>图5-6</strong>: 空间布局和新物体泛化可视化</li>
+          <li><strong>表1</strong>: 视频生成质量定量对比（6指标×8任务）</li>
+          <li><strong>表2</strong>: 真实世界实验（6种数据混合方案×8任务×ID/OOD）</li>
+          <li><strong>表3</strong>: 新物体泛化定量结果</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>当前集中在桌面操作任务，尚未扩展到更复杂机器人形态</li>
+          <li>依赖精确对齐的"仿真-真实"配对数据集来训练神经仿真器</li>
+          <li>神经仿真器在遇到与训练数据差异很大的场景时生成质量可能下降</li>
+          <li>未探索无配对数据的利用方式</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.11386</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-13</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Robotics, Data Generation</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">RoboTwin仿真; 10-20个真实演示</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">PSNR, SSIM, FID, FVD; 任务成功率</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">Ours-Full FID=147.9; 10Real+200Pseudo → 成功率28-29/30</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">6种数据混合方案; CD/VD消融变体</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">ComSim 的"组合仿真"思路非常优雅——不试图在单个方法中解决所有问题，而是巧妙组合两个已有方法的优势。这种"分而治之"的思路在工程实践中往往比"一个模型搞定一切"更加实用。与 HyperSim 对比：HyperSim 在仿真侧提高数据质量（高保真渲染+对抗训练），ComSim 更注重将仿真数据"翻译"到真实域（通过神经仿真器），两者可以互补。未来"经典仿真+神经翻译"路线可能成为 sim-to-real 的主流范式。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

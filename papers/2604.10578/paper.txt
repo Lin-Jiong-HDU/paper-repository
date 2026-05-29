@@ -1,0 +1,816 @@
+Rein3D: Reinforced 3D Indoor Scene Generation
+with Panoramic Video Diffusion Models
+Dehui Wang1 , Congsheng Xu1 , Rong Wei2 , Yue Shi1 , Shoufa Chen4 ,
+Dingxiang Luo1 , Tianshuo Yang4 , Xiaokang Yang1 , Wei Sui3 , Yusen Qin3 ,
+Rui Tang2 , and Yao Mu1⋆
+Shanghai Jiao Tong University
+2
+Manycore Tech Inc.
+3
+D-Robotics
+4
+The University of Hong Kong
+
+arXiv:2604.10578v2 [cs.CV] 14 Apr 2026
+
+1
+
+Abstract. The growing demand for Embodied AI and VR applications
+has highlighted the need for synthesizing high-quality 3D indoor scenes
+from sparse inputs. However, existing approaches struggle to infer massive amounts of missing geometry in large unseen areas while maintaining global consistency, often producing locally plausible but globally inconsistent reconstructions. We present Rein3D, a framework that
+reconstructs full 360° indoor environments by coupling explicit 3D Gaussian Splatting (3DGS) with temporally coherent priors from video diffusion models. Our approach follows a "restore-and-refine" paradigm:
+we employ a radial exploration strategy to render imperfect panoramic
+videos along trajectories starting from the origin, effectively uncovering occluded regions from a coarse 3DGS initialization. These sequences
+are restored by a panoramic video-to-video diffusion model and further
+enhanced via video super-resolution to synthesize high-fidelity geometry and textures. Finally, these refined videos serve as pseudo-ground
+truths to update the global 3D Gaussian field. To support this task,
+we construct PanoV2V-15K, a dataset of over 15K paired clean and
+degraded panoramic videos for diffusion-based scene restoration. Experiments demonstrate that Rein3D produces photorealistic and globally
+consistent 3D scenes and significantly improves long-range camera exploration compared with existing baselines.
+Keywords: 3D Indoor Scene Generation · Panoramic Video Diffusion
+Models · 3D Gaussian Splatting
+
+1
+
+Introduction
+
+Synthesizing high-quality 3D indoor scenes from sparse inputs (e.g., text or single images) presents promising application prospects, particularly in advancing
+VR/AR and simulation platforms for Embodied AI [27,57]. However, this task is
+⋆
+
+Corresponding author. Email: muyao@sjtu.edu.cn
+
+2
+
+D. Wang et al.
+
+Re
+In
+3D
+
+😡The scene require restoration.
+
+🤨The scene require better resolution.
+
+Video Diffusion Model
+
+🤗Just Fine!
+
+Video Super Resolution
+
+Fig. 1: Overview of Rein3D framework. Starting from a single panorama, we initialize
+a coarse 3D Gaussian Splatting scene and render imperfect panoramic videos along
+radial trajectories. A video diffusion model restores missing geometry and textures
+with temporally consistent priors, and the enhanced views are fused back to refine the
+global 3D representation. This restore-and-refine paradigm produces photorealistic and
+globally consistent 3D scenes that remain stable under large viewpoint changes.
+
+fundamentally an ill-posed problem: Simple texts or image inputs fail to provide
+a comprehensive representation of the entire 3D space. Consequently, inferring
+massive amounts of missing information for unseen areas while maintaining geometric consistency remains a significant challenge.
+Deep generative models, particularly diffusion models [13, 17, 34, 35, 37], address this by leveraging strong 2D visual priors. However, standard image-based
+methods [23, 56, 60–62] often suffer from accumulated geometric errors. While
+strategies like explicit constraints or multi-view synthesis [7, 40, 66] alleviate
+this issue, they remain computationally intensive and operationally cumbersome. In contrast, video diffusion methods [3, 11, 51], especially Video-to-Video
+(V2V) approaches guided by point cloud priors, have demonstrated impressive
+results. Nevertheless, these methods typically operate with a limited Field-ofView (FoV). Covering an entire scene requires stitching many views along carefully designed camera trajectories, which is computationally expensive and often
+yields weaker global consistency than panoramic representations.
+Panoramic video diffusion [8, 44, 52] offers a solution but faces a critical data
+bottleneck. To bridge this gap, we constructed a large-scale dataset PanoV2V15K for panoramic video restoration. This dataset comprises over 15,000 distinct
+indoor scenes, consisting of paired videos: low-quality renderings with artifacts
+and their corresponding clean ground truths. Leveraging the 360-degree field
+of view, we simplify the data generation by employing pure linear trajectories.
+
+Rein3D
+
+3
+
+Since the panorama captures everything around the camera, this simple motion
+is sufficient to cover the scene, avoiding the complex path planning required by
+limited-FoV approaches [11, 16, 48].
+As shown in Fig. 1, building on our newly constructed dataset, we propose Rein3D, a novel framework for high-fidelity 3D indoor scene generation.
+Specifically, our pipeline consists of three key steps. First, we generate a textconditioned panorama and combine it with estimated depth to construct an
+initial 3D Gaussian Splatting (3DGS) [19] representation. Second, to efficiently
+restore the entire scene, we design a robust radial search strategy. Starting from
+the scene’s center, the camera moves outwards along uniformly distributed trajectories to capture imperfect panoramic renderings. These sequences are then
+repaired by a Video-to-Video diffusion model and enhanced via Video SuperResolution. Finally, these restored high-fidelity videos are projected back to update the global 3DGS, resulting in a complete and high-quality 3D scene.
+We highlight the key contributions of our work as follows:
+– We introduce PanoV2V-15K, a large-scale dataset of paired clean–degraded
+360◦ videos, enabling diffusion-based panoramic restoration for downstream
+3D scene reconstruction.
+– We propose Rein3D, a novel framework centered on a V2V diffusion model.
+It effectively restores missing regions and refines the global 3D scene.
+– Extensive experiments demonstrate our superior performance, particularly in
+generating large-scale environments and supporting long-range exploration.
+
+2
+
+Related Work
+
+2.1
+
+3D Indoor Scene Generation
+
+Powered by advances in differentiable rendering [19, 28] , 3D generative models
+have expanded from isolated objects [46, 53] to complex scene synthesis. Early
+iterative methods employ a “warp-and-refine” paradigm to extend the field of
+view [6, 14, 26, 49] but often suffer from geometric drift over long trajectories. To
+ensure global consistency, subsequent works utilize holistic 360-degree panoramas [32] or layouts [7] as unified priors, lifting them into 3D Gaussian Splatting
+for real-time rendering [15, 43, 66]. However, these panorama-centric approaches
+struggle with significant camera translations due to occlusion. Consequently, recent methods [16, 38, 62] use video diffusion models to hallucinate consistent
+details during movement. In this work, we propose a novel framework that initializes a globally consistent scene from a panorama and leverages video diffusion
+models to coherently restore and refine scene details during zoom-in exploration.
+2.2
+
+Panoramic Video Diffusion Models
+
+The evolution of diffusion models [13, 36] revolutionized video synthesis, transitioning from UNet-based architectures with temporal layers [1, 12] to scalable Diffusion Transformers [31] that master complex spatio-temporal dynamics [4, 10, 20, 42, 58]. Although these foundation models excel at perspective content, applying them to 360-degree videos remains challenging due to spherical
+
+4
+
+D. Wang et al.
+
+distortion and boundary discontinuity. Pioneering efforts like 360DVD [44] and
+VideoPanda [54] employ adapters or multi-view attention to handle spherical
+geometry. Meanwhile, specific applications focus on animating static panoramas [22] or expanding narrow field-of-view videos to full immersive views [25,39].
+Rencently, ViewPoint [8] introduces a novel map representation combined with
+pano-perspective attention to ensure spatial continuity, whereas PanoWan [52]
+employs latitude-aware sampling and rotated denoising to lift powerful DiT backbones to the panoramic domain. In this work, we propose a video-to-video framework that utilizes these advanced DiT priors for panoramic scene restoration.
+By conditioning on preliminary renderings, our method effectively recovers highfidelity details in occluded regions while ensuring temporal consistency.
+
+3
+
+PanoV2V-15K Dataset Construction
+
+3.1
+
+Synthetic Panoramic Video Construction
+
+To train and evaluate our video diffusion model for panoramic restoration, we
+construct a large-scale panoramic video dataset follow previous work [7], the
+dataset consisting of 15,050 distinct indoor scenes, covering diverse room types.
+The dataset is synthesized from a curated repository of professionally designed
+indoor environments, enabling high visual fidelity and broad scene diversity.
+For each room, we first sample valid trajectories on the XY plane, extracting
+anchor points every 0.5 m. To ensure stable and consistent camera movement,
+we select the longest linear trajectory segment for each scene. We then place
+a virtual omnidirectional camera at a fixed height of 1.6,m and record a 360◦
+panoramic video at 10 FPS, moving from one end of this linear trajectory to the
+other at a constant speed of 1 m/s. This procedure yields temporally coherent
+supervision with smooth and physically plausible linear camera motion. The
+data structure is shown in Fig. 2
+Crucially, to construct the conditioning signal for training, we extract the
+first panoramic view and its corresponding Ground Truth (GT) depth map at
+the starting endpoint of the recorded trajectory. This single GT depth map is
+used alongside the first panorama to initialize a coarse 3DGS representation
+(detailed in Section 3.2). The rendered RGB and alpha (opacity) views from
+this coarse 3DGS prior, combined with the first panoramic view, serve as the
+conditioning input to guide the restoration of the subsequent panoramic video.
+3.2
+
+Coarse 3DGS Initialization
+
+Building upon the conditioning signals extracted at the starting endpoint, we
+utilize the first RGB panorama and its paired GT depth map to explicitly construct a coarse 3DGS geometric prior. Concretely, we lift the omnidirectional
+RGB observation into a set of 3D Gaussian primitives by unprojecting each
+equirectangular pixel into 3D space.
+
+Rein3D
+
+5
+
+Fig. 2: Illustration of our dataset construction. For each scene, we provide sampled
+linear trajectories, ground-truth 360◦ panoramic videos, and paired coarse 3DGS rendering views as explicit 3D priors.
+
+Specifically, we convert the GT depth map into metric distances via a fixed
+scale factor, resizing it to match the panorama resolution if necessary. By computing the per-pixel viewing rays under the equirectangular projection model,
+we back-project each pixel using its exact depth to obtain a 3D coordinate. This
+3D point serves as the center position (mean) µi for a Gaussian primitive, which
+is jointly initialized with its corresponding RGB color observation.
+To ensure a stable and renderable 3D prior without requiring iterative optimization, we initialize the remaining attributes of the Gaussian primitives under a straightforward geometric assumption: each primitive is treated as a fully
+opaque, isotropic sphere. Consequently, we assign identical values across all three
+axes for the anisotropic scale si , set the rotation qi to a canonical identity quaternion, and fix the opacity αi to a constant value representing full opacity. This
+deterministic initialization yields a lightweight yet effective coarse 3DGS scene,
+providing reliable geometry-aware renderings — specifically, aligned RGB and
+alpha panoramic sequences, to condition the downstream video diffusion model.
+
+4
+
+Method
+
+As illustrated in Fig. 3, our proposed Rein3D generates high-fidelity 3D indoor
+scenes via a "restore-and-refine" paradigm. We start by lifting a text-conditioned
+panorama and its estimated depth into a coarse 3DGS representation, and then
+employ a radial search strategy moving outwards from the scene’s center to
+render sequences of imperfect panoramic videos. These degraded sequences are
+then restored by the panoramic video-to-video diffusion model and enhanced
+via video super-resolution to recover coherent geometry and textures. Finally,
+these high-fidelity restored videos serve as pseudo-ground truths to refine the
+
+6
+
+D. Wang et al.
+(a)
+
+RGB-Depth pairs
+from generated or dataset
+
+Text Prompt
+
+DiT Block
+
+Lifted 3D Point Cloud
+
+DiT Block
+
+DiT Block
+
+“This is a panoramic
+view of a modern,
+minimalist bedroom…”
+
+Depth
+Prediction
+
+Generated Panorama
+
+Text2Pano
+DiT
+
+Predicted Depth
+
+The scene
+got hollow!
+
+(b)
+
+😡
+
+Capture
+Tokens
+
+= Context Block
+
+Text
+
+Text Prompt
+
+Context Anchor
+
+Context
+
+(c)
+
+Alpha Map
+
+Context
+Adaptor
+
+Foreground
+
++
+
+Background
+
+VSR
+
+VAE
+
+Low Quality RGB
+
+Rendered Gaussian Splats
+
+= DiT Block
+
+Video
+
+Spheric Noise
+
+Low Resolution
+RGBs
+
+Super Resolution RGBs
+
+The scene is
+better now!
+
+😌
+
+(d)
+
+Fig. 3: Overview of the Rein3D pipeline. (a) Utilizing pretrained panoramic image
+generation models and powerful depth prediction models, we can generate panoramic
+image and its correspondent predicted depth map with a text prompt. (b) We initialize
+a coarse 3D Gaussian scene by lifting the panoramic image and depth map into fully
+opaque spherical primitives, which produces distorted and incomplete views. (c) Rendering this coarse representation along planned trajectories yields degraded panoramic
+views due to missing geometry. A panoramic panoramic video diffusion model, conditioned via an opacity-guided context adapter, then restores missing regions and artifacts. (d) The restored panoramic video is enhanced via Video Super-Resolution (VSR)
+and fused back to refine the 3DGS representation.
+
+global 3D scene. In this section, we first introduce the preliminaries in Sec. 4.1.
+Subsequently, we describe the initialization and exploration strategy in Sec. 4.2,
+detail our Panoramic Video Restoration Network in Sec. 4.3, and finally present
+the progressive refinement process in Sec. 4.4.
+
+4.1
+
+Preliminary
+
+3D Gaussian Splatting. 3D Gaussian Splatting (3DGS) [19, 68] represents a
+scene as a set of K anisotropic 3D Gaussian primitives {Gk }K
+k=1 . Each primitive
+is defined by a 3D center µk ∈ R3 and a covariance matrix Σk ∈ R3×3 , which
+together describe a continuous volumetric density:
+  G_k(x)=\exp \!\left (-\frac {1}{2}(x-\mu _k)^{\top }\Sigma _k^{-1}(x-\mu _k)\right ). 
+
+(1)
+
+The covariance is parameterized by a rotation matrix Rk ∈ R3×3 and a diagonal
+scale matrix Sk ∈ R3×3 ,
+  \Sigma _k = R_k S_k S_k^{\top } R_k^{\top }. 
+(2)
+Given a camera viewpoint, visible primitives are ordered by depth and composited using front-to-back alpha blending. The rendered pixel color at image
+
+Rein3D
+
+7
+
+location x is given by
+  c(x)=\sum _{k=1}^{K} c_k(x)\,\alpha _k(x)\prod _{i=1}^{k-1}\bigl (1-\alpha _i(x)\bigr ), \label {eq:shading} 
+
+(3)
+
+where αk (x) denotes the view-dependent opacity of the k-th primitive at pixel
+x, and ck (x) is its color, typically modeled using spherical harmonics to capture
+view-dependent appearance [19]. This differentiable rasterization formulation enables efficient and stable optimization.
+Given multi-view images with known camera parameters, 3DGS optimizes
+primitive parameters {µk , Σk , αk , ck }K
+k=1 by minimizing photometric reconstruction error across all training views, together with the intermittent density control.
+In our setting, the supervision comes from a synthesized panoramic video, which
+provides dense, temporally coherent observations with wide field-of-view coverage. Such panoramic views naturally reduce missing-view artifacts and improve
+global visibility ordering, making them particularly well suited for reconstructing
+a consistent 3D Gaussian representation.
+Video Diffusion. Video diffusion models [2, 4, 5, 20, 42] extend diffusionbased generative modeling from images to videos by learning a distribution
+over spatiotemporal signals. A video is represented as a sequence of frames
+x ∈ RT ×H×W ×C . In practice, videos are often encoded into a latent space using
+a pretrained autoencoder, yielding latent videos z ∈ RT ×H×W ×D .
+Video diffusion defines a forward noising process that gradually perturbs the
+clean video (or latent) z0 into Gaussian noise:
+  q(\mathbf {z}_t \mid \mathbf {z}_0) = \mathcal {N}\!\left ( \mathbf {z}_t; \sqrt {\alpha _t}\mathbf {z}_0, (1-\alpha _t)\mathbf {I} \right ), 
+
+(4)
+
+where t ∈ {1, . . . , N } denotes the diffusion timestep and {αt } is a predefined
+noise schedule. The corresponding reverse process is parameterized by a neural
+network that iteratively denoises zt to recover z0 .
+Video diffusion models can further be conditioned on auxiliary signals such
+as text prompts, reference images, or preceding frames, enabling controllable and
+temporally coherent video generation.
+4.2
+
+Initialization and Camera Exploration
+
+Initial Scene Construction. To establish the base environment, we leverage
+off-the-shelf models capable of handling both text and image inputs. Specifically, given a text prompt, we utilize DiT360 [9] to synthesize a high-resolution
+panorama, whereas user-provided panoramic images can be directly adopted as
+input. Subsequently, we employ DA2 [21] to estimate the corresponding depth
+map. These RGB-D priors are then lifted into a preliminary 3D Gaussian Splatting representation, serving as the coarse initialization of the 3D scene.
+Radial Trajectory Generation. To effectively uncover missing regions, we
+employ a simple yet robust trajectory sampling strategy. Using the panoramic
+
+8
+
+D. Wang et al.
+
+depth, we first calculate a safe navigation map. Rather than relying on small, localized camera movements around the origin, we formulate a radial search strategy consisting of τ uniformly distributed trajectories radiating outward from the
+scene’s center. We dynamically identify the optimal global orientation for these
+τ directions to maximize the cumulative movement range within the safe navigation area. We then render zoom-in RGB-Alpha panoramic videos along these
+paths. These sequences, which naturally contain visual artifacts and transparent
+holes, serve as the degraded inputs for our restoration network.
+4.3
+
+Panoramic Video Restoration Network
+
+To transform imperfect RGB-Alpha renderings into high-fidelity videos, we design a specialized restoration network based on the Wan2.1-1.3B [42] DiT backbone. We adapt this foundation model to the panoramic domain through a conditional injection mechanism and specific spherical optimizations.
+Architecture and Conditioning. Inspired by VACE [18], we utilize a context
+adapter architecture to effectively handle multi-modal inputs. To ensure global
+consistency during camera exploration, we explicitly incorporate a Context Anchor mechanism into the conditioning signal. Specifically, the input RGB-Alpha
+video is processed to distinguish between observed content and missing regions.
+Let V ∈ RT ×3×H×W denote the RGB video and M ∈ [0, 1]T ×1×H×W denote
+the alpha channel. We decompose the input into two complementary streams:
+  \mathbf {V}_{\text {background}} = \mathbf {V} \odot (\mathbf {1} - \mathbf {M}), \quad \mathbf {V}_{\text {foreground}} = \mathbf {V} \odot \mathbf {M} 
+
+(5)
+
+These streams are independently encoded by the pre-trained VAE encoder E
+and concatenated along the channel dimension to form the video latent features
+Zvideo :
+  \mathbf {Z}_{\text {video}} = \text {Concat}(\mathcal {E}(\mathbf {V}_{\text {background}}), \mathcal {E}(\mathbf {V}_{\text {foreground}})) 
+(6)
+Crucially, since our trajectory begins from the scene origin, the starting panoramic
+view I0 is fully observable (i.e., M0 = 1). We treat I0 as the Context Anchor,
+encoding it to obtain Zanchor = E(I0 ). Finally, we construct the input condition
+Zcondition by prepending the anchor to the video features along the temporal
+dimension:
+  \mathbf {Z}_{\text {condition}} = [\mathbf {Z}_{\text {anchor}}, \mathbf {Z}_{\text {video}}] 
+(7)
+This design ensures that the generation process is explicitly grounded in the
+initial scene geometry, preventing temporal drift and color inconsistency.
+Spherical Adaptation and Optimization. Standard diffusion models typically treat images as flat, uniform planes, ignoring the inherent geometric distortion of Equirectangular Projection (ERP). Specifically, pixels near the poles
+are significantly stretched and over-sampled compared to the equator. To correct this, we introduce two complementary mechanisms that align both the noise
+initialization and the training objective with spherical geometry:
+(1) Latitude-Aware Sampling. Following PanoWan [52], we align the initial
+noise with the geometric distortion of the input. Given an input resolution of
+
+Rein3D
+
+9
+
+H × W , we define the latitude ϕ for a pixel at vertical coordinate y as ϕ =
+(0.5 − y/H) · π. Since image content at high latitudes is horizontally stretched,
+we apply a corresponding warp to the noise coordinates:
+  x' = x_c + (x - x_c) \cdot \cos (\phi ). 
+
+(8)
+
+This operation effectively “stretches” the noise patterns at the poles, ensuring
+that the noise density matches the visual signal when mapped to the 3D sphere.
+(2) Latitude-Decay Loss. Complementary to the sampling, we adjust the
+training objective to account for pixel redundancy. Since polar pixels correspond
+to a much smaller physical area on the sphere, we reduce their influence on the
+total loss. We define a spatial weight mask W (ϕ) as:
+  W(\phi ) = \lambda + (1 - \lambda ) \cos (\phi ), 
+
+(9)
+
+where λ is a hyper-parameter. This formulation lowers the over-sampled polar
+regions to match their actual geometric importance, while the constant λ ensures
+that the model still maintains valid gradients to learn the structure at the poles.
+4.4
+
+3D Scene Refinement
+
+To enhance visual quality of videos, we first employ FlashVSR [67] to upsample
+the video sequences, effectively recovering high-frequency details. These highresolution panoramic frames are then projected into perspective views to serve
+as pseudo-ground truths. Finally, we fine-tune the 3D Gaussian Splatting against
+these views. During this optimization, we incorporate robust densification strategies and anti-aliasing techniques to effectively suppress geometric artifacts and
+further refine the scene texture.
+
+5
+
+Experiments
+
+5.1
+
+Implementation Details
+
+We implement our Rein3D framework using PyTorch. The video restoration
+network is initialized from the pre-trained VACE-1.3B [18] checkpoint. We finetune the model on our proposed dataset using the AdamW [24] optimizer with a
+constant learning rate of 5 × 10−5 . During training, the input panoramic video
+sequences are fixed to a length of 41 frames, with a spatial resolution of 448×896.
+The total batch size is set to 32, and the training proceeds for 5,000 steps on 4
+NVIDIA H200 (141GB) GPUs.
+For the final 3D scene refinement stage, we utilize the efficient gsplat library [59]. We optimize the 3D Gaussian Splatting for 15,000 steps against the
+upsampled pseudo-ground truths. To ensure high rendering quality, we enable
+anti-aliasing [63] during rasterization to effectively suppress geometric artifacts.
+
+10
+
+D. Wang et al.
+
+Table 1: Quantitative comparison on panoramic video restoration. We evaluate general
+video quality (PSNR, SSIM, FVD) and spherical consistency (WS-PSNR, WS-SSIM).
+
+5.2
+
+Method
+
+PSNR ↑ SSIM ↑ WS-PSNR ↑ WS-SSIM ↑ FVD ↓
+
+ProPainter
+VACE
+VACE (Fine-tuned)
+Ours
+
+18.46
+21.17
+22.18
+23.77
+
+0.760
+0.787
+0.798
+0.823
+
+17.79
+20.80
+21.89
+23.45
+
+0.740
+0.771
+0.790
+0.820
+
+14.56
+11.67
+9.27
+5.26
+
+Comparison on video restoration.
+
+We compare our method with ProPainter [65], a transformer-based video inpainting model, and VACE [18], a state-of-the-art unified foundation model for
+video generation and editing. To ensure fairness, we also fine-tune VACE on our
+panoramic dataset, while ProPainter uses its official pre-trained weights.
+Datasets and evaluation metrics. Since there are no existing benchmarks
+that are fully suitable for panoramic video restoration, we construct a test set by
+randomly selecting 50 video clips from our proposed dataset. We report PSNR,
+SSIM [47], and FVD [41] to assess general visual quality and temporal consistency. Furthermore, we utilize Weighted Spherical PSNR (WS-PSNR) and
+WS-SSIM to explicitly measure reconstruction fidelity under equirectangular
+projection.
+Quantitative comparisons. As presented in Tab. 1, our method outperforms both baselines across all metrics. Significant improvements in WS-PSNR
+and WS-SSIM specifically highlight the effectiveness of our approach in handling
+spherical geometry compared to standard 2D baselines.
+5.3
+
+Comparison on scene generation.
+
+Text-to-3D Scene. We first evaluate the capability of our framework to generate 3D scenes from text descriptions. We compare our method with three unconstrained baselines: WorldGen [55], EmbodiedGen [45], and DreamScene360 [66].
+As shown in Fig. 4, WorldGen fails to recover missing regions, resulting in severe geometric voids. EmbodiedGen is restricted to small-scale exploration, suffering from artifacts and incompleteness due to naive image inpainting. DreamScene360, while capable of novel view synthesis, produces blurry and temporally inconsistent results. In contrast, our panoramic video diffusion prior ensures global consistency and robust exploration, enabling the generation of highfidelity, photorealistic scenes even under significant viewpoint changes.
+Panoramic Image-to-3D Scene. We further evaluate the performance of reconstructing 3D scenes from a single panoramic image. Specifically, we used
+the Structured3D dataset [64] for evaluation, which provides high-quality photorealistic synthetic indoor environments. We compare our method against two
+baselines: EmbodiedGen and DreamScene360.
+
+Rein3D
+
+11
+
+Text Prompt : A cozy living room with sofa, table.
+
+Text Prompt : Minimalist bedroom, a bed, light oak wood paneling, soft recessed ceiling lighting.
+
+(a) WorldGen
+
+(b) EmbodiedGen
+
+(c) DreamScene360
+
+(d) Ours
+
+Fig. 4: Qualitative comparison on novel view synthesis. We compare our method with
+WorldGen, EmbodiedGen, and DreamScene360 under the same text prompts. Existing
+methods often produce distorted structures or incomplete regions, while our method
+generates more coherent geometry and consistent textures across viewpoints.
+Table 2: Quantitative comparison on Image-to-3D generation. We evaluate visual
+quality (Q-Align ↑), semantic consistency (CLIP ↑), and perceptual quality (NIQE
+↓, BRISQUE ↓) on the Structured3D test set. To rigorously test global consistency,
+evaluation views are rendered at the origin and 4 maximally distant points selected
+via Farthest Point Sampling (FPS). τ denotes the number of radial trajectories used
+in our exploration strategy.
+Method
+
+Q-Align ↑ CLIP ↑ NIQE ↓ BRISQUE ↓
+
+EmbodiedGen
+2.4786 0.2433 6.9292
+DreamScene360 1.7656 0.2313 8.5221
+Ours (τ = 4)
+3.0229 0.2535 6.3103
+Ours (τ = 8)
+3.0629 0.2567 6.2637
+
+53.5094
+61.9658
+46.7990
+45.8937
+
+We employ four metrics to comprehensively assess the quality of the generated 3D scenes. Q-Align [50] is utilized to evaluate the overall visual quality and
+its alignment with human aesthetic perception. The CLIP score [33] measures
+the semantic consistency between the rendered views and the corresponding
+scene descriptions, while NIQE [30] and BRISQUE [29] serve as widely used
+no-reference image quality metrics to assess perceptual realism and naturalness.
+Quantitative comparisons. To ensure a robust and fair assessment, we randomly selected 16 different scenes from Structured3D [64] test dataset. For
+each scene, we utilize the safe navigation map calculated during initialization
+(Sec. 4.2) and generate a dense candidate pool via Monte Carlo sampling. We
+then apply Farthest Point Sampling (FPS) to select 5 spatially diverse camera
+locations: the scene origin and 4 maximally distant exploratory points. At each of
+these 5 locations, we render 4 horizontal perspective views to ensure comprehensive visual coverage. The quantitative results are reported in Tab. 2. Specifically,
+
+12
+
+D. Wang et al.
+
+the higher Q-Align and CLIP scores indicate that our method, regardless of the
+number of radial trajectories (τ = 4 or τ = 8), maintains superior semantic
+alignment and structural integrity even at viewpoints far from the origin. Furthermore, the significantly lower NIQE and BRISQUE scores demonstrate that
+our generated views possess higher perceptual realism with fewer distortion artifacts compared to the baselines.
+
+Ours
+
+DreamScene360 EmbodiedGen
+
+Input :
+
+Fig. 5: Qualitative comparison of generated perspective views with baseline methods
+on Structured3D [64] dataset. The top row shows the input panoramic images, and the
+subsequent rows display the perspective views generated by the different methods.
+
+Qualitative comparison. As illustrated in Fig. 5 and Fig. 6, we visualize
+the reconstruction results in sample cases. Although EmbodiedGen [45] recovers
+the general layout of the scene, it suffers from significant unstructured floating
+artifacts (resembling messy point clouds) when the viewpoint changes substantially from the anchor. DreamScene360 [66], on the other hand, exhibits severe
+global geometric distortion, often warping the entire scene structure and introducing conspicuous distortion voids. In contrast, our method constructs stable
+and geometrically consistent 3D scenes, maintaining structural integrity even at
+viewpoints far from the initialization point. These results fully demonstrate the
+effectiveness and practicality of our approach for robust 3D scene restoration.
+5.4
+
+Ablation Studies
+
+To validate our framework’s core designs, we conduct ablation studies on the
+conditioning inputs and the spherical optimization strategy. Quantitative results
+are presented in Tab. 3.
+Context Anchor. We first evaluate the Context Anchor, which uses the
+initial panoramic frame as a global reference. Without this anchor, the model
+
+Rein3D
+
+13
+
+Ours
+
+DreamScene360 EmbodiedGen
+
+Input
+
+Ours
+
+DreamScene360 EmbodiedGen
+
+Input
+
+Fig. 6: Qualitative comparison of generated panoramic views with baseline methods
+on the Structured3D [64] dataset.
+
+14
+
+D. Wang et al.
+
+Table 3: Ablation studies and parameter sensitivity analysis. We evaluate the effectiveness of key components (Top) and the impact of the Latitude-Decay Loss coefficient
+λ (Bottom). The default setting is λ = 0.1 with all components enabled. The best and
+second-best results are highlighted in bold and underlined, respectively.
+Setting
+
+Components
+Metrics
+Anchor λ Value PSNR ↑ SSIM ↑ WS-PSNR ↑ WS-SSIM ↑ FVD ↓
+
+Component Effectiveness
+w/o Context Anchor
+
+-
+
+0.1
+
+22.84
+
+0.810
+
+22.40
+
+0.802
+
+7.75
+
+Parameter Sensitivity of λ
+w/o Decay Loss
+λ = 0.5
+λ = 0.3
+λ=0
+
+✓
+✓
+✓
+✓
+
+1
+0.5
+0.3
+0
+
+23.28
+23.80
+23.42
+23.44
+
+0.819
+0.822
+0.819
+0.824
+
+22.97
+23.38
+23.05
+22.99
+
+0.816
+0.818
+0.816
+0.819
+
+5.66
+5.66
+5.45
+5.62
+
+Ours
+
+✓
+
+0.1
+
+23.77
+
+0.823
+
+23.45
+
+0.820
+
+5.26
+
+loses its connection to the starting viewpoint, resulting in severe visual drift
+during camera exploration. Quantitatively, discarding the anchor causes a severe
+drop in temporal coherence, with the FVD score surging from 5.26 to 7.75. It
+also degrades spherical fidelity, dropping the WS-PSNR from 23.45 to 22.40,
+proving that the anchor is essential for maintaining global consistency.
+Latitude-Decay Loss. We further analyze the latitude-decay coefficient λ,
+which mitigates the over-sampling of polar regions inherent in equirectangular
+projections. Discarding this decay mechanism (λ = 1) forces the model to waste
+capacity on heavily distorted and geometrically redundant pixels, resulting in
+inferior spherical consistency with a WS-PSNR of 22.97. Conversely, setting
+λ = 0 entirely ignores the poles, which also harms overall fidelity. While moderate
+values like λ = 0.5 slightly inflate the standard PSNR to 23.80, they compromise
+temporal stability. We found that our default setting of λ = 0.1 achieves the
+optimal balance, delivering the highest spherical reconstruction quality with a
+WS-PSNR of 23.45 and WS-SSIM of 0.820, alongside the most stable temporal
+consistency with an FVD of 5.26.
+
+6
+
+Conclusion
+
+In this paper, we introduced Rein3D, a novel framework for high-fidelity 3D
+indoor scene generation that synergizes the explicit geometry of 3D Gaussian
+Splatting with the generative consistency of video diffusion models. By formulating scene completion as a panoramic video restoration task, we effectively resolve
+severe occlusions and geometric ambiguities inherent in single-view reconstruction. To bridge the data gap, we constructed a large-scale dataset specifically
+tailored for panoramic video inpainting, enabling robust learning of indoor scene
+priors. Experimental results demonstrate that our cyclic "restore-refine" strategy
+
+Rein3D
+
+15
+
+produces photorealistic, 360-degree consistent representations that significantly
+outperform state-of-the-art baselines, particularly in supporting long-range camera exploration. Future work will focus on supporting detailed semantic editing
+and dynamic environment synthesis. We believe this work serves as a solid step
+towards scalable, high-quality 3D content creation for Virtual Reality and Embodied AI applications.
+
+References
+1. Blattmann, A., Dockhorn, T., Kulal, S., Mendelevitch, D., Kilian, M., Lorenz, D.,
+Levi, Y., English, Z., Voleti, V., Letts, A., et al.: Stable video diffusion: Scaling
+latent video diffusion models to large datasets. arXiv preprint arXiv:2311.15127
+(2023)
+2. Blattmann, A., Rombach, R., Ling, H., Dockhorn, T., Kim, S.W., Fidler, S., Kreis,
+K.: Align your latents: High-resolution video synthesis with latent diffusion models. In: Proceedings of the IEEE/CVF conference on computer vision and pattern
+recognition. pp. 22563–22575 (2023)
+3. Chen, L., Zhou, Z., Zhao, M., Wang, Y., Zhang, G., Huang, W., Sun, H., Wen, J.R.,
+Li, C.: Flexworld: Progressively expanding 3d scenes for flexiable-view synthesis.
+arXiv preprint arXiv:2503.13265 (2025)
+4. Chen, S., Ge, C., Zhang, Y., Zhang, Y., Zhu, F., Yang, H., Hao, H., Wu, H.,
+Lai, Z., Hu, Y., et al.: Goku: Flow based video generative foundation models.
+In: Proceedings of the Computer Vision and Pattern Recognition Conference. pp.
+23516–23527 (2025)
+5. Chen, S., Xu, M., Ren, J., Cong, Y., He, S., Xie, Y., Sinha, A., Luo, P., Xiang, T.,
+Perez-Rua, J.M.: Gentron: Diffusion transformers for image and video generation.
+In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition. pp. 6441–6451 (2024)
+6. Chung, J., Lee, S., Nam, H., Lee, J., Lee, K.M.: Luciddreamer: Domain-free generation of 3d gaussian splatting scenes. arXiv preprint arXiv:2311.13384 (2023)
+7. Fang, C., Li, H., Liang, Y., Zheng, J., Mao, Y., Liu, Y., Tang, R., Zhou, Z.,
+Tan, P.: Spatialgen: Layout-guided 3d indoor scene generation. arXiv preprint
+arXiv:2509.14981 (2025)
+8. Fang, Z., Zhu, K., Liu, Z., Liu, Y., Zhai, W., Cao, Y., Zha, Z.J.: Panoramic
+video generation with pretrained diffusion models. arXiv preprint arXiv:2506.23513
+(2025)
+9. Feng, H., Zhang, D., Li, X., Du, B., Qi, L.: Dit360: High-fidelity panoramic image
+generation via hybrid training (2025)
+10. HaCohen, Y., Chiprut, N., Brazowski, B., Shalem, D., Moshe, D., Richardson, E.,
+Levin, E., Shiran, G., Zabari, N., Gordon, O., et al.: Ltx-video: Realtime video
+latent diffusion. arXiv preprint arXiv:2501.00103 (2024)
+11. He, H., Xu, Y., Guo, Y., Wetzstein, G., Dai, B., Li, H., Yang, C.: Cameractrl: Enabling camera control for text-to-video generation. arXiv preprint arXiv:2404.02101
+(2024)
+12. He, Y., Yang, T., Zhang, Y., Shan, Y., Chen, Q.: Latent video diffusion models for
+high-fidelity long video generation. arXiv preprint arXiv:2211.13221 (2022)
+13. Ho, J., Jain, A., Abbeel, P.: Denoising diffusion probabilistic models. Advances in
+neural information processing systems 33, 6840–6851 (2020)
+
+

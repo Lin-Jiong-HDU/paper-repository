@@ -1,0 +1,1038 @@
+SimuWoB: Simulating Real-World Mobile Apps for
+Fast and Faithful GUI Agent Benchmarking
+
+Guohong Liu1 , Jialei Ye2 , Pengzhi Gao3 , Wei Liu3 , Jian Luan3 , Yunxin Liu1 , Yuanchun Li1‡
+
+arXiv:2605.25160v1 [cs.AI] 24 May 2026
+
+1
+
+Institute for AI Industry Research (AIR), Tsinghua University
+2
+University of Electronic Science and Technology of China
+3
+MiLM Plus, Xiaomi Inc.
+‡
+Corresponding author
+
+Abstract
+Mobile GUI agents powered by large language models have progressed rapidly, creating urgent needs for realistic and comprehensive evaluation. Existing benchmarks
+prioritize reproducibility but are often limited to open-source apps or file-operation
+tasks for the difficulty of constructing rewards on real applications, leaving a gap
+between benchmark settings and real-world usage. Moreover, most benchmarks
+focus on basic grounding and navigation, with limited coverage of complex, longhorizon interactions. To address these limitations, we introduce SimuWoB, a fully
+synthetic benchmark for mobile GUI agents with 120 challenging tasks spanning
+diverse types and difficulty levels. We build a robust virtual environment generation
+framework that synthesizes high-fidelity tasks and environments, and automatically provides valid rewards for each task. Each environment is deployed as a
+backend-free webpage accessible via URL, enabling efficient and reproducible
+evaluation. We conduct comprehensive experiments on several state-of-the-art
+mobile GUI agents. The average success rate is only 27.92%, dropping to 17.82%
+on long-horizon tasks, which reveals substantial weaknesses in current agents under
+complex scenarios. Evaluation result comparison with real-world sample tasks
+demonstrate that agent assessments based on our synthetic environment generalize
+well. We further provide diagnostic insights across key capability dimensions and
+discuss implications for future mobile GUI agent development.
+
+1
+
+Introduction
+
+Mobile GUI agents [1–13] powered by large language models (LLMs) and vision language models (VLMs) have progressed rapidly in recent years. Given a task and an interactive interface, an
+autonomous agent must interpret the current screen, reason over task state, execute actions step by
+step, and use environment feedback until completion. To measure these capabilities, many benchmarks [14–25] have been proposed across platforms and task settings. Yet existing benchmarks
+still fall short of fast and faithful evaluation in realistic mobile scenarios in several perspectives.
+(1) Limited realism and diversity of environments/tasks. To maintain reproducibility and robust
+reward checking, many benchmarks are constrained to use open-source applications with public backends [15, 21], file-operation tasks [26], or execution-pattern matching that requires substantial manual
+efforts [14, 16, 19]. These constraints narrow task coverage and create a gap between benchmark tasks
+and real-world app usage scenarios. (2) Limited task complexity. As the capabilities of GUI agents
+continue to advance, benchmark difficulty should correspondingly increase to align with this trend
+and yield more valuable evaluation results. However, many still emphasize vision grounding [27–29]
+and simple operations (e.g., basic actions and navigations), with limited stress testing of long-horizon
+execution, intermediate information management, and multi-step reasoning, etc. This limits their
+Preprint.
+
+ability to guide the next stage of agent development. (3) Limited evaluation efficiency. Many
+interactive benchmarks depend on emulators, virtual devices, or Dockerized systems [15, 16, 19, 30]
+for state loading, resetting and recoveries. While effective, this setup increases system complexity and
+runtime overhead, slowing large-scale evaluation and downstream tasks such as online RL trainings.
+To address these limitations, we propose SimuWoB.
+App: Walmart;
+Task: I have $30 budget; pick 5 best selling
+shoes of brand xxx for me.
+
+Synthetic Framework
+PRD Generation
+
+Deploy
+
+Page Structure
+
+Resource
+
+Data Entity
+
+Tasks
+
+Reward Validator
+
+Synthetic App
+
+Action
+Observation
+
+Mobile GUI Agent
+SimuWoB Virtual Applications
+
+Environment Internal Reward Calculation
+
+Figure 1: An overview of SimuWoB. After collecting real-world tasks along with related applications,
+our framework iteratively builds and refines the environment until the task and reward validator are
+ready. Mobile GUI agents can then directly interact with the environments and perform tasks.
+SimuWoB is a fully synthetic benchmark for mobile GUI agents, built on a simulated environment
+generation framework that leverages LLM code generation abilities [31–34] as illustrated in Figure 1.
+Given a natural-language task description and optional screenshots of the target workflow, the
+framework iteratively generates and refines a backend-free webpage that simulates a real-world
+mobile application with aligned interaction logic over mock data. During the generation process,
+it also validates task solvability and produces executable and valid reward functions for each task.
+This design directly improves environment coverage, reward reliability, and evaluation speed,
+circumventing the challenge of constructing rewards inherent in real-world apps, enabling more
+faithful benchmarking at a much lower operational cost. Built on this framework, SimuWoB includes
+120 tasks across 63 simulated app environments, taking up 20 of 33 Google Play Store app categories.
+All tasks and scenarios are collected based on a user study covering 86 participants across 77
+industries. Every environment is able to be served via a URL, which enables lightweight deployment
+and efficient evaluation in parallel with near-zero setup overhead. To probe different capability
+dimensions, we organize tasks into three categories: simple, long-horizon, and math-related. Half
+of the tasks require more than 20 interaction steps, and the most challenging ones require over 50
+steps to finish. We perform comprehensive experiments on several recent state-of-the-art mobile GUI
+agents [2, 10, 11, 35, 36]. Results show substantial headroom for current agents: the average success
+rate is 27.92% over all tasks and only 17.82% on the long-horizon subset. Besides, evaluation result
+comparison with 20 sample tasks selected from the real world demonstrate that agent assessments
+based on our synthetic environment generalize well.
+Our contributions are as follows:
+1. We develop a scalable LLM-based framework that generates interactive, verifiable mobile
+app environments and tasks from natural-language descriptions for efficient agent evaluation.
+2. Using this framework, we synthesize 63 simulated mobile applications and 120 tasks
+spanning multiple languages, task formats, and difficulty levels.
+3. We benchmark five state-of-the-art mobile GUI agents and show large performance gaps on
+complex tasks, especially long-horizon tasks, with detailed analysis of failure modes and
+implications.
+2
+
+2
+
+Related Work
+
+GUI agents operate digital interfaces in the same loop as humans: observe the current UI state, reason
+about intent and progress, and execute actions across desktop, web, and mobile platforms. With the
+rise of LLMs and VLMs [37, 38], recent work has rapidly expanded agent capabilities [1–3, 5, 7–
+13, 39]. Early systems mainly relied on text-only interface representations [1, 40–42], while newer
+agents increasingly consume screenshots and other visual signals [2, 5, 7, 10, 11, 28, 39, 43, 44].
+From a systems perspective, existing approaches broadly include modular pipelines and more end-toend policies that directly map multimodal observations to actions. Recent surveys [45, 46] further
+highlight that robust computer-use agents require stronger long-horizon planning, memory, grounding
+reliability, and stable execution under noisy interface states.
+Benchmarks for GUI agents can be grouped into static datasets and interactive environments. Static
+datasets [25, 27–29, 40, 47–53] are valuable for scalable offline evaluation of grounding, instruction
+following, and action prediction. However, they generally do not capture closed-loop interaction
+dynamics (e.g., recovery from mistakes, delayed feedback, or stateful multi-step dependencies).
+Interactive benchmarks [14–16, 20, 21, 30, 54–60] provide executable environments and therefore
+better measure end-to-end success. These have substantially advanced reproducible evaluation, but
+also expose a practical trade-off: higher realism often brings higher engineering cost in environment
+setup, state reset, and resource consumption. Many benchmarks depend on containers, emulators, or
+VM snapshots to preserve recoverability, which can limit evaluation speed and concurrency.
+Another bottleneck is reward construction under realistic app constraints. For reliable automatic scoring, many benchmarks either focus on environments with accessible internal state (e.g., open-source
+apps, synthetic web worlds, or file-based tasks) [15, 21, 26] or use extensive manual rule engineering
+for execution checking [14, 16, 19]. This makes it difficult to scale toward faithful simulations of
+real-world workflows, especially when task state is complex and not directly observable. At the same
+time, a non-trivial portion of current tasks remains short-horizon or structurally simple, reducing
+discriminative power for stronger agents and leaving long-horizon failure modes underexplored.
+Our work is positioned at this intersection. SimuWoB emphasizes faithful simulation of real-world
+mobile apps and fast benchmarking throughput by synthesizing backend-free, URL-accessible
+environments together with executable rewards. Compared with prior mobile and cross-platform
+benchmarks, this design aims to improve realism-task coverage, reward scalability, and evaluation
+efficiency simultaneously, while explicitly stressing complex task categories such as long-horizon,
+ambiguous, composite, and reasoning-heavy workflows.
+
+3
+
+SimuWoB
+
+In this section, we introduce SimuWoB, a fully synthetic benchmark with 120 tasks derived from realworld use cases and paired simulated environments. In Section 3.1, we describe how environments
+are generated with our LLM-powered pipeline and refined through an automatic feedback loop. In
+Section 3.2, we present the task selection and benchmark construction process.
+3.1
+
+Environment Generation
+
+Our goal is to build executable mobile environments that are both realistic enough to reflect realapp interaction patterns and structured enough for large-scale, reliable rewards and evaluation. In
+practice, this requires jointly handling UI layout, interaction logic, persistent data state, and task-level
+verification, while keeping generation cost manageable across apps and tasks. We therefore formulate
+environment synthesis as a 2-stage process rather than a single-pass generation, as shown in Figure 2.
+The design principle is to first construct a realistic app simulation, and then inject benchmark tasks
+and validators. This separation improves both quality control and generation efficiency: Stage 1
+focuses on app fidelity and functional completeness, while Stage 2 focuses on task executability and
+precise automatic checking. The following paragraphs describe these two stages and the subsequent
+validation-and-repair loop used to ensure final usability.
+Stage 1: Minimal working environment construction. We first collect application metadata from
+public sources, including app name, visual style, feature summary, and core interaction logic. When
+available, additional screenshots will be provided to better align layout patterns, iconography, and
+3
+
+information hierarchy with real applications. Given these inputs, a code-generation LLM (e.g.,
+Gemini [36] or Claude [61]) runs an iterative build loop. In each iteration, the model: (i) drafts or
+updates a PRD (Product Requirements Document) that designs the application’s pages, features,
+design styles, etc. (ii) implements or revises page structure, data schema, and interaction logic, and
+(iii) performs a self-review pass over completeness and consistency. The review output is fed back
+into the PRD, which drives the next implementation round. After a predefined number of iterations,
+we obtain a stable minimal working environment (MWE) with executable UI logic, initial data entities,
+and seed mock records. Examples of PRD and refinements are listed in Appendix A.
+Self-Iterating Code Optimization
+
+Screenshots
+App Bundle
+PRD Design
+
+Generate Page
+
+Self Re�lection
+
+Enrich Data
+
+Interactive, Reward Included,
+Easy to Serve
+
+Metadata
+
+(Name, Style, Logic, ...)
+
+Task Demands
+
+Task Injection
+
+Figure 2: Two-stage environment synthesis pipeline of SimuWoB.
+Stage 2: Task injection and reward synthesis. Starting from the MWE, we first expand the database
+with richer mock content (texts, images, and structured records) using the same schema and style
+constraints as Stage 1. We then provide task specifications that include expected execution intent
+and verification criteria. A task-injection agent scans the codebase, patches task-relevant logic when
+necessary, and synthesizes executable validators for each task. Because we control fine-grained
+environment state transitions, validators can check success conditions with perfect precision rather
+than relying only on approximate pattern matching. Besides, the two-stage design also improves
+environment quality. By constructing app logic before task-specific editing, the generated environment
+is less likely to overfit onto a single target trajectory. In other words, the environment remains broadly
+usable beyond one scripted path. To further reduce task-path overfitting, we co-generate related tasks
+under the same app context instead of injecting isolated tasks one by one.
+Action
+
+Sampling Inspection
+
+App Bundle
+(Task & Rewards Included)
+
+Observation
+
+Agent Validator
+Bundle Pool
+
+Synthetic Framework
+
+Yes
+
+No
+
+Trigger Auto Fixing
+
+Manual Check
+Environment Issues?
+
+Figure 3: Automatic issue inspection and correction workflow.
+Considering that large language models, when generating complex environments, are constrained by
+their inherent capabilities and potential hallucinations, the resulting environments cannot guarantee
+100% usability. For instance, they may contain flawed interaction logic or UI design issues that
+prevent certain tasks from being completed. To address this, we designed a human-in-the-loop issue
+detection and repair mechanism that remains scalable and applicable even in large-scale generation
+scenarios. The main workflow of this is shown in Figure 3.
+For each generated app bundle, we run a multi-step verification procedure. For every task in the
+bundle, a validation agent executes the task interactively, and the synthesized validator determines
+success or failure. Successful tasks are provisionally accepted. Failed trajectories, together with
+environment artifacts, are sent to human experts for triage. Experts determine whether failure is
+caused by agent behavior or by environment/task defects. If environment-side defects are identified,
+experts provide targeted feedback, and the bundle returns to the generation pipeline for repair and
+re-validation. Only bundles that pass this loop are moved into the candidate benchmark pool.
+4
+
+We then perform additional manual quality control via random sampling to inspect usability, logical
+consistency, and task reasonableness. For the final benchmark release, all environments and tasks
+are manually verified to ensure rigorous quality and reliable experimental conclusions. Figure 4
+shows an example generated environment and task.
+
+Figure 4: Example task in SimuWoB. The agent is asked to top up the wallet by 100 euros in a
+simulated hotel-booking app. The generated environment closely matches real-app appearance and
+interaction behavior, and persists state via local storage for consistent multi-step execution.
+3.2
+3.2.1
+
+SimuWoB Benchmark
+Tasks & Environments
+
+SimuWoB is constructed with a user-need-driven pipeline. To anchor the benchmark in real-world
+mobile use cases, we conducted a user study and collected open-ended task requests describing
+participants’ daily demands. After filtering malformed records, the study pool contains 260 valid
+requests from 86 participants across 77 industries. Each record includes a natural-language user
+command, background pain points, and an annotator judgment of whether the request is currently
+feasible for a mobile agent. We then transform all raw requirement records into benchmark tasks
+through four steps: (i) We normalize requests by merging semantically equivalent intents and
+removing near-duplicates. (ii) We perform feasibility screening and exclude requests that require
+unavailable permissions, unsupported cross-platform integrations, or non-executable conditions.
+(iii) We operationalize retained intents into executable task specifications with explicit completion
+criteria. (iv) We balance the benchmark across language, app domains, and difficulty dimensions.
+Check Appendix D for more details of this study. Every task is then fed into the pipeline as stated in
+Section 3.1. In addition to the target task, we also leverage LLMs to propose other reasonable tasks
+within the app, incorporating them into the generation process to ensure the final application is more
+comprehensive and diverse in functionality.
+Table 1: Examples of tasks with and without return values. For return-required tasks, the agent receives an additional JSON schema and must output a schema-compliant JSON object for verification.
+Task Type
+Task
+Return Format
+w/ returns
+w/o returns
+
+In app ..., how much have I spent on ...
+in 2023?
+In app ..., please archive all emails that
+meet the ... condition.
+
+{"price":130.2}
+(null)
+
+Following this process, SimuWoB contains 120 executable tasks from 63 distinct virtual apps (e.g.,
+Gmail, Reddit, Spotify, Telegram), covering representative commercial scenarios and daily use cases.
+We compiled statistics on the number of app categories covered by various mobile GUI agent benchmarks (based on the 33 app categories defined by the Google Play Store), where SimuWoB covers
+20 out of the 33 app categories, exceeding 60%; in contrast, other benchmarks [15, 14, 21] cover
+only around 30%, predominantly consisting of communication and tools applications. This indicates
+that SimuWoB offers a more comprehensive evaluation, resulting in a much smaller gap relative to
+real-world usage scenarios. The required interaction length of the final task set ranges from about 10
+to over 50 steps. Tasks in SimuWoB are categorized from multiple perspectives as follows.
+5
+
+(1) Language. In order to evaluate cross-lingual robustness and account for language-specific UI
+design conventions, SimuWoB includes both Chinese and English tasks. (2) Returns. Real-world
+mobile tasks often require both UI execution and structured information output. For example, an
+agent may need to compute a summary value after completing several interactions. To reflect this
+requirement, SimuWoB includes tasks with explicit return values. For these tasks, the agent receives
+a JSON schema at the start and must return a schema-compliant JSON object; both the system
+state and the return value provided will be considered to compute the reward. Examples are shown
+in Table 1. (3) Task Categories. To ensure diversity in task difficulty, SimuWoB covers simple
+navigation/operation tasks as well as more practical, challenging workflows. We group tasks into
+3 categories according to the main source of difficulty: simple (naive navigation and operations),
+long-horizon (long step chains/loops, or more information involved), and math-related (information
+aggregation and calculations). This taxonomy enables a finer-grained analysis of agent capability
+under different failure modes. Example tasks of each category and average steps are listed in Table 2.
+In general, long-horizon tasks require more steps (near 25) than the other categories.
+
+Task Type
+Simple
+Long-Horizon
+Math-Related
+
+3.2.2
+
+Table 2: Example tasks from different categories.
+Task
+Add xxx item to the cart.
+View the first 15 images recommended in “For You”,
+summarize their titles, posters, and the posters’ follower counts.
+During my purchase history, how much did I spend on shipping
+in total?
+
+# Steps
+14.96
+24.73
+11.27
+
+Evaluation
+
+To support standardized and efficient evaluation, each environment exposes several lightweight
+DOM-level API functions: (1) window.getTasks: returns task objects containing task description,
+unique id, and an optional JSON return schema. (2) window.evaluateTask: evaluates whether the
+current environment state satisfies a target task id, with optional returned content for schema-based
+checking. (3) window.reset: restores the environment to its initial state before action execution,
+preventing cross-task interference within the same application instance. Examples of these functions
+are listed in Appendix A. Depending on hardware resources, the system can typically run 8–16
+concurrent workers or more.
+
+4
+
+Experiments
+
+4.1
+
+Settings
+
+We evaluate recent mobile GUI agents on SimuWoB. Because SimuWoB is currently implemented
+on web-based tech stacks, it provides only screenshot observations and no structured UI signals (e.g., Android Accessibility trees). Therefore, we include only agents that can solve tasks
+from visual input alone. The evaluated agents are UI-TARS-1.5 [2], doubao-seed [35], Gemini
+3 Pro [62], MAI-UI [13], and Mobile-Agent-v3.5 [12]. The first three are API-based models,
+while the latter two are open-source fine-tuned ones. For API models, specific checkpoints are
+doubao-seed-1.8-251228, doubao-ui-tars-250428, and gemini-3-pro-preview; for local
+models, we deploy GUI-Owl-1.5-8B-Instruct and MAI-UI-8B. The experiment is run with 8
+parallel workers. In preliminary trials, local fine-tuned models failed to produce schema-valid JSON
+outputs under prompting; accordingly, for local models we report results only on tasks without
+return-value requirements. Our primary metric is success rate (SR). To prevent infinite loops, we cap
+each trajectory at 100 steps. This cap is sufficient for task completion while keeping evaluation cost
+manageable. We also evaluate human performance on these tasks as well. All results are averaged
+over two runs. Furthermore, to test whether the discriminative power of our benchmark for agents
+aligns with real tasks in actual applications, we designed 20 similar tasks from 17 apps in a real-world
+environment and evaluated these agents. The results from the real-world environment were manually
+assessed to ensure accuracy. The details of experiment setting up, real-world validation tasks, etc. are
+at Appendix B.
+6
+
+4.2
+
+Experimental Results
+100
+
+100
+
+SimuWoB
+AndroidWorld
+Real-world Sample Task
+
+Human Score (95.95)
+
+Success Rate
+
+Success Rate
+
+75
+
+50
+
+25
+
+Human Score (85.87)
+
+with returns
+without returns
+
+75
+
+50
+
+25
+
+0
+
+Seed
+
+UI-TARS
+
+GUI-Owl
+
+MAI-UI
+
+0
+
+Gemini
+
+(a) GUI agent SR on different benchmarks
+
+Seed
+
+UI-TARS
+
+GUI-Owl
+
+MAI-UI
+
+Gemini
+
+(b) SR on w/ & w/o return-value subsets
+
+Figure 5: Experimental results of different agents on SimuWoB. For local models, we evaluate only
+tasks without return-value requirements.
+The main results are shown in Figure 5. Overall, seed-1.8 achieves the best SR on SimuWoB,
+followed by Gemini 3 Pro, UI-TARS-1.5, MAI-UI and GUI-Owl-1.5. For tasks without returnvalue requirements, seed-1.8 reaches 50.00%, Gemini 3 Pro reaches 45.27% and UI-TARS-1.5
+reaches 39.86%; for tasks with return-value requirements, their SR drops to 30.43%, 28.26% and
+13.04%, respectively; this phenomenon may stem from the fact that tasks requiring return values are
+relatively more difficult. For local models, MAI-UI outperforms GUI-Owl-1.5. Although all agents
+report much higher scores on AndroidWorld (64.2%–71.6%), their SR on SimuWoB is substantially
+lower, indicating the higher challenge posed by SimuWoB. While humans earn an average score of
+92.08%, which proves there is still huge ability gap between current mobile GUI agents and humans.
+Notably, the performance trends observed on sample tasks from real apps are largely consistent with
+those of SimuWoB, meaning the relative performance rankings among models remain the same. This
+demonstrates that evaluation results obtained in synthetic environments can generalize to real-world
+apps, thereby validating the feasibility and generalization ability of this approach.
+4.3
+
+Analysis
+100
+
+100
+
+100
+
+Human Score (97.22)
+
+50
+
+25
+
+0
+
+75
+
+Success Rate
+
+75
+
+Success Rate
+
+Success Rate
+
+Human Score (89.09)
+
+50
+
+25
+
+Seed
+
+UI-TARS
+
+GUI-Owl
+
+MAI-UI
+
+(a) Simple Subset
+
+Gemini
+
+0
+
+Human Score (81.82)
+
+75
+
+50
+
+25
+
+Seed
+
+UI-TARS
+
+GUI-Owl
+
+MAI-UI
+
+Gemini
+
+(b) Long-horizon Subset
+
+0
+
+Seed
+
+UI-TARS
+
+GUI-Owl
+
+MAI-UI
+
+Gemini
+
+(c) Math-related Subset
+
+Figure 6: Success rate of different task categories across evaluated agents in SimuWoB.
+Tasks in SimuWoB are challenging for mobile GUI agents. As shown in Figure 5a, all evaluated agents achieve much higher SR on AndroidWorld (64.2%–71.6%) than on SimuWoB. On
+SimuWoB, overall SR drops to 42.50% for the best model (seed-1.8) and to as low as 9.17%
+for GUI-Owl-1.5-8B; even on the easier subset without return-value requirements, the best SR is
+only 50.00%. At the aggregate level, the average SR across all models is 27.92%, versus 69.38%
+on AndroidWorld, and this drop is consistent for all agents. In addition, SimuWoB exhibits clear
+discriminative power: the best–worst spread in overall SR reaches 33.33 points (42.50% vs 9.17%),
+and even within stronger API models the spread remains substantial (42.50% vs 29.58%). These
+results show that SimuWoB is substantially more challenging for current mobile GUI agents and
+7
+
+provides stronger separation across capability levels. From Figure 5b, we can tell that tasks with
+return values are relatively harder, leading to an obvious SR drop for agents.
+How much have I spent on total service fees
+and taxes combined in each of my history trips?
+
+(Image 2) To ﬁnd service fees and taxes for this trip, tap the
+"Invoice" button at the bottom right. Invoices typically include
+detailed breakdowns of costs like fees, taxes, and total expenditure.
+(Image 3) I’ve got the details of this trip.
+To check the next history trip's fees and taxes,
+ﬁrst close this invoice by tapping the "Close" button at the top le�t.
+This will return to the booking details, then back to the
+history trips list.
+
+The agent does not record any information in its thoughts!
+It can’t remember past invoices when ﬁnishing the task.
+Image 1
+
+Image 2
+
+Image 3
+
+Figure 7: Case study of a long-horizon failure: the agent executes UI operations correctly but does
+not persist key information in context, leading to an incorrect final answer.
+Mobile GUI agents fall short in long-horizon tasks. Results in Figure 6 show a clear drop on
+long-horizon tasks compared with simple tasks for all agents (e.g., 56.48% vs 29.09%), with an
+average SR of only 17.82%. This gap suggests the core bottleneck is not UI operation, but state
+management across many steps: agents must identify and preserve critical intermediate information
+while discarding low-value ones under limited context budgets. The case in Figure 7 illustrates this
+failure mode. The task asks the agent to traverse historical trips and aggregate service fees and
+taxes. The agent executes each UI step correctly (opening “Trips”, entering history, opening each
+trip invoice), but fails to write extracted values into a persistent internal state. It then moves to the
+next trip assuming previously seen details are still available, and eventually produces an incorrect
+final response. Because most agents cannot keep all prior screenshots and observations in context at
+every step, long-horizon performance depends on explicit memory strategies (what to store, when to
+update, and how to reuse it), which current models still handle poorly. Similar issues also exist for
+math-related tasks because agents also need to take down key information for further calculations.
+SR of human also falls on these subsets.
+When will my "Client Sync" start and
+who will come?
+
+(Image 2) To ﬁnd info about "Client Sync", I need to search for it.
+First, click the top search bar to activate it, then type "Client Sync"
+to locate the relevant email.
+(Image 3) Multiple searches and inbox checks conﬁrm there's
+no "Client Sync" email or meeting info available.
+I can't retrieve the required start time or attendees, so I'll return
+that the information isn't found in the provided app data.
+
+A�ter it fails to search in mails, it does not know to “explore”
+in the app to ﬁnd other solutions.
+(The correct way is to check “Calendar” from menu)
+Image 1
+
+Image 2
+
+Image 3
+
+Figure 8: Case study of a vague-description failure: the agent fails to locate the task entry point due
+to a lack of proactive exploration capabilities following initial failures.
+Tasks with vague descriptions or inconspicuous functional entry points can confuse the agent.
+Our analysis shows that agent performance degrades when instructions are underspecified and the
+true entry point is visually inconspicuous (e.g., deeply nested in the UI and not exposed on the home
+screen). In these settings, the key bottleneck is weak proactive exploration after an initial strategy
+fails. The case in Figure 8 illustrates this behavior. The agent is asked to find a “Client Sync” event
+8
+
+in a simulated Gmail app and return its start time and participants. Because the instruction does
+not specify whether the event should be searched in email or calendar views (the latter requires
+opening the side menu), the agent first searches in email and finds no result. Instead of systematically
+switching hypotheses and exploring alternative entry points, it continues with low-yield scrolling and
+eventually fails. This pattern suggests that robust exploration, trial-and-error adaptation, and online
+experience reuse remain underdeveloped in current agents, especially when task cues are ambiguous
+and interface affordances are not explicit.
+Agents perform poorly on tasks that require finegrained control. Fine-grained control is a common re100
+quirement in real-world mobile tasks, including dragging
+a slider to a target position, setting date/time values with
+75
+pickers, confirming payment via drag gestures, and in50
+voking context menus through long presses. Compared
+with standard click-and-type tasks, these operations im25
+pose much stricter spatial and temporal constraints: small
+coordinate errors or incorrect interaction timing are of0
+ten enough to cause failure. We curated 11 such tasks in
+Seed
+UI-TARS GUI-Owl
+MAI-UI
+Gemini
+SimuWoB and summarize model performance in Figure 9.
+While this subset is quite easy for humans to finish (full
+score on all tasks), the results on agents show a clear weak- Figure 9: Fine-grained control results.
+ness: Gemini 3 Pro completes 5/11 tasks (still below 50%),
+while the other agents complete only about 0.5 to 1.5 tasks on average.
+Success Rate
+
+Human Score (100)
+
+We attribute this failure mode to two factors. (1) Insufficient action precision. For drag-and-drop
+interactions, many predicted coordinates are not accurate enough, leading to repeated unsuccessful
+attempts to reach the target state. (2) Limited interaction-strategy knowledge. Control semantics
+vary across interfaces: some scrollbars respond to taps, others require dragging, and some hidden
+actions are exposed only by long press. Without robust UI priors or effective online trial-and-error
+adaptation, agents struggle to discover and execute the correct control policy.
+
+5
+
+Limitations
+
+While our benchmark is built on LLM-synthesized environments and automatically constructed
+rewards, and already provides informative signals for agent evaluation, several limitations remain.
+(1) Observation space. Since our environments are web-based, they currently expose only visual
+observations and interaction affordances available on the page, rather than richer structured signals
+(e.g., accessibility trees) that can be accessed on real Android systems. (2) Cross-app task support.
+At present, SimuWoB focuses on single-app workflows and does not yet cover tasks that require
+coordinated operations across multiple applications. However, these constraints should be interpreted
+as scope boundaries rather than invalidating factors. They do not undermine the benchmark’s practical
+value, and they do not affect the main empirical conclusion of this work: current mobile GUI agents
+still show substantial gaps on realistic, long-horizon tasks. More broadly, the field continues to face
+objective bottlenecks in benchmark construction, including environment selection, reliable reward
+design, and evaluation efficiency. Our synthesis pipeline provides a technically viable foundation to
+address both limitations above, and we leave these to future work.
+
+6
+
+Conclusion
+
+In this paper, we present SimuWoB, a fully synthetic benchmark for evaluating mobile GUI agents.
+Built on an LLM-driven generation framework, SimuWoB automatically constructs backend-free,
+interactive mobile environments and task-specific reward validators from natural-language task descriptions. SimuWoB contains 63 simulated applications and 120 tasks derived from real-world usage
+scenarios, covering 3 specific task types, proved to have a good generalization effect. Comprehensive
+experiments on recent mobile GUI agents show substantial headroom for current systems, especially
+on long-horizon tasks. Our analysis provide further insights on the weaknesses of mobile GUI
+agents on proactive exploration and fine-grained action control. We hope SimuWoB can serve as a
+scalable and practical testbed for measuring progress and guiding next generation of mobile GUI
+agent research.
+9
+
+References
+[1] Hao Wen, Yuanchun Li, Guohong Liu, Shanhui Zhao, Tao Yu, Toby Jia-Jun Li, Shiqi Jiang, Yunhao
+Liu, Yaqin Zhang, and Yunxin Liu. Autodroid: Llm-powered task automation in android, 2024. URL
+https://arxiv.org/abs/2308.15272.
+[2] Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li,
+Yunxin Li, Shijue Huang, Wanjun Zhong, Kuanye Li, Jiale Yang, Yu Miao, Woyu Lin, Longxiang Liu,
+Xu Jiang, Qianli Ma, Jingyu Li, Xiaojun Xiao, Kai Cai, Chuang Li, Yaowei Zheng, Chaolin Jin, Chen Li,
+Xiao Zhou, Minchao Wang, Haoli Chen, Zhaojian Li, Haihua Yang, Haifeng Liu, Feng Lin, Tao Peng,
+Xin Liu, and Guang Shi. Ui-tars: Pioneering automated gui interaction with native agents, 2025. URL
+https://arxiv.org/abs/2501.12326.
+[3] Yiheng Xu, Zekun Wang, Junli Wang, Dunjie Lu, Tianbao Xie, Amrita Saha, Doyen Sahoo, Tao Yu,
+and Caiming Xiong. Aguvis: Unified pure vision agents for autonomous gui interaction, 2025. URL
+https://arxiv.org/abs/2412.04454.
+[4] Zhiyong Wu, Chengcheng Han, Zichen Ding, Zhenmin Weng, Zhoumianze Liu, Shunyu Yao, Tao Yu,
+and Lingpeng Kong. Os-copilot: Towards generalist computer agents with self-improvement, 2024. URL
+https://arxiv.org/abs/2402.07456.
+[5] Yuhao Yang, Yue Wang, Dongxu Li, Ziyang Luo, Bei Chen, Chao Huang, and Junnan Li. Aria-ui: Visual
+grounding for gui instructions, 2025. URL https://arxiv.org/abs/2412.16256.
+[6] Jiwen Zhang, Jihao Wu, Yihua Teng, Minghui Liao, Nuo Xu, Xiao Xiao, Zhongyu Wei, and Duyu Tang.
+Android in the zoo: Chain-of-action-thought for gui agents, 2024. URL https://arxiv.org/abs/2403.
+02713.
+[7] Jiabo Ye, Xi Zhang, Haiyang Xu, Haowei Liu, Junyang Wang, Zhaoqing Zhu, Ziwei Zheng, Feiyu Gao,
+Junjie Cao, Zhengxi Lu, Jitong Liao, Qi Zheng, Fei Huang, Jingren Zhou, and Ming Yan. Mobile-agent-v3:
+Fundamental agents for gui automation, 2025. URL https://arxiv.org/abs/2508.15144.
+[8] Pranav Putta, Edmund Mills, Naman Garg, Sumeet Motwani, Chelsea Finn, Divyansh Garg, and Rafael
+Rafailov. Agent q: Advanced reasoning and learning for autonomous ai agents, 2024. URL https:
+//arxiv.org/abs/2408.07199.
+[9] Saaket Agashe, Jiuzhou Han, Shuyu Gan, Jiachen Yang, Ang Li, and Xin Eric Wang. Agent s: An
+open agentic framework that uses computers like a human, 2024. URL https://arxiv.org/abs/2410.
+08164.
+[10] Xiao Liu, Bo Qin, Dongzhu Liang, Guang Dong, Hanyu Lai, Hanchen Zhang, Hanlin Zhao, Iat Long Iong,
+Jiadai Sun, Jiaqi Wang, Junjie Gao, Junjun Shan, Kangning Liu, Shudan Zhang, Shuntian Yao, Siyi Cheng,
+Wentao Yao, Wenyi Zhao, Xinghan Liu, Xinyi Liu, Xinying Chen, Xinyue Yang, Yang Yang, Yifan Xu,
+Yu Yang, Yujia Wang, Yulin Xu, Zehan Qi, Yuxiao Dong, and Jie Tang. Autoglm: Autonomous foundation
+agents for guis, 2024. URL https://arxiv.org/abs/2411.00820.
+[11] Haolong Yan, Jia Wang, Xin Huang, Yeqing Shen, Ziyang Meng, Zhimin Fan, Kaijun Tan, Jin Gao, Lieyu
+Shi, Mi Yang, Shiliang Yang, Zhirui Wang, Brian Li, Kang An, Chenyang Li, Lei Lei, Mengmeng Duan,
+Danxun Liang, Guodong Liu, Hang Cheng, Hao Wu, Jie Dong, Junhao Huang, Mei Chen, Renjie Yu,
+Shunshan Li, Xu Zhou, Yiting Dai, Yineng Deng, Yingdan Liang, Zelin Chen, Wen Sun, Chengxu Yan,
+Chunqin Xu, Dong Li, Fengqiong Xiao, Guanghao Fan, Guopeng Li, Guozhen Peng, Hongbing Li, Hang
+Li, Hongming Chen, Jingjing Xie, Jianyong Li, Jingyang Zhang, Jiaju Ren, Jiayu Yuan, Jianpeng Yin,
+Kai Cao, Liang Zhao, Liguo Tan, Liying Shi, Mengqiang Ren, Min Xu, Manjiao Liu, Mao Luo, Mingxin
+Wan, Na Wang, Nan Wu, Ning Wang, Peiyao Ma, Qingzhou Zhang, Qiao Wang, Qinlin Zeng, Qiong Gao,
+Qiongyao Li, Shangwu Zhong, Shuli Gao, Shaofan Liu, Shisi Gao, Shuang Luo, Xingbin Liu, Xiaojia Liu,
+Xiaojie Hou, Xin Liu, Xuanti Feng, Xuedan Cai, Xuan Wen, Xianwei Zhu, Xin Liang, Xin Liu, Xin Zhou,
+Yifan Sui, Yingxiu Zhao, Yukang Shi, Yunfang Xu, Yuqing Zeng, Yixun Zhang, Zejia Weng, Zhonghao
+Yan, Zhiguo Huang, Zhuoyu Wang, Zihan Yan, Zheng Ge, Jing Li, Yibo Zhu, Binxing Jiao, Xiangyu
+Zhang, and Daxin Jiang. Step-gui technical report, 2025. URL https://arxiv.org/abs/2512.15431.
+[12] Haiyang Xu, Xi Zhang, Haowei Liu, Junyang Wang, Zhaozai Zhu, Shengjie Zhou, Xuhao Hu, Feiyu Gao,
+Junjie Cao, Zihua Wang, Zhiyuan Chen, Jitong Liao, Qi Zheng, Jiahui Zeng, Ze Xu, Shuai Bai, Junyang
+Lin, Jingren Zhou, and Ming Yan. Mobile-agent-v3.5: Multi-platform fundamental gui agents, 2026. URL
+https://arxiv.org/abs/2602.16855.
+[13] Hanzhang Zhou, Xu Zhang, Panrong Tong, Jianan Zhang, Liangyu Chen, Quyu Kong, Chenglin Cai, Chen
+Liu, Yue Wang, Jingren Zhou, and Steven Hoi. Mai-ui technical report: Real-world centric foundation gui
+agents, 2025. URL https://arxiv.org/abs/2512.22047.
+
+10
+
+[14] Yifan Xu, Xiao Liu, Xueqiao Sun, Siyi Cheng, Hao Yu, Hanyu Lai, Shudan Zhang, Dan Zhang, Jie Tang,
+and Yuxiao Dong. Androidlab: Training and systematic benchmarking of android autonomous agents,
+2024. URL https://arxiv.org/abs/2410.24024.
+[15] Christopher Rawles, Sarah Clinckemaillie, Yifan Chang, Jonathan Waltz, Gabrielle Lau, Marybeth Fair,
+Alice Li, William Bishop, Wei Li, Folawiyo Campbell-Ajala, Daniel Toyama, Robert Berry, Divya
+Tyamagundlu, Timothy Lillicrap, and Oriana Riva. Androidworld: A dynamic benchmarking environment
+for autonomous agents, 2025. URL https://arxiv.org/abs/2405.14573.
+[16] Tianbao Xie, Danyang Zhang, Jixuan Chen, Xiaochuan Li, Siheng Zhao, Ruisheng Cao, Toh Jing Hua,
+Zhoujun Cheng, Dongchan Shin, Fangyu Lei, Yitao Liu, Yiheng Xu, Shuyan Zhou, Silvio Savarese,
+Caiming Xiong, Victor Zhong, and Tao Yu. Osworld: Benchmarking multimodal agents for open-ended
+tasks in real computer environments, 2024. URL https://arxiv.org/abs/2404.07972.
+[17] Tianqi Xu, Linyao Chen, Dai-Jie Wu, Yanjun Chen, Zecheng Zhang, Xiang Yao, Zhiqiang Xie, Yongchao
+Chen, Shilong Liu, Bochen Qian, Anjie Yang, Zhaoxuan Jin, Jianbo Deng, Philip Torr, Bernard Ghanem,
+and Guohao Li. Crab: Cross-environment agent benchmark for multimodal language model agents, 2025.
+URL https://arxiv.org/abs/2407.01511.
+[18] Qiushi Sun, Zhoumianze Liu, Chang Ma, Zichen Ding, Fangzhi Xu, Zhangyue Yin, Haiteng Zhao, Zhenyu
+Wu, Kanzhi Cheng, Zhaoyang Liu, Jianing Wang, Qintong Li, Xiangru Tang, Tianbao Xie, Xiachong
+Feng, Xiang Li, Ben Kao, Wenhai Wang, Biqing Qi, Lingpeng Kong, and Zhiyong Wu. Scienceboard:
+Evaluating multimodal autonomous agents in realistic scientific workflows, 2025. URL https://arxiv.
+org/abs/2505.19897.
+[19] Rogerio Bonatti, Dan Zhao, Francesco Bonacci, Dillon Dupont, Sara Abdali, Yinheng Li, Yadong Lu,
+Justin Wagle, Kazuhito Koishida, Arthur Bucker, Lawrence Jang, and Zack Hui. Windows agent arena:
+Evaluating multi-modal os agents at scale, 2024. URL https://arxiv.org/abs/2409.08264.
+[20] Luyuan Wang, Yongyu Deng, Yiwei Zha, Guodong Mao, Qinmin Wang, Tianchen Min, Wei Chen, and
+Shoufa Chen. Mobileagentbench: An efficient and user-friendly benchmark for mobile llm agents, 2024.
+URL https://arxiv.org/abs/2406.08184.
+[21] Quyu Kong, Xu Zhang, Zhenyu Yang, Nolan Gao, Chen Liu, Panrong Tong, Chenglin Cai, Hanzhang
+Zhou, Jianan Zhang, Liangyu Chen, Zhidan Liu, Steven Hoi, and Yue Wang. Mobileworld: Benchmarking
+autonomous mobile agents in agent-user interactive and mcp-augmented environments, 2025. URL
+https://arxiv.org/abs/2512.19432.
+[22] Danyang Zhang, Zhennan Shen, Rui Xie, Situo Zhang, Tianbao Xie, Zihan Zhao, Siyuan Chen, Lu Chen,
+Hongshen Xu, Ruisheng Cao, and Kai Yu. Mobile-env: Building qualified evaluation benchmarks for
+llm-gui interaction, 2024. URL https://arxiv.org/abs/2305.08144.
+[23] Rémi Sharrock, Lawrence Angrave, and Ella Hamonic. Weblinux: a scalable in-browser and clientside linux and ide. In Proceedings of the Fifth Annual ACM Conference on Learning at Scale, L@S
+’18, New York, NY, USA, 2018. Association for Computing Machinery. ISBN 9781450358866. doi:
+10.1145/3231644.3231703. URL https://doi.org/10.1145/3231644.3231703.
+[24] Hongliang He, Wenlin Yao, Kaixin Ma, Wenhao Yu, Yong Dai, Hongming Zhang, Zhenzhong Lan, and
+Dong Yu. Webvoyager: Building an end-to-end web agent with large multimodal models, 2024. URL
+https://arxiv.org/abs/2401.13919.
+[25] Yang Li, Jiacong He, Xin Zhou, Yuan Zhang, and Jason Baldridge. Mapping natural language instructions
+to mobile ui action sequences, 2020. URL https://arxiv.org/abs/2005.03776.
+[26] Taofeng Xue, Chong Peng, Mianqiu Huang, Linsen Guo, Tiancheng Han, Haozhe Wang, Jianing Wang,
+Xiaocheng Zhang, Xin Yang, Dengchang Zhao, Jinrui Ding, Xiandi Ma, Yuchen Xie, Peng Pei, Xunliang
+Cai, and Xipeng Qiu. Evocua: Evolving computer use agents via learning from scalable synthetic
+experience, 2026. URL https://arxiv.org/abs/2601.15876.
+[27] Kanzhi Cheng, Qiushi Sun, Yougang Chu, Fangzhi Xu, Yantao Li, Jianbing Zhang, and Zhiyong Wu.
+Seeclick: Harnessing gui grounding for advanced visual gui agents, 2024. URL https://arxiv.org/
+abs/2401.10935.
+[28] Zhiyong Wu, Zhenyu Wu, Fangzhi Xu, Yian Wang, Qiushi Sun, Chengyou Jia, Kanzhi Cheng, Zichen
+Ding, Liheng Chen, Paul Pu Liang, and Yu Qiao. Os-atlas: A foundation action model for generalist gui
+agents, 2024. URL https://arxiv.org/abs/2410.23218.
+
+11
+
+[29] Kaixin Li, Ziyang Meng, Hongzhan Lin, Ziyang Luo, Yuchen Tian, Jing Ma, Zhiyong Huang, and TatSeng Chua. Screenspot-pro: Gui grounding for professional high-resolution computer use, 2025. URL
+https://arxiv.org/abs/2504.07981.
+[30] Shuyan Zhou, Frank F. Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar, Xianyi Cheng, Tianyue
+Ou, Yonatan Bisk, Daniel Fried, Uri Alon, and Graham Neubig. Webarena: A realistic web environment
+for building autonomous agents, 2024. URL https://arxiv.org/abs/2307.13854.
+[31] Nam Huynh and Beiyu Lin. Large language models for code generation: A comprehensive survey
+of challenges, techniques, evaluation, and applications, 2025. URL https://arxiv.org/abs/2503.
+01245.
+[32] Jian Yang, Xianglong Liu, Weifeng Lv, Ken Deng, Shawn Guo, Lin Jing, Yizhi Li, Shark Liu, Xianzhen
+Luo, Yuyu Luo, Changzai Pan, Ensheng Shi, Yingshui Tan, Renshuai Tao, Jiajun Wu, Xianjie Wu, Zhenhe
+Wu, Daoguang Zan, Chenchen Zhang, Wei Zhang, He Zhu, Terry Yue Zhuo, Kerui Cao, Xianfu Cheng,
+Jun Dong, Shengjie Fang, Zhiwei Fei, Xiangyuan Guan, Qipeng Guo, Zhiguang Han, Joseph James, Tianqi
+Luo, Renyuan Li, Yuhang Li, Yiming Liang, Congnan Liu, Jiaheng Liu, Qian Liu, Ruitong Liu, Tyler
+Loakman, Xiangxin Meng, Chuang Peng, Tianhao Peng, Jiajun Shi, Mingjie Tang, Boyang Wang, Haowen
+Wang, Yunli Wang, Fanglin Xu, Zihan Xu, Fei Yuan, Ge Zhang, Jiayi Zhang, Xinhao Zhang, Wangchunshu
+Zhou, Hualei Zhu, King Zhu, Bryan Dai, Aishan Liu, Zhoujun Li, Chenghua Lin, Tianyu Liu, Chao Peng,
+Kai Shen, Libo Qin, Shuangyong Song, Zizheng Zhan, Jiajun Zhang, Jie Zhang, Zhaoxiang Zhang, and
+Bo Zheng. From code foundation models to agents and applications: A comprehensive survey and practical
+guide to code intelligence, 2025. URL https://arxiv.org/abs/2511.18538.
+[33] Kaixin Wang, Tianlin Li, Xiaoyu Zhang, Chong Wang, Weisong Sun, Yang Liu, and Bin Shi. Software
+development life cycle perspective: A survey of benchmarks for code large language models and agents,
+2025. URL https://arxiv.org/abs/2505.05283.
+[34] Alex Gu, Naman Jain, Wen-Ding Li, Manish Shetty, Yijia Shao, Ziyang Li, Diyi Yang, Kevin Ellis, Koushik
+Sen, and Armando Solar-Lezama. Challenges and paths towards ai for software engineering, 2025. URL
+https://arxiv.org/abs/2503.22625.
+[35] ByteDance. ByteDance Seed 1.8. https://seed.bytedance.com/en/seed1_8, 2026.
+[36] Gemini Team. Gemini: A family of highly capable multimodal models, 2025. URL https://arxiv.
+org/abs/2312.11805.
+[37] Shervin Minaee, Tomas Mikolov, Narjes Nikzad, Meysam Chenaghlu, Richard Socher, Xavier Amatriain,
+and Jianfeng Gao. Large language models: A survey, 2025. URL https://arxiv.org/abs/2402.
+06196.
+[38] Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang, Xiaolei Wang, Yupeng Hou, Yingqian Min, Beichen
+Zhang, Junjie Zhang, Zican Dong, Yifan Du, Chen Yang, Yushuo Chen, Zhipeng Chen, Jinhao Jiang,
+Ruiyang Ren, Yifan Li, Xinyu Tang, Zikang Liu, Peiyu Liu, Jian-Yun Nie, and Ji-Rong Wen. A survey of
+large language models, 2025. URL https://arxiv.org/abs/2303.18223.
+[39] Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng Yu, Junhui Ji, Yan Wang, Zihan Wang,
+Yuxuan Zhang, Juanzi Li, Bin Xu, Yuxiao Dong, Ming Ding, and Jie Tang. Cogagent: A visual language
+model for gui agents, 2024. URL https://arxiv.org/abs/2312.08914.
+[40] Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Samuel Stevens, Boshi Wang, Huan Sun, and Yu Su.
+Mind2web: Towards a generalist agent for the web, 2023. URL https://arxiv.org/abs/2306.06070.
+[41] Hanyu Lai, Xiao Liu, Iat Long Iong, Shuntian Yao, Yuxuan Chen, Pengbo Shen, Hao Yu, Hanchen Zhang,
+Xiaohan Zhang, Yuxiao Dong, and Jie Tang. Autowebglm: A large language model-based web navigating
+agent, 2024. URL https://arxiv.org/abs/2404.03648.
+[42] Izzeddin Gur, Hiroki Furuta, Austin Huang, Mustafa Safdari, Yutaka Matsuo, Douglas Eck, and Aleksandra
+Faust. A real-world webagent with planning, long context understanding, and program synthesis, 2024.
+URL https://arxiv.org/abs/2307.12856.
+[43] Jianqiang Wan, Sibo Song, Wenwen Yu, Yuliang Liu, Wenqing Cheng, Fei Huang, Xiang Bai, Cong Yao,
+and Zhibo Yang. Omniparser: A unified framework for text spotting, key information extraction and table
+recognition, 2024. URL https://arxiv.org/abs/2403.19128.
+[44] Rui Qian, Xin Yin, Chuanhang Deng, Zhiyuan Peng, Jian Xiong, Wei Zhai, and Dejing Dou. Uground:
+Towards unified visual grounding with unrolled transformers, 2026. URL https://arxiv.org/abs/
+2510.03853.
+
+12
+
+[45] Pascal J. Sager, Benjamin Meyer, Peng Yan, Rebekka von Wartburg-Kottler, Layan Etaiwi, Aref Enayati,
+Gabriel Nobel, Ahmed Abdulkadir, Benjamin F. Grewe, and Thilo Stadelmann. A comprehensive survey
+of agents for computer use: Foundations, challenges, and future directions, 2025. URL https://arxiv.
+org/abs/2501.16150.
+[46] Xueyu Hu, Tao Xiong, Biao Yi, Zishu Wei, Ruixuan Xiao, Yurun Chen, Jiasheng Ye, Meiling Tao, Xiangxin
+Zhou, Ziyu Zhao, Yuhuai Li, Shengze Xu, Shenzhi Wang, Xinchen Xu, Shuofei Qiao, Zhaokai Wang, Kun
+Kuang, Tieyong Zeng, Liang Wang, Jiwei Li, Yuchen Eleanor Jiang, Wangchunshu Zhou, Guoyin Wang,
+Keting Yin, Zhou Zhao, Hongxia Yang, Fan Wu, Shengyu Zhang, and Fei Wu. Os agents: A survey on mllmbased agents for general computing devices use, 2025. URL https://arxiv.org/abs/2508.04482.
+[47] Christopher Rawles, Alice Li, Daniel Rodriguez, Oriana Riva, and Timothy Lillicrap. Android in the wild:
+A large-scale dataset for android device control, 2023. URL https://arxiv.org/abs/2307.10088.
+[48] Grégoire Mialon, Clémentine Fourrier, Craig Swift, Thomas Wolf, Yann LeCun, and Thomas Scialom.
+Gaia: a benchmark for general ai assistants, 2023. URL https://arxiv.org/abs/2311.12983.
+[49] Yang Li, Jiacong He, Xin Zhou, Yuan Zhang, and Jason Baldridge. Mapping natural language instructions
+to mobile ui action sequences, 2020. URL https://arxiv.org/abs/2005.03776.
+[50] Andrea Burns, Deniz Arsan, Sanjna Agrawal, Ranjitha Kumar, Kate Saenko, and Bryan A. Plummer. Mobile app tasks with iterative feedback (motif): Addressing task feasibility in interactive visual environments,
+2021. URL https://arxiv.org/abs/2104.08560.
+[51] Liangtai Sun, Xingyu Chen, Lu Chen, Tianle Dai, Zichen Zhu, and Kai Yu. Meta-gui: Towards multi-modal
+conversational agents on mobile gui, 2022. URL https://arxiv.org/abs/2205.11029.
+[52] Raghav Kapoor, Yash Parag Butala, Melisa Russak, Jing Yu Koh, Kiran Kamble, Waseem Alshikh, and
+Ruslan Salakhutdinov. Omniact: A dataset and benchmark for enabling multimodal generalist autonomous
+agents for desktop and web, 2024. URL https://arxiv.org/abs/2402.17553.
+[53] Wei Li, William Bishop, Alice Li, Chris Rawles, Folawiyo Campbell-Ajala, Divya Tyamagundlu, and
+Oriana Riva. On the effects of data scale on ui control agents, 2024. URL https://arxiv.org/abs/
+2406.03679.
+[54] Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu Lei, Hanyu Lai, Yu Gu, Hangliang Ding, Kaiwen
+Men, Kejuan Yang, Shudan Zhang, Xiang Deng, Aohan Zeng, Zhengxiao Du, Chenhui Zhang, Sheng Shen,
+Tianjun Zhang, Yu Su, Huan Sun, Minlie Huang, Yuxiao Dong, and Jie Tang. Agentbench: Evaluating
+llms as agents, 2025. URL https://arxiv.org/abs/2308.03688.
+[55] Evan Zheran Liu, Kelvin Guu, Panupong Pasupat, Tianlin Shi, and Percy Liang. Reinforcement learning on
+web interfaces using workflow-guided exploration, 2018. URL https://arxiv.org/abs/1802.08802.
+[56] Shunyu Yao, Howard Chen, John Yang, and Karthik Narasimhan. Webshop: Towards scalable real-world
+web interaction with grounded language agents, 2023. URL https://arxiv.org/abs/2207.01206.
+[57] Jing Yu Koh, Robert Lo, Lawrence Jang, Vikram Duvvur, Ming Chong Lim, Po-Yu Huang, Graham
+Neubig, Shuyan Zhou, Ruslan Salakhutdinov, and Daniel Fried. Visualwebarena: Evaluating multimodal
+agents on realistic visual web tasks, 2024. URL https://arxiv.org/abs/2401.13649.
+[58] Alexandre Drouin, Maxime Gasse, Massimo Caccia, Issam H. Laradji, Manuel Del Verme, Tom Marty,
+Léo Boisvert, Megh Thakkar, Quentin Cappart, David Vazquez, Nicolas Chapados, and Alexandre Lacoste.
+Workarena: How capable are web agents at solving common knowledge work tasks?, 2024. URL
+https://arxiv.org/abs/2403.07718.
+[59] Danyang Zhang, Zhennan Shen, Rui Xie, Situo Zhang, Tianbao Xie, Zihan Zhao, Siyuan Chen, Lu Chen,
+Hongshen Xu, Ruisheng Cao, and Kai Yu. Mobile-env: Building qualified evaluation benchmarks for
+llm-gui interaction, 2024. URL https://arxiv.org/abs/2305.08144.
+[60] Yuxiang Chai, Shunye Tang, Han Xiao, Weifeng Lin, Hanhao Li, Jiayu Zhang, Liang Liu, Pengxiang Zhao,
+Guangyi Liu, Guozhi Wang, Shuai Ren, Rongduo Han, Haining Zhang, Siyuan Huang, and Hongsheng
+Li. A3: Android agent arena for mobile gui agents with essential-state procedural evaluation, 2026. URL
+https://arxiv.org/abs/2501.01149.
+[61] Anthropic.
+The claude 3 model family: Opus, sonnet, haiku, 2024.
+semanticscholar.org/CorpusID:268232499.
+[62] Google.
+A new era of intelligence with Gemini 3.
+platforms/products/gemini/gemini-3/, November 2025.
+
+13
+
+URL https://api.
+
+https://blog.google/products-and-
+
+A
+
+SimuWoB Environment Synthesizing
+
+Following the pipeline of Figure 2, we first had the model draft a detailed PRD document based on
+the given metadata, then asked it to write code based on the document. Here follows an example
+of PRD document when generating simulated application iQIYI, which consists of many parts that
+defines the workflow, UI transition logic, data entity, styles, etc.
+Product Overview
+Product Positioning
+iQIYI is a leading high-quality video entertainment service platform. Its core positioning is to provide long-form
+video streaming services (movies, TV series, variety shows, anime), while gradually integrating short-form video
+feeds, pan-entertainment communities, and IP-derived consumption (literature, e-commerce, ticketing).
+Core Value
+• Enjoy Quality: Emphasizes high-definition picture quality, Dolby audio, and exclusive original content.
+• Immersive Experience: Enhances viewing focus with dark mode and distraction-free playback design.
+• VIP Privileges: Establishes a comprehensive membership tier and benefits system, providing differentiated
+services.
+
+Design Philosophy & Style
+Overall Style
+• Browsing Mode (Light): On pages such as “Home”, “Discovery”, and “Profile”, a large area of white and light
+gray backgrounds is used. The design pursues breathability, reduces the use of dividing lines, and uses card
+shadows and spacing to distinguish content, reducing visual pressure caused by information density.
+• Immersive Mode (Dark/Gold): On the “Playback” page and “VIP Member” page, the interface switches to dark
+or black-gold color schemes. The dark background highlights the video, creating a cinema-like atmosphere; the
+black-gold tones reinforce the sense of premium status and privileges for VIP users.
+Visual Metaphors
+• Cards: Simulate physical posters, carrying content covers.
+• Flow: Waterfall flow layout, metaphorically representing an endless supply of content.
+
+Main Interface Architecture
+Home - Content Distribution Center
+• Layout Logic: Top search + navigation → Header banner carousel → Double-column waterfall recommendation
+feed.
+• Key Elements:
+– Top Function Area: Contains search box (displaying trending search terms), history entry, and upload/publish
+entry.
+– Navigation Bar: Horizontally scrollable tabs (Recommendations, TV Series, Movies, Anime, etc.).
+– Content Cards: Uses 16:9 cover images, with the drama title, subtitle (e.g., "All 36 Episodes"), and badges
+(e.g., "Exclusive," "Free for a Limited Time") displayed at the bottom.
+• Design Purpose: Maximize content exposure and guide user clicks through algorithmic recommendations.
+Free / Suike (Short Video) - Immersive Short Videos (...)
+VIP (Membership) - Monetization Center (...)
+Discovery - Community & Topics (...)
+
+Core User Flows
+Long-Form Video Watching Flow
+1. Trigger: User clicks on a drama/movie cover on the [Home] page.
+2. Transition: The page slides right to enter the [Playback Details Page].
+3. Loading:
+
+14
+
+•
+
+Non-member: Pre-roll ad plays before the video (showing countdown and “Skip ad with membership”
+button).
+• Member: Enters the main video directly, with a prompt saying “Exclusive VIP, ads have been skipped for
+you”.
+4. Actions: Single-tap on the video area to evoke the control layer; use gravity sensor or tap the button to switch to
+[full-screen landscape mode].
+Membership Subscription Flow (...)
+Short Video Browsing Flow (...)
+
+Visual Interface Guidelines
+Color Palette
+• Primary Brand Color: iQIYI Green (#00CC36). Represents vitality and youthfulness. Used for the logo, selected
+states, and primary action buttons.
+• Secondary Colors:
+– VIP Gold (#E2B376): Used for membership identifiers and paid buttons.
+– Alert Red (#FF3B30): Used for notification badges and limited-time flash sales.
+• Neutral Colors:
+– Backgrounds: #FFFFFF, #F5F5F5, #1A1A1A
+– Text: #333333, #666666, #999999
+Typography: Chinese Fonts: ..., English Fonts: ..., Hierarchy Specifications: ...
+Iconography & Components
+•
+
+Icon Style: Primarily line icons, transitioning to solid style with the brand color when selected. Lines are rounded
+and approachable.
+
+•
+
+Badges: Located in the top-right or bottom-right corner of the cover, using semi-transparent backgrounds or
+brand-colored backgrounds, with extremely small font sizes, used to convey status.
+
+• Buttons: Full pill-shaped buttons, emphasizing tactile comfort.
+
+Design Summary
+The design of the iQIYI App successfully balances the tension between massive content distribution and user
+experience.
+1. Clear Information Hierarchy: Through the card-style design featuring “large images with minimal text”, users
+can quickly capture the visual focus while scrolling rapidly.
+2. Contextual Design: Strictly distinguishes between the “browsing for content” scenario (bright, efficient) and the
+“watching content” scenario (dark, immersive), aligning with user mental models.
+3.
+
+Monetization Integration: The VIP membership design is not just a functional entry point but an independent
+visual system that effectively stimulates users’ desire to pay through color psychology.
+
+4. Ecosystem Loop: Cleverly embeds short videos (Suike) and community (Discovery) into the bottom navigation,
+forming a content consumption loop of “long-form video attracts → community discussion → short-form video
+kills time”.
+
+After writing, it reviewed the existing codebase, proposed a series of items to be added or modified,
+updated the PRD document accordingly, and iterated repeatedly. During iterations, we collect 2
+examples of self-reflection outputs of the model to reveal this progress:
+• (Iteration 1) I have enhanced the ‘Store’ to handle more complex user states (search history,
+following, daily check-in), updated the ‘Router’ to handle view cleanup (essential for timers like
+carousels), and significantly upgraded the ‘HomeView’, ‘PlayerView’, ‘SearchView’, ‘ShortView’,
+and ‘WalletView’ to be fully interactive and logic-driven.
+• (Iteration 2) I have added the missing ‘Collections’, ‘About’, and ‘Feedback’ views, updated the
+‘Player’ to handle episodes dynamically, and ensured the ‘Profile’ and ‘Settings’ flows are fully
+connected. I also updated the ‘Store’ to seed some initial collection data for a better first-run
+experience.
+15
+
+

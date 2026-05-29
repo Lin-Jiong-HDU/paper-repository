@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimuWoB: 模拟真实移动应用用于快速且忠实的GUI Agent基准测试 - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SimuWoB: 模拟真实移动应用用于快速且忠实的GUI Agent基准测试</h1>
+  <div class="meta">
+    <span>Guohong Liu, Jialei Ye, Pengzhi Gao et al. (清华大学AIR, 电子科技大学, 小米)</span>
+    <span>2026年5月</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.25160" target="_blank">arXiv:2605.25160</a>
+  </div>
+  <div class="tags">
+    <span class="tag">GUI Agents</span>
+    <span class="tag">Mobile Apps</span>
+    <span class="tag">Benchmarking</span>
+    <span class="tag">Synthetic Environment</span>
+    <span class="tag">LLM</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>SimuWoB 提出基于LLM的移动应用环境合成框架，自动生成120个高保真、带可执行验证器的可交互移动应用测试环境，揭示当前最强移动GUI agent在复杂任务上成功率仅27.92%。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>移动GUI Agent</h4>
+        <p>能像人类一样操作手机应用的AI系统。给定任务后，agent可以观察屏幕、推理当前状态、执行操作直到任务完成。</p>
+        <h4>现有基准测试三大问题</h4>
+        <ul>
+          <li><strong>真实感与多样性不足</strong>：为保持可复现性，只能用开源应用或文件操作任务，与实际使用场景有差距</li>
+          <li><strong>任务复杂度有限</strong>：主要测试视觉定位和简单导航，缺乏对长周期执行、中间信息管理、多步推理的压力测试</li>
+          <li><strong>评估效率低</strong>：依赖模拟器、虚拟机，启动缓慢、状态重置复杂</li>
+        </ul>
+        <h4>关键概念</h4>
+        <p><strong>无后端网页</strong>：所有数据和逻辑在前端，无需服务器。因为SimuWoB"制造"了这些App，它们知道内部状态，可以精确判断任务是否完成——这是真实App无法做到的。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>想测试实习生能否熟练使用各种手机App。用真实App需要准备账号、清理数据、且无法自动判断是否完成任务。SimuWoB的做法：<strong>用AI生成"仿真的App"</strong>——看起来和真实App一模一样，但数据和逻辑都是模拟的。</p>
+        <h4>两个层次的关键创新</h4>
+        <ul>
+          <li><strong>环境生成自动化</strong>：用LLM代码生成能力，从自然语言任务描述出发，自动生成完整的移动应用仿真</li>
+          <li><strong>环境与任务解耦</strong>：先生成App本身，再注入具体任务和验证器，确保App是真正可用的多功能应用而非为单一任务定制</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>Stage 1: 最小工作环境构建</h4>
+        <p>LLM进行迭代构建循环：起草PRD -> 实现页面和交互 -> 自我审查 -> 反馈更新PRD -> 重新实现。获得稳定的最小工作环境。</p>
+        <h4>Stage 2: 任务注入和奖励合成</h4>
+        <p>扩展数据库 -> 提供任务说明 -> Agent扫描代码库 -> 合成可执行验证器。因为控制环境状态，验证器可以精确检查成功条件。</p>
+        <h4>人工辅助修复</h4>
+        <p>验证agent执行每个任务 -> 成功接受/失败人工分类 -> 环境缺陷返回修复 -> 人工随机抽样检查确保质量。</p>
+        <h4>任务分类</h4>
+        <ul>
+          <li>简单任务（Simple）：基本导航和操作，~15步</li>
+          <li>长周期任务（Long-Horizon）：长步骤链/循环，~25步</li>
+          <li>数学相关任务（Math-Related）：信息聚合和计算，~11步</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>评估设置</h4>
+        <p>5个移动GUI agent（UI-TARS-1.5, doubao-seed, Gemini 3 Pro, MAI-UI, GUI-Owl-1.5），8并行worker，每任务上限100步。</p>
+        <h4>关键结果</h4>
+        <ul>
+          <li>平均SR仅27.92%，最佳（doubao-seed）42.50%</li>
+          <li>长周期任务SR仅17.82%</li>
+          <li>人类基线92.08%——差距巨大</li>
+          <li>合成环境趋势与真实环境一致</li>
+        </ul>
+        <h4>三种失败模式</h4>
+        <ul>
+          <li><strong>状态管理失败</strong>：能正确操作UI但不知道保存中间结果</li>
+          <li><strong>主动探索不足</strong>：搜索失败后不会系统性切换策略</li>
+          <li><strong>细粒度控制薄弱</strong>：滑块拖动、日期选择等精细操作准确度低</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>：SimuWoB概览——从真实任务到合成环境到Agent评估</li>
+          <li><strong>图2</strong>：两阶段环境合成管线</li>
+          <li><strong>图3</strong>：自动问题检测和修正工作流</li>
+          <li><strong>图4</strong>：示例任务——酒店预订App中钱包充值</li>
+          <li><strong>图5</strong>：各Agent在SimuWoB上的主实验结果</li>
+          <li><strong>图6</strong>：按任务类别的细分结果</li>
+          <li><strong>图7-9</strong>：三种失败模式的案例分析</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>仅支持网页基观察（截图），不支持Accessibility Trees</li>
+          <li>仅覆盖单App工作流，不支持跨App任务</li>
+          <li>无法评估需要权限（相机、定位）的应用</li>
+          <li>应用UI可能不完全复现真实App所有细节</li>
+          <li>环境生成依赖LLM，需要人工审查</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.25160</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026年5月</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">GUI Agents, Benchmarking</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">120 tasks, 63 simulated apps</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Success Rate (SR)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">Avg SR 27.92%, Human 92.08%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">UI-TARS, doubao-seed, Gemini 3 Pro, MAI-UI, GUI-Owl</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">SimuWoB最有价值的是"用合成环境替代真实环境"的评测理念，解决了奖励函数自动化和环境复现性问题。环境生成中"PRD->实现->自审"的自迭代优化思路，类似人类"先设计再实现再审查"的工作流程。人工辅助修复机制体现了实用主义。失败模式分析深入——"长周期状态管理"和"主动探索不足"的发现为后续agent改进指明方向。与AndroidWorld对比（SR 27.92% vs 69.38%）说明简单操作不再是瓶颈，复杂推理和状态管理才是。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

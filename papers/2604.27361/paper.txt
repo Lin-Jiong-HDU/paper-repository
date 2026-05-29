@@ -1,0 +1,2414 @@
+CasLayout: Cascaded 3D Layout Diffusion for Indoor Scene Synthesis
+with Implicit Relation Modeling
+YINGRUI WU, MAIS, Institute of Automation, Chinese Academy of Sciences and School of Artificial Intelligence, University
+of Chinese Academy of Sciences, China
+
+arXiv:2604.27361v1 [cs.CV] 30 Apr 2026
+
+YOU-KANG KONG, Tsinghua University, China
+MINGYANG ZHAO, SKLMS, Academy of Mathematics and Systems Science, Chinese Academy of Sciences and University
+of Chinese Academy of Sciences, China
+WEIZE QUAN∗ , MAIS, Institute of Automation, Chinese Academy of Sciences and School of Artificial Intelligence, University
+of Chinese Academy of Sciences, China
+DONG-MING YAN, MAIS, Institute of Automation, Chinese Academy of Sciences and School of Artificial Intelligence,
+University of Chinese Academy of Sciences, China
+YANG LIU, Microsoft Research Asia, China
+Input & Control
+
+CASLAYOUT: Cascaded Diffusion Framework
+Implicit Sparse
+Relation Graph
+
+Floor Plan &
+Architecture
+Elements
+Partial / Noisy
+3D Scene
+for Completion /
+Rearrangement
+Scene Graph
+Objects &
+Realtions
+
+Stage 1
+Furn. Type Diff.
+
+Stage 2
+Furn. Prop. Diff.
+
+Text Prompt /
+LLM Instrcution
+
+Stage 3
+Rel. Latent Diff.
+
+Stage 4
+Box Layout Diff.
+
+1. Holistic House Generation
+
+Diverse 3D Scene Generation Tasks
+2. Struct.-Aware Gen.
+
+4. Graph-to-Scene
+
+3. Compl. & Rearr.
+
+5. Text-to-Scene
+
+6. Image-to-Scene
+
+Place one
+wardrobe in
+front of ...
+
+Conditional
+2D Image
+
+Fig. 1. Aligning with designer practices, CasLayout decomposes 3D furniture layout synthesis into four cascaded conditional diffusion processes, to deliver
+plausible and controllable layouts concerning room building elements, and support various layout needs.
+Synthesizing realistic 3D indoor scenes remains challenging due to data
+scarcity and the difficulty of simultaneously enforcing global architectural
+constraints and local semantic consistency. Existing approaches often overlook structural boundaries or rely on fully connected relation graphs that
+introduce redundant generation errors. Inspired by human design cognition,
+we present CasLayout, a cascaded diffusion framework that decomposes
+the joint scene generation task into four conditional sub-stages with explicit
+physical and semantic roles: (1) predicting furniture quantity and categories,
+(2) refining object sizes and feature embeddings, (3) modeling spatial relationships in a latent space, and (4) generating Oriented Bounding Boxes (OBBs).
+This decoupled architecture reduces data requirements and enables flexible
+integration of Large Language Models (LLMs) and Vision Language Models
+(VLMs) for zero-shot tasks such as image-to-scene generation. To maintain
+physical validity within complex floor plans, we explicitly model building
+
+∗ Corresponding authors: Weize Quan and Yang Liu
+
+elements (e.g. , walls, doors, and windows) as conditional constraints. Furthermore, to address the high entropy of dense relation graphs, we introduce
+a sparse relation graph formulation aligned with human spatial descriptions.
+By encoding these sparse graphs into a compact latent space using a bidirectional Variational Autoencoder (VAE), the proposed framework provides
+enhanced relational controllability, allowing generated layouts to better
+respect functional organization. Experiments demonstrate that CasLayout
+achieves state-of-the-art performance in fidelity and diversity while enabling
+improved controllability in practical applications.
+
+1
+
+Introduction
+
+3D indoor scene synthesis [Patil et al. 2024; Wang et al. 2023] is fundamental to many applications such as virtual reality, interior design,
+and robotics. A key subtask is furniture layout synthesis, which involves creating and arranging furniture items based on room geometry, function, and user specifications to produce visually appealing
+
+2
+
+•
+
+Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, and Yang Liu
+
+and plausible layouts. Recent learning-based generative approaches
+leverage professional 3D designs to replicate realistic layouts.
+While recent diffusion models [Giuliari et al. 2024; Hong et al.
+2024; Hu et al. 2024; Tang et al. 2024; Wei et al. 2023; Yang et al.
+2024a; Yi et al. 2023] provide strong global context for indoor scene
+synthesis, they remain challenged in modeling the high-dimensional
+joint distribution of furniture attributes. To address this issue, several approaches incorporate scene graphs to guide the generative
+process [Gao et al. 2023; Lin and Mu 2024; Zhai et al. 2024b]. However, these methods typically construct fully connected relation
+graphs, introducing dense interdependencies among all object pairs.
+During generation, such over-parameterized relational structures
+may result in conflicting constraints across edges, making coherent
+scene synthesis difficult.
+Furthermore, a critical gap remains between generative capability
+and practical controllability. In real-world design workflows, synthesizing a plausible room is insufficient; the system must adhere
+to architectural constraints and respond flexibly to sparse, highlevel user intents. We argue that existing limitations are largely
+associated with the difficulty of modeling structured dependencies
+in a tractable manner. First, the original joint generation space is
+significantly more complex than the stepwise spaces defined by conditional probabilities, making it difficult to reliably learn a complete
+generation manifold from limited training data. Second, prevalent
+relational control mechanisms rely on dense graphs, introducing
+high-entropy dependencies that obscure functional layout logic and
+misalign with human interaction patterns, which typically involve
+sparse relational descriptions.
+To address these challenges, we present CasLayout, a framework that prioritizes controllability to enable high-fidelity generation. Inspired by professional designer workflows, we propose a
+cascaded diffusion framework that decomposes the layout task into
+four stages: (1) furniture type, (2) furniture property, (3) relation latent, and (4) box layout. This factorization effectively reduces the
+high-dimensional generation problem into manageable conditional
+probability distributions, mitigating data scarcity while providing
+flexible control interfaces. Within this framework, we explicitly
+model building elements as constraints to ensure architectural validity in real-world applications. Furthermore, to enable intuitive
+relational control, we propose implicit sparse relation modeling. By
+pruning redundant information from dense graphs and encoding
+essential functional logic into a compact latent space via a bidirectional VAE, we ensure that generated layouts align with both user
+intent and physical plausibility.
+Our contributions are as follows:
+
+- A designer-inspired cascaded diffusion framework that
+integrates building elements to enforce architectural validity,
+decomposing the intractable high-dimensional generation space
+into tractable conditional distributions.
+- A novel implicit sparse relation modeling approach. By encoding essential functional dependencies into a compact, nodealigned latent space, this method reduces the complexity and
+redundancy inherent in dense relational graphs, enabling flexible layout control.
+
+- The 3D-Front-Relationship dataset, designed to capture
+functional relational sparsity and provide a data foundation
+for learning implicit relational priors.
+- State-of-the-art performance and zero-shot applications
+enabled by the proposed controllable generation framework, including text- and image-driven layout synthesis via integration
+with LLMs and VLMs.
+To facilitate future research, we release our code and dataset at
+https://github.com/YingruiWoo/CasLayout.
+
+2 Related Work
+2.1 Indoor Scene Synthesis
+The evolution of layout synthesis has shifted from early rule-based
+systems [Fisher et al. 2012; Merrell et al. 2011] to data-driven generative models. Recent approaches largely fall into two categories:
+autoregressive and diffusion-based methods. Autoregressive models [Feng et al. 2025; Leimer et al. 2022; Para et al. 2023; Paschalidou
+et al. 2021; Ritchie et al. 2019; Sun et al. 2025c; Wang et al. 2018,
+2021; Zhao et al. 2024] generate objects sequentially, which facilitates dependency modeling but may rely on predefined ordering
+schemes. Diffusion-based approaches [Giuliari et al. 2024; Hong
+et al. 2024; Hu et al. 2024; Tang et al. 2024; Wei et al. 2023; Wu et al.
+2025; Yang et al. 2024a; Yi et al. 2023] formulate layout generation
+as a denoising process and jointly model furniture attributes.
+End-to-end diffusion models typically attempt to learn the joint
+distribution of object types, features, and oriented bounding boxes
+(OBBs) directly, introducing challenges associated with high dimensional generation spaces under limited training data. To alleviate
+this issue, several works explore partial decomposition strategies.
+Recent approaches [Maillard et al. 2024; Naanaa et al. 2023; Zhai
+et al. 2024a,b] explicitly separate OBB generation from fine-grained
+shape geometry. Methods such as PlanIT [Wang et al. 2019] and
+GRAINS [Li et al. 2019] adopt hierarchical structural representations, while InstructScene [Lin and Mu 2024] models global relational graphs independently from OBB prediction. SemLayoutDiff [Sun et al. 2025a] further separates top-down semantic maps, and
+GLTScene [Li et al. 2024] introduces wall-centered local optimization to disentangle global layout dependencies.
+In contrast to these partial decomposition strategies, CasLayout
+implements a systematic four-stage factorization inspired by human
+design workflows to improve synthesis controllability. Furthermore,
+while some existing methods treat the room as an empty bounding
+volume [Lin and Mu 2024], or rely on local heuristics [Li et al. 2024],
+CasLayout explicitly models building elements as global conditional constraints throughout the cascade to maintain architectural
+consistency under complex floor plans.
+
+2.2
+
+Spatial Relation Modeling
+
+Modeling spatial relationships is essential for capturing interior
+layout principles [Grimley and Smith 2022; Rolph 2024; Tru 2024].
+Early works [Fisher et al. 2011; Merrell et al. 2011; Weiss et al. 2018;
+Yeh et al. 2012; Yu et al. 2011] relied on hand-crafted heuristics to
+enforce spatial constraints, which provide strong controllability but
+limit layout diversity.
+
+CasLayout : Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling
+
+Subsequent learning-based approaches introduced structured representations such as trees or graphs, as exemplified by GRAINS [Li
+et al. 2019] and PlanIT [Wang et al. 2019], to capture spatial dependencies between objects. These localized structures simplify relational modeling but may require additional mechanisms to maintain
+global structural coherence in complex scenes.
+Recent methods extend this paradigm by modeling scene layouts using dense relation graphs [Fang et al. 2025; Xu et al. 2024;
+Yao et al. 2024]. Approaches such as SceneHGN [Gao et al. 2023],
+CommonScenes [Zhai et al. 2024b], and InstructScene [Lin and Mu
+2024] employ fully connected graphs to capture broader contextual
+dependencies. However, modeling all-to-all interactions increases
+the dimensionality of the relational space and introduces additional
+dependencies that must be resolved during generation. Existing
+strategies, such as structural masking [Lin and Mu 2024] or assuming relational priors are externally provided [Dhamo et al. 2021; Gao
+et al. 2023; Kikuchi et al. 2021; Zhai et al. 2024b], attempt to alleviate
+this issue from different perspectives.
+Building upon these observations, CasLayout adopts an implicit
+sparse relation modeling strategy that focuses on capturing essential
+functional dependencies in a compact latent space.
+
+2.3
+
+LLM-Driven Scene Generation
+
+Recent advances in large language models (LLMs) have inspired
+new pipelines for scene generation. A common paradigm prompts
+LLMs to directly generate layout specifications (e.g. , JSON or coordinates) [Feng et al. 2023; Gumin et al. 2025; Öcal et al. 2025; Wang
+et al. 2024; Yang et al. 2024b]. However, mapping semantic outputs
+to continuous geometric layouts remains challenging, particularly
+when enforcing spatial consistency under complex floor plans.
+Other hybrid approaches incorporate iterative sampling or optimization procedures [Aguina-Kang et al. 2024; Çelen et al. 2024;
+Deng et al. 2025; Fu et al. 2025; Littlefair et al. 2025; Sun et al. 2025b;
+Yang et al. 2024c]. These approaches typically rely on explicitly
+specified constraints, which may limit the enforcement of implicit
+spatial relationships during generation.
+As an application of controllable synthesis, CasLayout adopts an
+alternative integration strategy by using LLMs as semantic planners
+to generate furniture lists and sparse relational descriptions, while
+the proposed cascaded diffusion framework acts as a geometric
+executor that translates these high-level signals into precise 3D
+layouts via conditioned diffusion.
+
+3 Method
+3.1 Overview
+Given an empty room with prescribed architectural elements, such
+as a floor plan, walls, doors, and windows, furniture layout synthesis
+involves selecting and placing suitable furniture items to create a
+plausible arrangement. We define the key components of a furniture
+layout and model spatial relations in Sections 3.2 and 3.3. Inspired
+by designer workflows (as described in Section 1), we decompose
+the synthesis process into four conditional diffusion stages:
+(1) Furniture type diffusion (Section 3.4): Generates the number
+and categories of furniture items based on the given architectural elements.
+
+•
+
+3
+
+(2) Furniture property diffusion (Section 3.5): Determines the detailed size and feature embedding of each furniture item. These
+embeddings, combined with furniture types, are used to retrieve
+shape geometry from a database.
+(3) Relation latent diffusion (Section 3.6): Synthesizes plausible
+spatial relationships among furniture items and architectural
+elements. Relations are represented in a compact latent space
+learned by a bidirectional Relation VAE, reducing the quadratic
+complexity of pairwise relations to linear complexity.
+(4) Box layout diffusion (Section 3.7): Generates OBBs for furniture items, conditioned on the furniture list, architectural
+elements, and synthesized relations.
+Each stage conditions the next, forming a cascaded pipeline illustrated in Fig. 2. This design reduces data requirements, improves
+modularity, and enables fine-grained control. We refer to this framework as CasLayout. Applications enabled by CasLayout are discussed in Section 3.8.
+
+3.2
+
+Layout Formulation
+
+A furnished 3D room, denoted by L, consists of the following components:
+- Architectural elements: A floor plan represented as a binary image, and a set of walls, doors, and windows, denoted
+as {𝒃𝑖 }𝑚
+𝑖=1 . Each vertical element is characterized by its type
+𝑐𝑖 ∈ {wall, door, window} and its OBB 𝑩𝑖 , with the y-axis pointing toward the room interior and the z-axis upright.
+- Furniture items: A collection of furniture objects, denoted as
+{𝒇𝑗 }𝑛𝑗=1 . Each 𝒇𝑗 is defined by its type 𝑐 𝑗 , feature embedding
+𝒇 𝒆𝒂𝒕 𝑗 , and OBB 𝑩 𝑗 with an upright z-axis.
+OBB parameterization. Each OBB is parameterized by its size
+(𝒔 ∈ R3 ), translation relative to the room center (𝒕 ∈ R3 ), and rotation
+vector (𝒓 = (cos 𝜃, sin 𝜃 ) ∈ R2 ), where 𝜃 is the rotation angle with
+respect to the canonical pose in the furniture database. Under the
+local coordinate system, the +𝑥 and +𝑦 axes of the OBB define the
+left and front directions, respectively; the opposite directions (right,
+behind) are inferred accordingly.
+
+3.3
+
+Relation Capture
+
+Professional furniture layouts adhere to common design principles,
+which are closely tied to spatial relationships. To capture these
+principles, we define a set of pairwise and relative spatial relations
+based on the OBBs of furniture items and architectural elements.
+To ensure rotation invariance and better reflect design principles,
+all spatial relations are defined in the local coordinate system of
+each object. This approach captures intrinsic relationships independent of the room’s global orientation, improving robustness and
+generalizability. As illustrated in Fig. 3, the spatial relations are categorized into direction, distance, alignment, and symmetry between
+furniture items, as well as distance relations between furniture and
+architectural elements.
+Relations between furniture items.
+- Direction: The relative position of 𝑩 1 to 𝑩 2 can be left, right,
+front, behind, under, or above. For xy-plane directions, we project
+two rays at 120◦ angles from 𝑩 2 ’s edges. For z-axis directions, 𝑩 1
+
+4
+
+•
+
+Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, and Yang Liu
+Conditional Information
+Room Structures
+
+Stage 1:
+Furniture Type
+Diffusion
+
+Stage 2:
+Furniture Property
+Diffusion
+
+Stage 3:
+Relation Latent Diffusion
+
+×n3
+
+Encoder
+×n1
+
+Retrieval
+
+×n2
+
+Stage 4:
+Box Layout
+Diffusion
+
+Multilayer Perceptron
+
+Wall
+
+Self-Attention
+
+Door
+
+Cross-Attention
+
+Winow
+
+Decoder
+×n4
+
+Relation Latent Space
+
+Building Elements
+Co-Trained Relation VAE
+Armchair (1) Dining Chair (4)
+
+...
+Multi-Seat Sofa (1)
+
+Generated
+Furniture Types
+
+Floor Plan
+
+Left
+
+Armchair (1) Dining Chair (4)
+
+...
+Multi-Seat Sofa (1)
+
+Front
+
+Right
+
+Final Generated
+Indoor Scene
+
+Right
+X-Center
+Align Distant
+
+Retrieved Furniture
+with Generated Sizes
+
+Symmetry
+Left
+Front
+
+Oriented
+Bounding Boxes
+
+Fig. 2. The pipeline of CasLayout, which consists of four diffusion processes in a cascaded way: furniture type diffusion, furniture property diffusion, relation
+latent diffusion, and box layout diffusion. All diffusion networks are built upon a series of self-attention layers. The 2D floor plan (as image) serves as conditioning
+for each diffusion network via cross-attention layers. The output of each diffusion network is used to construct the input for the subsequent diffusion process.
+
+(b)
+
+(a)
+
+(d)
+
+Front
+Distance
+120°
+
+Left
+
+Right
+
+(c)
+
+X/Y-Center-Align
+
+Behind
+Edge-Align
+
+Symmetry
+
+Fig. 3. Spatial relationships. (a) direction determined by the local coordinate
+system and OBB size ratios, (b) distance defined as the minimum separation between two OBBs, (c) alignment of OBB edges and centers, and (d)
+symmetry between OBBs with the same type and feature embedding.
+
+is considered under or above 𝑩 2 if its xy-coordinates lie within
+𝑩 2 ’s xy-projection.
+- Distance: Defined by the minimum distance between two OBBs
+and categorized as attach to, adjacent, or distant.
+- 2D Alignment: Under an orthogonal view, an OBB may align
+with another along its edge or local axis, yielding edge-align,
+x-center-align, and y-center-align.
+- Symmetry: Two furniture OBBs are symmetric if they share
+the same type, feature embedding, and size, and their +𝑦-axes
+are mirror-symmetric on the same horizontal plane.
+Relations between furniture and architectural elements.
+- Distance: Similar to furniture–furniture distance, but the OBBs
+of architectural elements are represented as line segments. We
+consider the distance only to the nearest wall, which corresponds to the distance from the furniture to the floor plan
+boundary, but compute the distances to all doors and windows.
+Implicit sparse relation modeling. While spatial relation modeling
+is essential, the prevalent reliance on fully connected dense graphs
+poses significant challenges for three key issues:
+- Dense graphs impose exhaustive pairwise constraints (𝑁 2 complexity), tightly coupling relations such that errors in individual
+
+predictions may propagate through these constraints, leading
+to logical inconsistencies and geometric conflicts.
+- Empirically, most object pairs lack intrinsic design logic, with
+spatial relations approximating a uniform distribution. Learning
+these non-functional dependencies injects high-entropy noise,
+i.e. , relation categories whose distributions approach uniformity,
+thereby diluting essential functional constraints.
+- Control information in practical applications is inherently sparse.
+Since human design relies on specifying key functional constraints rather than exhaustive pairwise relations, sparse graphs
+serve not merely as a computational optimization, but as a faithful mapping of human design cognition.
+To address this, we propose a sparse relation graph extraction
+method. Furniture is grouped into functional zones (e.g. , dining,
+lounging), and relations within each zone are preserved for coherence. For inter-zone modeling, we select an anchor item in each
+zone and define relations between these anchors. To validate this
+design, we measure the entropy of relational distributions for both
+dense and sparse graphs. Here, entropy quantifies the uncertainty
+of spatial relation categories across object pairs. The entropy is
+computed as follows [Bustin and Shayevitz 2021]:
+𝑛 ∑︁
+𝑚
+∑︁
+𝐻 (𝑋 ) = −
+𝑝 (𝑥𝑖 𝑗 ) log2 𝑝 (𝑥𝑖 𝑗 )/𝑛,
+(1)
+𝑖=1 𝑗=1
+
+where 𝑛 denotes the number of pairwise relations, representing the
+exhaustive set of relation pairs for dense graphs and the selected relation pairs for sparse graphs. 𝑚 is the total number of sub-categories
+for each relation, and 𝑥𝑖 𝑗 refers to the frequency of the 𝑗-th category within the 𝑖-th relation pair. Taking the direction relations in
+living rooms as an example, the average entropy decreases from
+1.62 to 1.04. This reduction indicates an increase in information
+density, suggesting that we filter out near-uniform background relations while preserving low-entropy structures that capture essential
+design logic (see more design details in Appendix A.1).
+Following graph sparsification, maintaining an explicit matrix
+representation (𝑁 2 ) introduces significant redundancy. This results
+in an excessively sparse generation space that degrades the quality
+of graph synthesis. To address this, we design an implicit relation
+
+CasLayout : Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling
+
+representation and leverage a bidirectional attention mechanism
+to encode relational edges into 𝑁 node embeddings, effectively
+compressing the generation space (see Section 3.6).
+3D-Front-Relationship. Based on this capture strategy, all relations
+form a directed graph where edges indicate reference OBBs. From
+the widely used 3D-Front dataset [Fu et al. 2021], we extract these
+relations to construct 3D-Front-Relationship, a dataset designed for
+learning and synthesizing plausible spatial relations in our method.
+
+3.4
+
+Furniture Type Diffusion
+
+We adopt the Denoising Diffusion Probabilistic Model (DDPM) [Ho
+et al. 2020] for all four stages in CasLayout. The first stage predicts the number and types of furniture items, conditioned on the
+architectural elements of the room.
+Network input. A layout L is represented as a vector set: 𝑿 =
+{𝒆 1, . . . , 𝒆𝑚+𝑛 , . . . , 𝒆𝑛max }, where 𝑚 and 𝑛 denote the number of architectural elements and furniture items, respectively, and 𝑛 max is a
+preset maximum to ensure a consistent vector length across training samples. All elements are randomly ordered, and positional
+encoding distinguishes elements of the same type.
+Each vector 𝒆𝑖 concatenates (𝒄𝑖 , 𝒔𝑖 , 𝒕𝑖 , 𝒓𝑖 , 𝒑𝒆𝑖 ), where 𝒄𝑖 is a onehot type encoding and 𝒑𝒆𝑖 is the positional encoding. For furniture
+items, 𝒔𝑖 , 𝒕𝑖 , and 𝒓𝑖 are set to zero since OBBs are not yet determined. Vectors beyond 𝑚 + 𝑛 correspond to non-existent elements
+and are assigned a None class with zeroed spatial attributes. More
+details of this vector representation for four stages are provided in
+Appendix A.3.
+Network design. We implement DDPM using a Transformer backbone. Spatial attributes and category features are encoded separately, concatenated, and augmented with positional embeddings
+to form input tokens. The Transformer consists of five sequential
+modules, each combining a self-attention layer (to capture dependencies within 𝑿 ) and a cross-attention layer (to integrate external
+information from the binary floor plan image F ). This architecture
+serves as the base model for all four diffusion stages.
+During training, Gaussian noise 𝝐 is added to the type vectors of
+furniture items:
+√︁
+√︁
+𝒄𝑖,𝑡 = 𝛾 (𝑡)𝒄𝑖 + 1 − 𝛾 (𝑡)𝝐,
+where 𝑡 is the time step and 𝛾 (𝑡) is the noise scheduler. The network
+𝜖𝑛𝑒𝑡 predicts the added noise by minimizing:
+E𝝐∼N (0,𝑰 ), 𝑡 ∼U (0,1) ∥𝝐𝑡 − 𝜖𝑛𝑒𝑡 (𝑿𝑡 , F , 𝑡)∥ 22,
+
+(2)
+
+where 𝑿𝑡 is the noisy version of 𝑿 at step 𝑡.
+To preserve architectural element information during forward
+propagation, we introduce an auxiliary reconstruction of their OBBs
+(size 𝒔, translation 𝒕, and rotation 𝒓) at the output stage, supervised
+by an MSE loss:
+𝑚
+1 ∑︁
+∥𝑩𝑖 − 𝑩ˆ 𝑖 ∥ 22,
+(3)
+𝐿rc =
+𝑚 𝑖=1
+where 𝑩𝑖 and 𝑩ˆ 𝑖 denote the ground-truth and reconstructed OBBs,
+respectively. This auxiliary loss is applied consistently across all
+diffusion stages.
+
+•
+
+5
+
+Inference. During inference, Gaussian noise is assigned to the
+type vectors of all non-architectural elements. The denoising process predicts their furniture types, including potential nonexistence,
+thereby determining the furniture count.
+
+3.5
+
+Furniture Property Diffusion
+
+In the second stage of CasLayout, given the furniture categories
+and quantities predicted in the first stage, the DDPM generates the
+size and feature embedding for each furniture item. This step determines the precise dimensions and shape characteristics required for
+realistic placement within the scene.
+Network input. Building on the vector set from Furniture Type
+Diffusion, we extend each element to include feature embeddings:
+(𝒄𝑖 , 𝒇 𝒆𝒂𝒕𝑖 , 𝒔𝑖 , 𝒕𝑖 , 𝒓𝑖 , 𝒑𝒆𝑖 ) , where 𝒄𝑖 for furniture items is fixed from the
+previous stage. Gaussian noise is added to 𝒔𝑖 (size) and 𝒇 𝒆𝒂𝒕𝑖 (feature
+embedding) following the standard forward diffusion process.
+Network design. The type, OBB attributes, and feature embedding of each vector are encoded individually, concatenated, and
+combined with positional embeddings to form node tokens for the
+Transformer network. The architecture mirrors that used in Furniture Type Diffusion, ensuring consistency across stages.
+Feature embedding. We adopt a pre-trained VQ-VAE [Lin and Mu
+2024] to extract latent feature indices for CAD models from the
+3D-Future dataset [Fu et al. 2021]. During inference, the generated
+feature embeddings are used to retrieve CAD models from 3D-Future
+with the same class label and the closest geometry feature. The
+technical details are provided in Appendix A.2.
+However, due to the limited size of our dataset, conditioning subsequent stages on feature embeddings leads to overfitting, degrading
+relation quality and placement accuracy. To mitigate this, feature
+embeddings are generated solely for furniture retrieval and are not
+used as conditioning inputs in later stages.
+
+3.6
+
+Relation Latent Diffusion
+
+Given the architectural elements and a set of furniture items with
+known types and sizes, our goal is to synthesize plausible spatial
+relations among these elements. We model spatial relations in a
+compact latent space for two primary reasons: first, to mitigate
+the quadratic growth of pairwise relations with respect to object
+count; and second, to exploit the compression space created by graph
+sparsification, which filters out non-essential information and yields
+a more compressible latent structure. This latent representation is
+conditioned on furniture types, sizes, and architectural elements,
+enabling relation synthesis via diffusion.
+3.6.1 Bidirectional relation VAE. To learn this latent space, we design a transformer-based Variational Autoencoder (VAE) that encodes relation graphs into node-aligned latent vectors, ensuring
+semantic consistency and facilitating diffusion-based generation.
+Relation graph representation. For a layout L, pairwise relations
+are represented as a directed graph where nodes correspond to
+furniture items or architectural elements. Each node is associated
+with a feature vector (𝒄𝑖 , 𝒔𝑖 , 𝒕𝑖 , 𝒓𝑖 , 𝒑𝒆𝑖 ). To prevent overfitting to
+absolute geometry, the VAE uses only 𝒄𝑖 and 𝒑𝒆𝑖 for furniture nodes,
+
+6
+
+•
+
+Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, and Yang Liu
+
+Directed Graph
+
+In-Degree Graph
+
+Out-Degree Graph
+
+𝑣𝑗
+
+𝑣𝑗
+
+𝑣𝑗
+
+𝑣𝑖
+
+𝑣𝑘
+
+𝑣𝑖
+
+v𝑘
+
+𝑣𝑖
+
+𝑣𝑘
+
+PE of the Object Order
+Relation Category
+Relation Subcategory
+Feature at 𝑣𝑖
+Cross-Attention
+
+Fig. 4. Illustration of the in-out cross-attention mechanism. For object 𝑣𝑖 ,
+two vector sets are separately constructed on its in-degree and out-degree
+graphs, respectively. The feature at 𝑣𝑖 is updated by applying cross-attention
+between it and the two vector sets sequentially.
+
+while OBBs of architectural elements are
+conditions.
+ retained as 
+→
+𝑠
+Each directed edge 𝑣−−
+𝑖 𝑣 𝑗 carries features 𝒑𝒆𝑖 , 𝒑𝒆 𝑗 , 𝑹𝑖 𝑗 , 𝑹𝑖 𝑗 , where
+𝑹𝑖 𝑗 encodes the relation category (e.g. , Distance, Alignment) and 𝑹𝑖𝑠𝑗
+encodes the subcategory (e.g. , left, right), both as one-hot vectors.
+Encoder design. For each node 𝑣𝑖 , we decompose its subgraph
+into an in-degree graph (G𝑖𝑛 ) and an out-degree graph (G𝑜𝑢𝑡 ). We
+apply cross-attention twice: first using incoming edge features as
+keys/values, and then using outgoing edge features. This two-step
+mechanism, termed in-out cross attention, aggregates relational context from both directions. Afterward, node features interact via
+self-attention. These operations form an in-out-attention block, and
+multiple blocks are cascaded in the encoder. The encoder outputs the
+mean and variance for latent sampling. Fig. 4 illustrates this mechanism with a simple example. In practice, we find it performs better
+than considering all edges at once (see the ablation in Section 4.4).
+Decoder design. The decoder consists of self-attention blocks and
+predicts node features. For relation prediction, features of two nodes
+are concatenated and passed through category-specific MLPs to
+predict subcategory labels, including None. Cross-entropy loss supervises relation classification, while KL-divergence regularizes the
+latent space with a small weight (0.001).
+3.6.2 Relation latent diffusion. Once trained, the VAE provides each
+layout with a node-aligned relation latent vector set. We then design
+a DDPM to synthesize these latents.
+Network input. Each element 𝒆𝑖 is extended to: (𝒄𝑖 , 𝒔𝑖 , 𝒕𝑖 , 𝒓𝑖 , 𝒑𝒆𝑖 , 𝒓 𝒍𝑖 ) ,
+where 𝒓 𝒍𝑖 is the relation latent for element 𝑖. 𝒄𝑖 and 𝒔𝑖 are conditions
+from previous stages. During training, Gaussian noise is injected
+into all 𝒓 𝒍𝑖 values, and the network predicts the noise.
+Network design. Node types, spatial attributes, and relation latents
+are encoded separately and concatenated into node tokens with
+positional embeddings. The Transformer architecture mirrors that
+used in Furniture Type Diffusion.
+
+3.7
+
+Box Layout Diffusion
+
+With furniture types, sizes, and relation latents determined, the
+final stage predicts the placement of furniture OBBs to produce a
+semantically coherent and controllable layout. We train a DDPM
+model for this purpose.
+
+Network input. Each element vector 𝒆𝑖 is represented as:
+(𝒄𝑖 , 𝒔𝑖 , 𝒕𝑖 , 𝒓𝑖 , 𝒑𝒆𝑖 , 𝒓 𝒍𝑖 ) ,
+where 𝒄𝑖 , 𝒔𝑖 , and 𝒓 𝒍𝑖 are conditional inputs from previous stages.
+Gaussian noise is injected into 𝒕𝑖 and 𝒓𝑖 , and the network predicts
+the injected noise during denoising.
+Network design. The input token encodes node type and OBB
+attributes separately, and then concatenates them with positional
+embeddings. The Transformer architecture is extended with a selfcross-cross attention mechanism: (1) The first cross-attention layer
+attends to relation latents, enforcing consistency with inter-object
+relationships; (2) The second cross-attention layer attends to floor
+plan image features, capturing global room context. This design
+ensures that local placement respects both relational constraints
+and overall spatial structure.
+Co-training scheme. Since relation latents directly influence box
+layout diffusion, we jointly train the relation VAE and this diffusion
+stage. Backpropagating diffusion errors through the VAE improves
+latent compatibility with layout synthesis. We balance the VAE and
+diffusion losses with a weight ratio of 1 : 1. After joint training, the
+learned latent space guides the training of relation latent diffusion.
+
+3.8
+
+Supported Applications
+
+CasLayout supports a variety of applications, and additional experimental results are shown in Section 4. The implementation details
+are available in Appendix A.5.
+Layout generation and editing. The cascaded diffusion pipeline
+enables users to modify building elements, furniture types, OBB
+sizes, and spatial relations at any stage by adjusting network inputs,
+while preserving attributes intended to be retained during denoising.
+This flexibility supports iterative design workflows and interactive
+editing, which are highly desirable in practice. Fig. 5 showcases
+diverse layouts generated by CasLayout under various conditions.
+Furniture rearrangement. CasLayout can adapt existing layouts
+to better align with design principles. By providing architectural
+elements, furniture types, and OBB sizes as initial conditions for
+relation latent diffusion, new spatial relations are synthesized. Box
+layout diffusion then determines updated positions and orientations
+for furniture items. Optionally, users can omit certain OBB sizes
+and allow the model to suggest new dimensions during generation.
+Layout completion. To complete partial layouts, we introduce
+a masking strategy during training: randomly selected furniture
+items are masked in the furniture type diffusion stage but retain
+their original attributes as conditional inputs. At inference, users
+can input an incomplete layout, and the model predicts additional
+furniture types. These, along with existing items, are passed through
+subsequent stages to generate relation latents and OBBs for the new
+furniture.
+LLM-guided scene generation. Thanks to the modular design, our
+method can integrate Large Language Models (LLMs) by replacing
+the furniture type and relation diffusion stages, both naturally expressible in language, with LLM outputs. This approach leverages
+LLMs for semantic reasoning while avoiding their limitations in
+
+CasLayout : Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling
+
+•
+
+7
+
+the text-driven pipeline, CasLayout refrains from performing autocompletion on the extracted information to ensure strict consistency
+between the generated scene and the control image.
+
+4 Experimental Results
+4.1 Experimental Setup
+
+Holistic
+House
+
+Structure Aware
+Room Generation
+
+Diverse Single Room
+(w/wo Floor Plan)
+
+Fig. 5. A gallery of synthesized scenes demonstrating generation quality
+and diversity.
+
+precise numerical prediction. The diffusion models then enforce
+physical plausibility and controllability, enabling scalable layout
+generation from language-based inputs. The detailed prompts are
+provided in Appendix B.
+User-specified sparse relation control. Unlike prior methods that
+rely on fully connected relation graphs, CasLayout employs sparse
+relation graphs that focus on key relationships, reducing complexity
+and aligning with human intuition. This sparsity simplifies manual
+specification of relations, allowing users to exert targeted control
+over scene generation without overwhelming design constraints.
+Text-driven scene generation. Leveraging the flexibility of our cascaded architecture, CasLayout employs LLMs to extract furniture
+entities and spatial relations from the input text to construct a sparse
+scene graph. After completing missing furniture elements, the model
+generates an interior scene that aligns with the textual description.
+Image-driven scene generation. Analogous to text-driven synthesis, CasLayout employs VLMs to extract furniture entities and
+relational information from images, enabling image-driven scene
+generation. Since our spatial relations are defined within local coordinate systems, the VLM can construct accurate scene graphs
+without requiring global reference coordinates. Furthermore, unlike
+
+Dataset and data augmentation. Following DiffuScene [Tang et al.
+2024] and InstructScene [Lin and Mu 2024], we use the synthetic
+indoor scene dataset 3D-FRONT [Fu et al. 2021], maintaining the
+same training and testing splits across three categories: 4041 bedrooms, 900 dining rooms, and 813 living rooms. From this dataset,
+we extract spatial relations (Section 3.3) and architectural elements
+to construct our relation dataset.
+To support layout completion, we introduce a masking strategy
+during training: randomly selected furniture items are masked while
+retaining their original attributes as conditions, simulating userspecified partial scenes. In addition, to enable generation without
+explicit floor-plan control, we augment the data by setting all structural elements to a None type and assigning a value of 1 to every
+pixel in the binary floor plan mask. This augmentation enables our
+model to handle scene generation, completion, and rearrangement
+under both controlled and uncontrolled settings (see details in Appendix A.4). Unlike prior methods that either address a single task
+without floor plan control [Lin and Mu 2024] or require separate
+models for different tasks [Tang et al. 2024], our approach offers
+improved flexibility and generalization.
+For fair benchmarking, we also train our model using the same
+data settings as competing methods, excluding these augmentations.
+In the comparative evaluations, we denote the version trained with
+augmentations as CasLayout-G and the one without as CasLayout.
+Unless explicitly stated otherwise, “Ours” or CasLayout refers to
+the augmented version by default. Additional augmentation details
+are provided in the supplemental material.
+Network training. All diffusion networks are trained on a single
+NVIDIA A100 GPU with a batch size of 256 for 2000 epochs (256
+iterations per epoch). The learning rate is initialized to 1 × 10−4 with
+the AdamW optimizer and decays by 0.02 per epoch. The relation
+latent dimension is set to 32, and the feature embedding dimension
+is set to 64.
+Evaluation metrics. Following existing works, we assess generation quality using the following metrics:
+- Fréchet Inception Distance (FID) [Heusel et al. 2017] & Kernel Inception Distance (KID) [Bińkowski et al. 2018]: Measure the distribution distance between generated and groundtruth layouts using rendered images, reflecting distributional
+similarity and diversity. Layouts are rendered from a top view
+at 256 × 256 resolution, excluding architectural elements, with
+furniture textured using predefined semantic colors.
+- Type Kullback–Leibler Divergence (TKL) [Paschalidou
+et al. 2021]: Computes the KL-divergence between generated
+and ground-truth furniture type distributions, evaluating type
+and count accuracy.
+- Scene Classification Accuracy (SCA) [Paschalidou et al.
+2021]: Measures classification accuracy of generated layouts
+
+8
+
+•
+
+Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, and Yang Liu
+
+Table 1. Comparison of our method with existing approaches on floor plan conditional generation. The best result is shown in bold, and the second-best
+is underlined. N/A indicates that the method does not support the specific application scenario or evaluation metric. CasLayout-G is our general model
+trained with data augmentation, which achieves state-of-the-art performance across various tasks and experimental settings without the need for retraining.
+CasLayout is a counterpart trained under the same data setting as other methods for a fair comparison.
+Bedroom
+
+Method
+FID
+
+↓
+
+↓
+KID −3
+×10
+
+↓
+SCA
+%
+
+Livingroom
+
+↓
+TKL −2
+×10
+
+↓
+IoU
+%
+
+FID
+
+↓
+
+↓
+KID −3
+×10
+
+↓
+SCA
+%
+
+Diningroom
+
+↓
+TKL −2
+×10
+
+↓
+IoU
+%
+
+FID
+
+↓
+
+↓
+KID −3
+×10
+
+SCA
+
+↓
+%
+
+TKL
+
+↓
+×10 −2
+
+IoU
+
+↓
+%
+
+LayoutGPT-GPT-4o [2023]
+
+20.42
+
+6.45
+
+75.68
+
+7.12
+
+0.56
+
+27.88
+
+9.88
+
+75.24
+
+8.67
+
+0.43
+
+N/A
+
+N/A
+
+N/A
+
+N/A
+
+N/A
+
+LayoutGPT-LLaMA3.1 [2023]
+
+29.76
+
+10.93
+
+82.31
+
+18.14
+
+1.46
+
+38.20
+
+14.50
+
+86.22
+
+23.66
+
+1.55
+
+N/A
+
+N/A
+
+N/A
+
+N/A
+
+N/A
+
+ATISS [2021]
+
+18.77
+
+2.60
+
+64.54
+
+0.96
+
+0.67
+
+20.12
+
+3.61
+
+68.07
+
+1.60
+
+1.45
+
+21.07
+
+3.03
+
+66.49
+
+1.83
+
+1.71
+
+DiffuScene [2024]
+
+18.48
+
+2.73
+
+62.62
+
+1.53
+
+1.16
+
+24.62
+
+8.39
+
+76.12
+
+1.65
+
+0.88
+
+25.78
+
+7.71
+
+68.22
+
+2.49
+
+1.29
+
+GLTScene [2024]
+
+19.80
+
+2.93
+
+65.34
+
+0.81
+
+0.62
+
+22.01
+
+7.26
+
+74.47
+
+2.25
+
+0.95
+
+20.94
+
+5.66
+
+67.79
+
+2.33
+
+1.83
+
+CasLayout (Ours)
+
+17.53
+
+1.28
+
+59.62
+
+0.95
+
+0.55
+
+18.14
+
+1.95
+
+65.53
+
+1.15
+
+0.40
+
+18.61
+
+1.96
+
+64.86
+
+1.61
+
+0.43
+
+CasLayout-G (Ours)
+
+17.17
+
+1.50
+
+60.51
+
+1.02
+
+0.38
+
+18.51
+
+2.38
+
+63.88
+
+1.15
+
+0.36
+
+18.66
+
+2.60
+
+62.47
+
+1.68
+
+0.44
+
+Table 2. Comparison of our method with existing approaches on layout generation without floor plan. Both our general model and the model trained without
+floor plan data achieve superior performance compared to other methods including ATISS [Paschalidou et al. 2021], DiffuScene [Tang et al. 2024], and
+InstructScene [Lin and Mu 2024], across various metrics.
+Bedroom
+
+Method
+FID
+
+↓
+
+KID
+
+↓
+×10 −3
+
+SCA
+
+↓
+%
+
+Livingroom
+
+TKL
+
+↓
+×10 −2
+
+IoU
+
+↓
+%
+
+FID
+
+↓
+
+KID
+
+↓
+×10 −3
+
+SCA
+
+↓
+%
+
+Diningroom
+
+TKL
+
+↓
+×10 −2
+
+IoU
+
+↓
+%
+
+FID
+
+↓
+
+KID
+
+↓
+×10 −3
+
+SCA
+
+↓
+%
+
+TKL
+
+↓
+×10 −2
+
+IoU
+
+↓
+%
+
+ATISS [2021]
+
+20.71
+
+2.01
+
+65.00
+
+0.87
+
+0.48
+
+25.54
+
+3.07
+
+71.87
+
+0.94
+
+0.58
+
+24.72
+
+3.24
+
+60.87
+
+0.86
+
+1.13
+
+DiffuScene [2024]
+
+19.75
+
+2.13
+
+62.90
+
+0.71
+
+0.46
+
+23.94
+
+2.69
+
+64.68
+
+0.88
+
+0.56
+
+24.07
+
+2.74
+
+65.70
+
+0.90
+
+0.75
+
+InstructScene [2024]
+
+20.03
+
+1.74
+
+56.36
+
+0.36
+
+0.49
+
+22.82
+
+2.03
+
+61.05
+
+0.39
+
+0.53
+
+21.76
+
+1.91
+
+64.30
+
+0.52
+
+0.61
+
+CasLayout (Ours)
+
+18.85
+
+1.35
+
+56.44
+
+0.26
+
+0.35
+
+21.67
+
+1.06
+
+58.33
+
+0.24
+
+0.37
+
+19.69
+
+0.66
+
+62.62
+
+0.60
+
+0.45
+
+CasLayout-G (Ours)
+
+19.27
+
+1.99
+
+59.46
+
+0.31
+
+0.33
+
+22.05
+
+1.88
+
+60.16
+
+0.39
+
+0.39
+
+19.85
+
+0.92
+
+61.59
+
+0.56
+
+0.50
+
+using an image classifier trained on rendered ground-truth and
+synthesized layouts.
+- OBB Intersection over Union (IoU) [Tang et al. 2024]: Quantifies spatial overlap between predicted and ground-truth OBBs.
+Following DiffuScene [Tang et al. 2024], FID, KID, and TKL are
+computed using both the training and test datasets as ground truth.
+Additional evaluation in terms of physical plausibility and layout diversity is provided in Appendix C.1 and Appendix C.4, respectively.
+Baselines. Given the varying training conditions of existing methods, we compare CasLayout in two scenarios: with floor-plan control and without it.
+- With floor plan: 3D-FRONT-trained models, including ATISS
+[Paschalidou et al. 2021], GLTScene [Li et al. 2024], and DiffuScene [Tang et al. 2024] , which utilize floor plan data for training, as well as LLM-based methods such as LayoutGPT [Feng
+et al. 2023]. For LayoutGPT, we substitute the original backend
+with GPT-4o [Achiam et al. 2023] and LLaMA-3.1-8B [Grattafiori
+et al. 2024] for comparison against modern reasoning standards.
+- Without floor plan: ATISS [Paschalidou et al. 2021], DiffuScene
+[Tang et al. 2024], and InstructScene [Lin and Mu 2024]. All
+methods are trained without floor plan conditioning.
+In Appendix C.2, we further compare CasLayout with the latest
+VLM-based method — LayoutVLM [Sun et al. 2025b], both quantitatively and qualitatively.
+
+4.2
+
+Evaluation
+
+We evaluate CasLayout on three tasks—scene generation, layout
+completion, and furniture rearrangement—under two settings: with
+and without floor-plan control. In the floor-plan-controlled setting,
+2D floor plans from the test set are provided as conditional inputs.
+For FID, KID, and SCA evaluations, both furniture items and the
+conditioned floor plans are rendered. In the without-floor-plan setting, scenes are generated without floor plan constraints, and only
+furniture items are rendered for metric computation.
+Layout Synthesis. The primary application of CasLayout is synthesizing plausible furniture layouts for empty rooms. Quantitative
+comparisons under various metrics are reported in Table 1 and
+Table 2. Under both settings (with and without floor plan conditioning), our method consistently outperforms all baselines across
+FID, KID, TKL, and SCA. Notably, our unified model achieves strong
+performance across all tasks without retraining, unlike competing
+methods, highlighting the robustness of our pipeline design and
+data augmentation strategy.
+Qualitative results with floor plan conditioning are shown in
+Fig. 6. Learning-based methods often produce overly compact placements in complex floor plans, leading to overlaps or underutilized
+space. LLM-based methods struggle to handle complex room geometries, frequently violating boundary constraints and placing objects
+out of bounds. In contrast, CasLayout tends to utilize available
+
+CasLayout : Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling
+
+LayoutGPT
+
+ATISS
+
+DiffuScene
+
+GLTScene
+
+•
+
+9
+
+Ours
+
+Fig. 6. Comparison with LayouGPT [Feng et al. 2023], ATISS [Paschalidou et al. 2021], DiffuScene [Tang et al. 2024], and GLTScene [Li et al. 2024] with floor
+plan condition. Our generated results almost completely avoid incorrect overlaps and out-of-bound placements, while making full use of the given space.
+
+ATISS
+
+DiffuScene
+
+InstructScene
+
+Ours
+
+Fig. 7. Qualitative comparison with SOTA methods, including ATISS [Paschalidou et al. 2021], DiffuScene [Tang et al. 2024], and InstructScene [Lin and Mu
+2024]. Our method demonstrates better local plausibility and clearer functional zoning.
+
+space more effectively while maintaining local coherence. Results
+without floor plan conditioning are shown in Fig. 7. Our sparse
+relation modeling reduces spurious interactions while preserving
+
+meaningful relationships within and across functional zones. Consequently, even without floor plans, generated layouts tend to exhibit
+distinguishable functional areas (e.g. , dining versus living regions)
+
+10
+
+•
+
+Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, and Yang Liu
+
+Table 3. User study results across different room types under w/wo floor
+plan settings. The results demonstrate that our generated scenes align
+significantly better with user preferences.
+
+Table 6. Rearrangement and completion without floor plan, where our
+approach achieves superior results compared to existing methods.
+Rearrangement
+
+Method
+LayoutGPT
+ATISS
+DiffuScene
+InstructScene
+GLTScene
+
+0.74%
+19.07%
+6.67%
+N/A
+9.44%
+
+N/A
+9.63%
+10.00%
+17.96%
+N/A
+
+CasLayout-G (Ours)
+
+64.07%
+
+62.41%
+
+Completion
+
+Method
+
+With Floor Without Floor
+
+FID
+
+KID
+
+SCA
+
+IoU
+
+FID
+
+KID
+
+SCA
+
+TKL IoU
+
+DiffuScene
+InstructScene
+
+26.35
+24.54
+
+6.40
+3.79
+
+72.31
+67.94
+
+0.78
+0.50
+
+33.85
+25.25
+
+6.89
+3.74
+
+75.38
+68.52
+
+2.67
+0.52
+
+Ours
+Our-G
+
+22.65 2.27 63.28 0.50
+22.41 2.11 64.57 0.47
+
+0.61
+0.37
+
+23.16 2.89 66.96 0.39 0.36
+21.11 1.78 64.19 0.38 0.36
+
+Table 4. Relational consistency between the output results and control
+conditions across different room types under w/wo floor plan settings, given
+an object list and a corresponding sparse relationship graph as inputs.
+Room Type
+
+Bedroom Livingroom Diningroom
+!
+
+#
+
+!
+
+#
+
+!
+
+#
+
+Obj. to Obj.
+
+Direction
+Distance
+Alignment
+Symmetry
+
+89.57
+91.81
+93.02
+94.92
+
+92.49
+93.48
+94.35
+95.08
+
+85.98
+88.87
+90.11
+92.93
+
+88.62
+90.07
+90.84
+93.04
+
+86.53
+89.66
+91.03
+92.56
+
+88.03
+90.82
+92.19
+92.96
+
+Obj. to Wall
+
+Distance
+
+89.89
+
+N/A
+
+88.42
+
+N/A
+
+88.91
+
+N/A
+
+Obj. to Door/Win. Distance
+
+94.80
+
+N/A
+
+91.67
+
+N/A
+
+92.08
+
+N/A
+
+Floor Condition
+
+Table 5. Comparisons of rearrangement and completion tasks guided by
+floor plan constraints, where our method significantly outperforms baseline
+approaches across various metrics.
+Rearrangement
+
+Completion
+
+Method
+FID
+
+KID
+
+SCA
+
+IoU
+
+DiffuScene
+
+28.60
+
+7.23
+
+72.87
+
+1.69
+
+Ours
+Our-G
+
+18.34 1.03 63.17 0.87
+18.97 2.04 62.41 0.80
+
+FID
+
+KID
+
+SCA
+
+TKL IoU
+
+23.04
+
+5.85
+
+76.93
+
+1.56
+
+0.85
+
+16.50 1.10 63.80 1.25 0.50
+16.71 1.74 63.63 1.08 0.46
+
+with semantically consistent object placement. Additional results
+are provided in Appendix C.6.
+We conduct a user study with 36 participants on two tasks: generation with and without floor plans. For the “With Floor Plan”
+task, each participant evaluated 15 cases (7 bedrooms and 8 living
+rooms) sampled from a pool of 2000 generated samples. Comparing
+CasLayout against LayoutGPT [Feng et al. 2023], ATISS [Paschalidou et al. 2021], DiffuScene [Tang et al. 2024], and GLTScene [Li
+et al. 2024] under identical floor plans, participants selected the
+best layout based on rationality (e.g. , collision avoidance) and floor
+plan consistency (e.g. , boundary respect). For the “Without Floor
+Plan” task, each participant evaluated 15 cases (5 each for bedrooms,
+living rooms, and dining rooms) against ATISS [Paschalidou et al.
+2021], DiffuScene [Tang et al. 2024], and InstructScene [Lin and Mu
+2024], focusing on layout rationality. As shown in Table 3, CasLayout receives substantially higher user preference than competing
+methods in both scenarios.
+
+Noisy Scenes
+
+Rearrangement
+
+Fig. 8. Qualitative comparisons of scene rearrangement are: the upper two
+rows correspond to completions without floor plan input, and the lower
+two rows correspond to completions with floor plan guidance.
+
+Furthermore, we analyze satisfaction rates for different relation
+categories across room types, both with and without floor plan
+constraints. As shown in Table 4, our method achieves relation
+compliance rates of approximately 90% or higher across diverse
+environments, indicating strong controllability.
+Furniture rearrangement. For rearrangement, we randomly initialize furniture placements within rooms and apply CasLayout and
+competing methods to reorganize the scenes. Rearranged layouts
+are sourced from the test dataset and compared against publicly
+available implementations of this application. Leveraging our modular pipeline, we execute only the final two diffusion stages, enabling
+efficient rearrangement. Quantitative results in Table 5 and Table 6
+show that CasLayout outperforms all baselines under both withfloor-plan and without-floor-plan settings. Qualitative examples in
+Fig. 8 further demonstrate coherent and visually appealing rearrangements, even for complex object configurations.
+Layout completion. For layout completion, partial scenes from the
+test dataset serve as conditional inputs. Our model infers missing
+furniture items and predicts their placement. As shown in Table 5
+
+CasLayout : Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling
+
+(a)
+
+•
+
+11
+
+(b)
+
+Fig. 10. Qualitative results of CasLayout trained on ScanNet layout data
+for a small cafeteria (a) and a classroom (b). Guided by sparse relationship
+graphs, CasLayout synthesizes plausible layouts even in scenes with a large
+number of objects.
+
+Ours
+
+InstructScene
+
+DiffuScene
+
+11 Chairs
+
+Partial Scenes
+
+Completion
+
+12 Chairs
+
+Fig. 9. Qualitative comparison of completion results, where the first two
+rows depict completions without floor plan guidance, and the last two rows
+show completions guided by floor plan information.
+Table 7. Comparison of average inference time per scene and generation
+quality across different methods. With the latest inference method, we can
+generate scenes of comparable quality in a significantly shorter time.
+↓
+ms
+
+Sampler (Steps)
+
+Time
+
+DDPM [2020] (1000)
+DPM-Solver++ [2025] (25)
+UniPC [2023] (15)
+
+1562.50
+40.95
+25.57
+
+FID
+
+↓
+
+18.51
+18.72
+18.57
+
+KID
+
+12 Chairs
+& 1 Table
+
+12 Chairs
+& 2 Tables
+
+↓
+×10 −3
+
+2.38
+2.56
+2.69
+
+Fig. 11. CasLayout is capable of generating plausible scenes based on outof-distribution object lists. Even when given input containing numbers of
+chairs and tables that exceed the dataset’s maximums, CasLayout produces
+reasonable and well-arranged results.
+
+and Table 6, CasLayout consistently delivers strong performance
+in both controlled and uncontrolled settings. Qualitative results in
+Fig. 9 illustrate that our method predicts plausible furniture types
+and produces arrangements that preserve functional coherence.
+Inference time. We evaluate inference acceleration for CasLayout. As shown in Table 7, incorporating recent diffusion sampling
+techniques [Lu et al. 2025; Zhao et al. 2023] achieves quality comparable to the 1000-step baseline using only 15–25 steps. On a single
+NVIDIA A6000 GPU, this takes approximately 25–40 milliseconds,
+effectively enabling real-time performance. Notably, the latency
+overhead introduced by the four cascaded stages is negligible. More
+detailed inference-time breakdowns for different applications are
+provided in Appendix C.3.
+Generalization to other scene types. To evaluate generalization
+beyond 3D-FRONT [Fu et al. 2021], we conduct experiments on
+ScanNet [Dai et al. 2017]. Using layouts extracted from ScanNet, we
+annotate scene graphs with our relationship extraction method and
+retrain CasLayout accordingly. As shown in Fig. 10, CasLayout
+
+3 Beds & 2 TV Stands
+
+16 Chairs & 4 Tables
+
+Fig. 12. Failure cases where the input object list deviates significantly from
+the training distribution, i.e. , excessive furniture count. CasLayout generates
+unreasonable layouts, with collisions marked by blue bounding boxes.
+
+produces plausible layouts with delineated functional zones even
+in scenes containing more objects, indicating that our relationship
+formulation and generation pipeline generalize to more complex
+indoor environments given appropriate training data.
+
+12
+
+•
+
+Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, and Yang Liu
+
+Local Editing
+
+Door Translation
+
+Door Repositioning
+
+Door Translation
+& Rotation
+
+Window Repositioning
+
+Removal
+
+Addition
+
+Fig. 13. Qualitative examples of editing: (Top) Modifying an object attribute
+and adjusting its surrounding local layout accordingly, without altering the
+region within the blue box. (Middle) Removing certain objects (highlighted
+by the orange box) and adapting the layout to fit the floor plan. (Bottom)
+Adding new objects while preserving the existing layout.
+Fig. 14. Layout variations in response to door or window changes under
+fixed control conditions. Doors are marked in blue, and windows in orange.
+
+Out of distribution object list. We further evaluate generalization
+under object lists that fall outside the training distribution. For example, although the training set contains only two scenes with 10
+chairs (and none with more than 10), we test inputs containing 11
+and 12 chairs. Benefiting from robust relation modeling, CasLayout generates plausible layouts, whereas InstructScene [Lin and
+Mu 2024] and DiffuScene [Tang et al. 2024] often yield disordered
+arrangements, as shown in Fig. 11. When inputs deviate substantially from the training distribution (e.g. , excessively large furniture
+counts), CasLayout may still produce unreasonable layouts with
+collisions, as illustrated in Fig. 12.
+
+4.3
+
+More Applications
+
+Layout editing. CasLayout enables users to interact with the four
+generation stages for flexible scene editing. Example applications
+include: modifying a single object and its surrounding local layout
+while preserving a specified region; removing certain objects and
+adjusting the remaining layout to accommodate the room structure;
+and inserting specified objects without altering the existing layout,
+while maintaining physical plausibility, as shown in Fig. 13.
+Architectural element control. CasLayout explicitly incorporates
+architectural elements (e.g. , walls, doors, and windows), allowing
+generated layouts to respect real-world constraints. As shown in
+Fig. 14, when door or window positions are modified while the
+surrounding floor plan remains unchanged, our system updates the
+scene accordingly and preserves sufficient walking space behind
+the modified element. This demonstrates sensitivity to local architectural changes and highlights practical applicability in real-world
+design workflows.
+
+LLM-guided scene generation. Leveraging the flexibility of our
+cascaded pipeline, we replace the first and third stages—both naturally expressible in language—with outputs from LLMs [Achiam
+et al. 2023]. Under carefully designed prompts, LLMs generate coherent furniture lists and spatial relations, while CasLayout applies
+learned priors to produce physically plausible layouts. Users provide
+prompts specifying task descriptions, room types, output formats,
+and in-context examples. The LLM first outputs a furniture list,
+which our diffusion model uses to generate sizes and geometric
+codes. The LLM then predicts key spatial relationships, which are
+encoded via the relation VAE to guide box layout diffusion. As illustrated in Fig. 15, this hybrid approach combines the semantic
+diversity of LLM outputs with the physical realism of diffusion models, demonstrating potential for scalable 3D scene generation under
+language-based supervision.
+Text-driven scene generation. With carefully designed prompts,
+CasLayout leverages LLMs [Achiam et al. 2023] to translate textual input into a sparse scene graph composed of object nodes and
+inter-object relations. The final scene is synthesized using the sparse
+graph-conditioned generation mechanism, producing layouts that
+follow the description while reasonably completing missing elements, as shown in Fig. 16.
+Image-driven scene generation. Similar to text-driven generation,
+CasLayout utilizes VLMs [Team et al. 2024] to parse objects and relations from input images to condition box layout diffusion (Fig. 17).
+Unlike the text-driven pipeline, CasLayout performs no extra completion to preserve fidelity to the visual input. Two design choices
+
+CasLayout : Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling
+
+•
+
+13
+
+Translation to Scene Graph
+
+Object Prompt
+
+Object LLM
+
+Furniture
+Property
+Diffusion
+
+Relation
+VAE
+
+Relation Prompt
+
+Relation LLM
+
+single_bed_1,
+nightstand_1,
+pendant_lamp_1,
+dressing_table_1,
+dressing_chair_1,
+wardrobe_1,
+tv_stand_1.
+
+Distance: {dressing_chair_1,
+dressing_table_1, attach to},
+Distance: {nightstand_1,
+single_bed_1, attach to},
+……
+Direction: {dressing_chair_1,
+dressing_table_1, front},
+Direction: {wardrobe_1,
+single_bed_1, left},
+……
+
+dining_table_1,
+dining_chair_1,
+...,
+dining_chair_6,
+cabinet_1,
+cabinet_2,
+wine_cabinet_1.
+
+Distance: {dining_chair_1,
+dining_table_1, attach to},
+Distance: {cabinet _1,
+dining_table_1, adjacnet},
+……
+Direction: {dining_table_1,
+dining_chair_1, front},
+Direction: {dining_table_1,
+cabinet _1, front},
+……
+
+LLM Output
+
+Box Layout
+Diffusion
+
+Fig. 17. Image-controlled layout generation. The control image is converted
+into a corresponding scene graph via an VLM. Conditioned on this translated
+graph, CasLayout can generate a consistent 3D scene.
+
+Output Scene
+
+Fig. 15. Integration with LLM. When LLM produces coherent and contextually appropriate outputs, CasLayout effectively translates these into spatial
+arrangements that honor the specified constraints.
+Translation to Scene Graph
+Place
+Place one
+one wardrobe
+wardrobe in
+in front
+front
+of
+of the
+the double
+double bed
+bed and
+and another
+another
+to
+to the
+the right
+right side.
+side. And
+And position
+position
+two
+two edge-aligned
+edge-aligned nightstands.
+nightstands.
+
+Place two edge-aligned
+loveseat sofas. And put a
+dining table to the distant left
+side of the love seat sofa.
+
+A wine cabinet to the right of
+the cabinet. And put a dining
+table with four dining chairs
+in front of the wine cabinet.
+
+Fig. 16. Text-controlled layout generation. The control text is converted into
+a sparse partial scene graph via an LLM. Conditioned on this translated
+graph, CasLayout can generate a plausible and complete scene.
+
+facilitate this: (1) local relation definitions allow VLMs to predict relations without global coordinate calibration; and (2) sparse graphs
+reduce complexity, mitigating potential VLM errors induced by
+dense relations.
+User-specified relation control. CasLayout employs sparse relation graphs for scene control, aligning with how humans describe
+object relationships. This design enables user-specified relation control by completing furniture lists and encoding sparse relation edges
+
+into relation latents. As shown in Fig. 18, across user-provided relation graphs of varying sparsity levels, CasLayout generates layouts
+that respect specified relationships while maintaining overall plausibility. The model can also complete missing scene elements and
+exhibits diversity, producing distinct yet valid arrangements under
+identical control signals.
+
+4.4
+
+Ablation Study
+
+We conduct a series of ablation studies on the living room dataset,
+chosen for its greater layout diversity, to evaluate key components
+of our design.
+Design of cascaded diffusion procedures. We compare our fourstage cascaded diffusion pipeline against three alternative designs:
+• I-Stage: A single-stage diffusion model that predicts all layout
+properties jointly. To implement this, we modify the furniture
+type diffusion network to add noise to furniture OBBs and feature
+embeddings during prediction.
+• II-Stage: A two-stage design that first predicts furniture types,
+followed by OBBs and feature embeddings.
+• III-Stage: A three-stage design that sequentially predicts furniture
+types, sizes and feature embeddings, translations, and rotations,
+but omits relation latent modeling.
+Quantitative results in Table 8 confirm the effectiveness of our cascaded design. In particular, the comparison with III-Stage highlights
+the importance of relation modeling in achieving high-quality 3D
+layouts.
+Cascade sequence. Given that the object list must be generated
+prior to object properties, and relations must precede OBB layout,
+there exists only one viable alternative to CasLayout’s generation
+sequence (Object → Property → Relation → OBBs): the Object →
+Relation → Property → OBBs order. As shown in Table 8, since
+relation definitions are correlated with object sizes, defining object
+properties before relations yields superior generation quality.
+Relation modeling: explicit vs. implicit. We further examine relation representations by comparing our sparse relation graph with
+
+14
+
+•
+
+Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, and Yang Liu
+
+right
+
+left
+
+Double Bed
+Nightstand * 2
+
+front
+
+front
+front
+
+distant
+
+front
+
+front
+
+front
+
+(a)
+
+left
+
+front
+
+front
+
+right
+edge
+align
+
+front
+
+edge
+align right
+
+front
+front
+front
+
+left
+front
+
+front
+
+Corner Side Table * 2
+Coffee Table
+
+TV Stand
+
+Dining Chair * 6
+Dining Table
+
+Corner Side Table * 2
+Coffee Table
+
+TV Stand
+
+(c)
+
+(b)
+
+Fig. 18. User-provided relation-controlled layout generation. Under varying densities of relational graphs, CasLayout is able to produce diverse results that
+conform to the given controls and reasonably complete the missing parts (marked by dashed lines) in the conditional graph.
+Table 8. Ablation studies of our proposed framework containing the cascaded generation procedure, implicit sparse relation modeling, and cotraining scheme.
+↓
+×10 −3
+
+SCA
+
+22.26
+21.03
+20.52
+
+6.23
+4.48
+3.71
+
+73.31
+74.94
+71.02
+
+19.04
+
+2.59
+
+67.13
+
+Method
+
+FID
+
+I-Stage
+II-Stage
+III-Stage
+
+Sequence Obj.-Rel.-Prop.-OBBs
+
+Cascade
+
+↓
+
+KID
+
+↓
+%
+
+Relation
+
+Dense-Relation
+Exp-Relation
+
+20.03
+19.61
+
+4.01
+3.54
+
+69.77
+70.19
+
+Training
+
+No Co-Training
+
+18.95
+
+3.07
+
+69.05
+
+Ours
+
+18.51
+
+2.38
+
+68.88
+
+Table 9. Ablation studies of our proposed VAE structure, which demonstrate
+the effectiveness of the in-out attention mechanism.
+
+Method
+Relation Definition Dense Graph
+In-Degree Only
+Out-Degree Only
+In-Out Mixing
+
+VAE Network
+
+Ours
+
+↑
+%
+
+Accuracy
+91.07
+97.38
+97.95
+98.19
+99.39
+
+a fully connected version (Dense-Relation), where every node pair
+is linked. As shown in Table 8, Training with dense graphs introduce complex dependencies that degrade layout quality. To assess
+explicit relation modeling, we replace our latent representation with
+an explicit relation graph following InstructScene [Lin and Mu 2024]
+(Exp-Relation). Results show that our implicit approach achieves
+stronger performance by compressing redundant information and
+reducing quadratic complexity to a linear latent representation.
+
+Co-training scheme. We ablate the co-training strategy between
+the relation VAE and box layout diffusion by training the VAE independently (No Co-Training). As shown in Table 8, this reduces
+synthesis quality, underscoring the importance of joint training for
+capturing relational structure.
+Relation definition: dense vs. sparse. To further validate graph sparsification, we compare the reconstruction accuracy of the VAE (with
+identical architecture) on both fully connected and sparse graphs,
+as shown in Table 9. Reconstruction accuracy for dense graphs is
+substantially lower than that for sparse graphs. Since relation reconstruction fidelity affects the quality of relation representations
+used for layout generation, these results suggest that dense graphs
+are harder to model and can degrade relation generation quality.
+In-out attention mechanism. We also evaluate the proposed inout attention mechanism in the relation VAE. Instead of two-step
+attention over in-degree and out-degree subgraphs, we combine all
+edges in a single cross-attention layer and increase block depth to
+match the parameter count. We also compare variants using only
+in-degree or only out-degree attention. Reconstruction errors on
+the test set (Table 9) show that in-out attention improves relation
+reconstruction quality, validating its effectiveness.
+Building elements: doors & windows. To validate the effectiveness
+of building element modeling, we compare the overlap between
+generated furniture layouts and the operational spaces (opening/closing zones) of architectural elements across different room types,
+both with and without these constraints. As shown in Table 10,
+incorporating architectural elements prevents generated layouts
+from obstructing the operation of doors and windows, improving
+physical plausibility.
+
+5
+
+Conclusion and Discussion
+
+We introduced CasLayout, a cascaded diffusion framework for
+controllable 3D furniture layout synthesis that achieves consistent
+performance across multiple tasks under both constrained and unconstrained settings. By decomposing layout generation into sequential stages and modeling spatial relations implicitly, our approach
+enables flexible scene control within a unified generative pipeline.
+
+CasLayout : Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling
+
+Table 10. Comparison of IoU with door/window operational spaces (w/wo
+building elements). Explicitly modeling building elements effectively prevents objects from obstructing the operation of doors and windows.
+Method
+With Building Elements
+Without Building Elements
+
+Bedroom Livingroom Diningroom
+18.91
+9.05
+
+25.43
+6.97
+
+17.20
+8.75
+
+Despite these advances, several challenges remain. The scarcity
+of large-scale annotated 3D scene datasets limits diversity and generalization, particularly in out-of-distribution or extreme scenarios,
+as illustrated in Fig. 12. While our decomposition strategy mitigates
+data scarcity by learning task-specific priors, improving robustness
+under distribution shifts remains an open problem. Promising directions include leveraging synthetic data generation, multi-modal
+learning, and image-to-3D pipelines to expand scene diversity. Furthermore, when severe errors are introduced in earlier generation
+stages, subsequent stages currently lack the ability to correct them
+(see the discussion in Appendix C.5).
+Furniture retrieval in our current pipeline relies on a fixed CAD
+library, which constrains stylistic diversity. Although this approach
+provides stable surface quality and geometric consistency compared
+to existing 3D generative models, future work could explore hybrid
+retrieval–generation strategies or integrate neural shape and texture
+synthesis to improve stylistic flexibility.
+In addition, our relational modeling currently focuses on pairwise
+interactions and does not capture higher-order or group relations
+commonly used in professional design workflows. Extending the
+framework to incorporate group-level relational structures may
+enable richer relational reasoning and improve layout coherence.
+Finally, our framework is currently designed for indoor furniture layouts. Extending it to outdoor scene generation—such as
+city blocks and urban planning—is a potential direction for future
+research, although relation definitions and generation stages will
+likely require adaptation to domain-specific design logic.
+
+References
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal
+Anadkat, et al. 2023. GPT-4 technical report. arXiv:2303.08774.
+Rio Aguina-Kang, Maxim Gumin, Do Heon Han, Stewart Morris, Seung Jean Yoo,
+Aditya Ganeshan, R Kenny Jones, Qiuhong Anna Wei, Kailiang Fu, and Daniel
+Ritchie. 2024. Open-universe indoor scene generation using LLM program synthesis
+and uncurated object databases. arXiv:2403.09675.
+Mikołaj Bińkowski, Danica J Sutherland, Michael Arbel, and Arthur Gretton. 2018.
+Demystifying MMD GANs. In International Conference on Machine Learning.
+Ronit Bustin and Ofer Shayevitz. 2021. On lossy compression of directed graphs. IEEE
+Transactions on Information Theory 68, 4 (2021), 2101–2122.
+Ata Çelen, Guo Han, Konrad Schindler, Luc Van Gool, Iro Armeni, Anton Obukhov,
+and Xi Wang. 2024. I-design: Personalized LLM interior designer. In ECCV 2024
+Workshops.
+Angela Dai, Angel X Chang, Manolis Savva, Maciej Halber, Thomas Funkhouser, and
+Matthias Nießner. 2017. Scannet: Richly-annotated 3D reconstructions of indoor
+scenes. In IEEE/CVF Conference on Computer Vision and Pattern Recognition. 5828–
+5839.
+Wei Deng, Mengshi Qi, and Huadong Ma. 2025. Global-local tree search in VLMs for
+3D indoor scene generation. In IEEE/CVF Conference on Computer Vision and Pattern
+Recognition. 8975–8984.
+Helisa Dhamo, Fabian Manhardt, Nassir Navab, and Federico Tombari. 2021. Graph-to3D: End-to-end generation and manipulation of 3D scenes using scene graphs. In
+International Conference on Computer Vision. 16352–16361.
+
+•
+
+15
+
+Shaoheng Fang, Haitao Yang, Raymond Mooney, and Qixing Huang. 2025. Text-guided
+interactive scene synthesis with scene prior guidance. In Comput. Graph. Forum,
+Vol. 44. Wiley Online Library, e70039.
+Weitao Feng, Hang Zhou, Jing Liao, Li Cheng, and Wenbo Zhou. 2025. CasaGPT: cuboid
+arrangement and scene assembly for interior design. In IEEE/CVF Conference on
+Computer Vision and Pattern Recognition. 29173–29182.
+Weixi Feng, Wanrong Zhu, Tsu-jui Fu, Varun Jampani, Arjun Akula, Xuehai He, Sugato
+Basu, Xin Eric Wang, and William Yang Wang. 2023. LayoutGPT: Compositional
+Visual planning and generation with large language models. In International Conference on Neural Information Processing Systems. 18225–18250.
+Matthew Fisher, Daniel Ritchie, Manolis Savva, Thomas Funkhouser, and Pat Hanrahan.
+2012. Example-based synthesis of 3D object arrangements. ACM Trans. Graph. 31, 6
+(2012), 135:1–135:11.
+Matthew Fisher, Manolis Savva, and Pat Hanrahan. 2011. Characterizing structural
+relationships in scenes using graph kernels. ACM Trans. Graph. 30, 4 (2011), 34:1–
+34:12.
+Huan Fu, Bowen Cai, Lin Gao, Ling-Xiao Zhang, Jiaming Wang, Cao Li, Qixun Zeng,
+Chengyue Sun, Rongfei Jia, Binqiang Zhao, and Hao Zhang. 2021. 3D-FRONT:
+3D furnished rooms with layouts and semantics. In International Conference on
+Computer Vision. 10933–10942.
+Rao Fu, Zehao Wen, Zichen Liu, and Srinath Sridhar. 2025. AnyHome: Open-vocabulary
+generation of structured and textured 3D homes. In European Conference on Computer
+Vision. 52–70.
+Lin Gao, Jia-Mu Sun, Kaichun Mo, Yu-Kun Lai, Leonidas J Guibas, and Jie Yang. 2023.
+SceneHGN: Hierarchical graph networks for 3D indoor scene generation with finegrained geometry. IEEE Trans. Pattern Anal. Mach. Intell. 45, 7 (2023), 8902–8919.
+Francesco Giuliari, Gianluca Scarpellini, Stefano Fiorini, Stuart James, Pietro Morerio,
+Yiming Wang, and Alessio Del Bue. 2024. Positional diffusion: Graph-based diffusion
+models for set ordering. Pattern Recognition Letters 186, C (2024), 272–278.
+Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan,
+et al. 2024. The LLaMA 3 herd of models. arXiv:2407.21783.
+Chris Grimley and Kelly Harris Smith. 2022. Universal Principles of interior design: 100
+ways to develop innovative ideas, enhance usability, and design effective solutions.
+Rockport Publishers.
+Maxim Gumin, Do Heon Han, Seung Jean Yoo, Aditya Ganeshan, R Kenny Jones,
+Kailiang Fu, Rio Aguina-Kang, Stewart Morris, and Daniel Ritchie. 2025. Procedural
+Scene programs for open-universe scene generation: LLM-free error correction via
+program search. In SIGGRAPH Asia. 141:1–141:11.
+Martin Heusel, Hubert Ramsauer, Thomas Unterthiner, Bernhard Nessler, and Sepp
+Hochreiter. 2017. GANs trained by a two time-scale update rule converge to a local
+NASH equilibrium. In International Conference on Neural Information Processing
+Systems. 6629–6640.
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. 2020. Denoising diffusion probabilistic
+models. In International Conference on Neural Information Processing Systems. 6840–
+6851.
+Xiaolin Hong, Hongwei Yi, Fazhi He, and Qiong Cao. 2024. Human-aware 3D scene
+generation with spatially-constrained diffusion models. arXiv:2406.18159.
+Siyi Hu, Diego Martin Arroyo, Stephanie Debats, Fabian Manhardt, Luca Carlone,
+and Federico Tombari. 2024. Mixed diffusion for 3D indoor scene synthesis.
+arXiv:2405.21066.
+Eric Jang, Shixiang Gu, and Ben Poole. 2016. Categorical reparameterization with
+Gumbel-Softmax. In International Conference on Learning Representations.
+Kotaro Kikuchi, Edgar Simo-Serra, Mayu Otani, and Kota Yamaguchi. 2021. Constrained
+graphic layout generation via latent optimization. In ACM Multimedia. 88–96.
+Kurt Leimer, Paul Guerrero, Tomer Weiss, and Przemyslaw Musialski. 2022. LayoutEnhancer: Generating good indoor layouts from imperfect data. In SIGGRAPH Asia
+Conference Papers. 27:1–27:8.
+Manyi Li, Akshay Gadi Patil, Kai Xu, Siddhartha Chaudhuri, Owais Khan, Ariel Shamir,
+Changhe Tu, Baoquan Chen, Daniel Cohen-Or, and Hao Zhang. 2019. GRAINS:
+Generative recursive autoencoders for indoor scenes. ACM Trans. Graph. 38, 2
+(2019), 12:1–12:16.
+Yijie Li, Pengfei Xu, Junquan Ren, Zefan Shao, and Hui Huang. 2024. GLTScene: Globalto-local transformers for indoor scene synthesis with general room boundaries. In
+Comput. Graph. Forum, Vol. 43. e15236.
+Chenguo Lin and Yadong Mu. 2024. InstructScene: Instruction-driven 3D indoor
+scene synthesis with semantic graph prior. In International Conference on Learning
+Representations.
+Gabrielle Littlefair, Niladri Shekhar Dutt, and Niloy J Mitra. 2025. FlairGPT: Repurposing
+LLMs for interior designs. Comput. Graph. Forum 44, 2 (2025), e70036.
+Minghua Liu, Ruoxi Shi, Kaiming Kuang, Yinhao Zhu, Xuanlin Li, Shizhong Han, Hong
+Cai, Fatih Porikli, and Hao Su. 2023. Openshape: Scaling up 3D shape representation towards open-world understanding. In International Conference on Neural
+Information Processing Systems, Vol. 36. 44860–44879.
+Cheng Lu, Yuhao Zhou, Fan Bao, Jianfei Chen, Chongxuan Li, and Jun Zhu. 2025. Dpmsolver++: Fast solver for guided sampling of diffusion probabilistic models. Machine
+
+

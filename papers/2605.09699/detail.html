@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Real-Calibrated Synthetic-First Data Engine - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>A Real-Calibrated Synthetic-First Data Engine</h1>
+  <div class="meta">
+    <span>Yukang Shen</span>
+    <span>2026-05-10</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.09699" target="_blank">arXiv:2605.09699</a>
+  </div>
+  <div class="tags">
+    <span class="tag">合成数据</span>
+    <span class="tag">数据引擎</span>
+    <span class="tag">扩散生成</span>
+    <span class="tag">数据筛选</span>
+    <span class="tag">数据为中心的AI</span>
+    <span class="tag">人体姿态估计</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>提出一个模块化的"真实校准-合成优先"数据引擎，将可控扩散生成与多阶段筛选过滤集成在统一流水线中，核心发现是合成数据作为真实数据的低成本增强物最有效（混合训练优于纯真实基线），但纯合成训练仍远低于真实性能。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>数据稀缺与合成数据</h4>
+        <p>在计算机视觉中，标注数据昂贵且耗时。人体姿态估计需要精确标注关键点，成本更高。扩散模型可以生成合成图像，但存在"模拟到现实"的鸿沟。</p>
+
+        <h4>数据为中心的 AI</h4>
+        <p>关注如何构建、筛选和管理训练数据，核心思想是：更好的数据 = 更好的模型，而非更好的模型架构。</p>
+
+        <h4>可控扩散生成</h4>
+        <p>使用 ControlNet 等技术，通过姿势骨架、边缘图、深度图等条件信号控制扩散模型的生成结果。</p>
+
+        <h4>领域鸿沟</h4>
+        <p>合成数据与真实数据在统计分布上的差异。即使用肉眼看起来很真实的合成图像，在模型的表征空间中可能与真实图像仍有差距。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>想象你在教一个学生认识动物。你只有 10 张真实照片。你可以请一位画家画出 100 张画，但有些画可能画得很奇怪。你需要一个机制来筛选这些画作。</p>
+        <p>这个"筛选机制"不能凭空想象——它需要以"什么是真实的"为标准。本论文的做法是：<strong>用那 10 张真实照片来校准筛选标准</strong>。不是用真实照片指导画家画什么，而是用真实照片告诉筛选器"什么样的画才是好的"。</p>
+        <p>这就是"真实校准"的含义——真实数据不是生成条件，而是参考锚点。就像用一把真尺子校准你的测量工具，然后用测量工具去筛选批量制造的产品。</p>
+        <p>核心结论是务实的：<strong>合成数据不能替代真实数据，但可以作为真实数据的低成本补充</strong>。这个结论看似保守，但是对"合成数据可以替代一切"炒作的重要纠偏。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 1：任务初始化与真实锚点收集</h4>
+        <p>收集一小批真实样本作为领域锚点，仅用于筛选参考统计量，不输入生成器。</p>
+
+        <h4>步骤 2：可控合成生成</h4>
+        <p>使用预训练扩散模型（无需微调），以提示词、姿态骨架、边缘图等结构化条件驱动生成。生成器是现成工具，不是需要训练的对象。</p>
+
+        <h4>步骤 3a：语义对齐筛选</h4>
+        <p>使用 SigLIP2 编码器计算 s<sub>sem</sub>(x) = score<sub>pos</sub>(E(x)) − score<sub>neg</sub>(E(x))。低于阈值的样本被淘汰。</p>
+
+        <h4>步骤 3b：结构有效性筛选</h4>
+        <p>通过 YOLO 检查人体边界框面积和关键点置信度，低于阈值的样本被淘汰。</p>
+
+        <h4>步骤 4：下游训练</h4>
+        <p>筛选后的合成数据与真实数据混合，用于训练 YOLOv11-pose 模型。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>合成池定义</h4>
+        <p>X<sub>syn</sub> = {x<sub>i,v</sub> | i ∈ {1,...,N}, v ∈ {1,...,K}}</p>
+        <p>i 是场景实例，v 是变化因子（姿势、光照等）。强调通过组合不同场景和变化条件来增加结构覆盖。</p>
+
+        <h4>筛选级联</h4>
+        <p>F<sub>T</sub> = F<sub>struct</sub> ∘ F<sub>sem</sub></p>
+        <p>先执行语义筛选，再执行结构筛选。这是一个高召回率验证器——尽量保留可能有用的样本。</p>
+
+        <h4>语义边缘分数</h4>
+        <p>s<sub>sem</sub>(x) = score<sub>pos</sub>(E(x)) − score<sub>neg</sub>(E(x))</p>
+        <p>用"边缘"而非仅用正分数，能更精确地衡量样本是否确实属于目标任务。好比判断一道菜好不好，不仅要看它像不像美食，还要看它不像什么难吃的东西。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>为什么选人体姿态估计？</h4>
+        <p>姿态估计需要精确的骨架关键点标注，手工标注成本高，且对合成数据的结构保真度有极高要求。这是一个对数据质量高度敏感的理想测试场景。</p>
+
+        <h4>五种训练条件的剥离式设计</h4>
+        <ul>
+          <li>A (仅真实) → 基线</li>
+          <li>B (仅原始合成) → 合成数据本身是否有用？</li>
+          <li>C (仅筛选合成) → 筛选能否弥补鸿沟？</li>
+          <li>D (真实+原始合成) → 增强价值检查</li>
+          <li>E (真实+筛选合成) → 增强+筛选联合效果</li>
+        </ul>
+
+        <h4>关键发现</h4>
+        <ul>
+          <li>纯合成训练远不如真实数据（0.449 vs 0.746），领域鸿沟严重</li>
+          <li>混合训练优于纯真实基线（0.761 vs 0.746），困难姿态上提升更显著（+5.7%）</li>
+          <li>筛选收益有限，E 略低于 D，可能因规模不足或筛选器质量</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图 1</strong>: 不同控制条件下的生成质量定性对比</li>
+          <li><strong>图 2</strong>: 数据引擎整体架构图</li>
+          <li><strong>图 3</strong>: 五种训练条件的姿态 mAP 柱状对比</li>
+          <li><strong>图 4</strong>: 五指标雷达剖面图</li>
+          <li><strong>图 5</strong>: 特征空间可视化（UMAP）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ol>
+          <li>筛选效果在当前规模下不显著，作者承认这是"规模依赖的设计选择"</li>
+          <li>HITL 功能虽已实现但未经过实验验证</li>
+          <li>整个实验只有约 2,000 张图像，规模有限</li>
+          <li>核心实验仅在人体姿态估计上完成，单任务为主</li>
+          <li>混合条件使用了更多训练图像，需要数据预算匹配的更公平比较</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.09699</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-05-10</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">计算机视觉 / 数据工程 / 合成数据</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">COCO body-pose 子集</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Pose mAP@0.5, mAP@0.5:0.95</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">混合训练最佳0.761 (↑2.1%), 纯合成仅0.449</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">五种训练条件：仅真实、纯原始合成、纯筛选合成、真实+原始合成、真实+筛选合成</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        这篇论文最值得称道的是它的<strong>诚实</strong>。在合成数据被大肆炒作的当下，作者清晰地指出"合成数据不能替代真实数据，只能作为低成本补充"。关于"筛选没有收益"的负面结果也毫不掩饰，坦诚地给出了可能的解释。这提醒我们：在很多情况下，简单的"生成更多数据"可能比复杂的筛选策略更有效。CLI 优先的模块化设计和选用 FiftyOne、Label Studio 等成熟工具的务实态度也值得学习。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

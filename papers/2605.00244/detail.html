@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucid-XR: An Extended-Reality Data Engine for Robotic Manipulation - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+.header .meta span { margin-right: 1.5rem; }
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.header .links a:hover { text-decoration: underline; }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.section-header:hover { background: var(--bg-alt); }
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+.section-body.hidden { display: none; }
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+.sidebar {}
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.sidebar-card .info-row:last-child { border-bottom: none; }
+.sidebar-card .info-label { color: var(--text-muted); }
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Lucid-XR: An Extended-Reality Data Engine for Robotic Manipulation</h1>
+  <div class="meta">
+    <span>Yajvan Ravan, Adam Rashid, Alan Yu, Kai McClennen, et al.</span>
+    <span>2026-04-30</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.00244" target="_blank">arXiv:2605.00244</a>
+  </div>
+  <div class="tags">
+    <span class="tag">扩展现实</span>
+    <span class="tag">机器人操作</span>
+    <span class="tag">合成数据引擎</span>
+    <span class="tag">零样本迁移</span>
+    <span class="tag">WebXR</span>
+    <span class="tag">MuJoCo</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>Lucid-XR 是一个将物理仿真搬到 XR 头显浏览器上的机器人数据引擎，通过 WebXR 实现互联网规模的众包数据采集，再结合生成式 AI 将低保真虚拟演示转化为多样化、逼真的多视角训练数据，实现策略在从未见过的杂乱真实环境中的零样本部署。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>扩展现实 (XR)</h4>
+        <p>XR 是 VR/AR/MR 的总称。XR头显（如 Apple Vision Pro、Meta Quest）可以在用户视野中叠加虚拟内容。Lucid-XR 将机器人仿真运行在 XR 设备的浏览器中，实现沉浸式遥操作。</p>
+        <h4>MuJoCo 与 WebAssembly</h4>
+        <p>MuJoCo 是一个广泛使用的物理仿真引擎，支持刚体动力学、柔性体、流体和SDF碰撞。WebAssembly 是高效的二进制指令格式，在浏览器中可以接近原生速度运行。通过将 MuJoCo 编译为 Wasm，Lucid-XR 在浏览器中实现了 90fps 的设备端仿真。</p>
+        <h4>姿态重定向</h4>
+        <p>将人类操作者的姿态映射到不同运动学结构的机器人上的过程。例如，人手姿态需要映射到二指夹爪或灵巧手上。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>核心愿景</strong>：将机器人数据采集变得像拍摄短视频一样简单——任何人都可以通过 XR 头显的浏览器访问虚拟环境，通过自然的手部动作演示机器人操作，这些数据自动转化为高质量训练数据集。</p>
+        <p><strong>类比</strong>：传统机器人数据采集就像电影实景特效——昂贵且耗时。Lucid-XR 就像电影制作转向数字特效。它更创新：让你在虚拟现实中像玩积木一样演示操作（绿幕前表演），然后用 AI 自动把"绿幕前的表演"渲染成"真实场景中的表演"。</p>
+        <p><strong>三大创新</strong>：</p>
+        <ul>
+          <li><strong>设备端物理仿真</strong>：MuJoCo → WebAssembly → XR浏览器，消除延迟，实现90fps</li>
+          <li><strong>通用姿态重定向</strong>：标记点绑定 + 逆运动学，无需自定义代码</li>
+          <li><strong>生成式数据增强</strong>：文本到图像生成，低保真→逼真多视角数据</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>vuer 框架</h4>
+        <p>仿真器无关的 XR 框架，核心是将 MuJoCo 编译为 WebAssembly 运行在 XR 设备浏览器中。设备端仿真消除了网络延迟（WiFi >17ms vs 本地 <12ms）。支持多物理场：刚体、柔性材料、流体力学、SDF碰撞。</p>
+        <h4>通用姿态重定向</h4>
+        <p>"搭便车手"机制——用户通过注视+点击激活远程控制点。标记点绑定实现人手到不同机器人的自动映射。支持动态任务（投篮球）和柔性物体操作。</p>
+        <h4>生成式数据增强</h4>
+        <p>语义掩码 + 深度图控制图像生成过程。ChatGPT生成多样化描述提示词。采集后支持快速修改相机位姿重新渲染。轨迹关键点变形 + 线性/球面插值生成新演示。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>延迟对比</strong>：服务器方案 = 手部姿态采集 + WiFi传输(>17ms) + 服务器仿真 + 渲染回传 → 总延迟通常>50ms。Lucid-XR = 手部姿态采集 + 本地仿真(<12ms) + 本地渲染 → 总延迟<12ms。</p>
+        <p><strong>姿态重定向</strong>：对齐近端关节 + 缩放手部尺寸 → 将指尖SE(3)位姿焊接到机器人对应标记点。扭矩尺度参数平衡位置和姿态追踪权重。</p>
+        <p><strong>数据扩增</strong>：选取关键点 → 随机平移/旋转 → 线性插值(位置) + SLERP(姿态) → 重放新轨迹 + 新相机位姿渲染</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>任务</strong>：积木堆叠、倒液体（颗粒流）、球分拣、打结（绳索自接触）、厨房清洗（大场景长周期）、挂杯子（SDF非凸碰撞）</p>
+        <p><strong>数据效率</strong>：30分钟内 Lucid-XR 采集量是真实遥操作的2倍；经过增强后有效数据集达5倍。原因：XR中复位只需按按钮。</p>
+        <p><strong>Sim-to-Real</strong>：在相同训练条件下，纯合成数据策略与真实数据策略性能相当。在修改视觉条件（光照、颜色、纹理）下，真实策略完全失效（0%），Lucid-XR策略保持高成功率（低杂乱90%/高杂乱25%）。</p>
+        <p><strong>Real-to-Sim</strong>：使用3D高斯扫描的真实厨房环境作为评估，Lucid-XR策略从未见过这些环境，表现优于纯仿真基线。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>: Lucid-XR 系统示意图——设备端仿真 + 生成式数据引擎</li>
+          <li><strong>图2</strong>: 系统流程图解</li>
+          <li><strong>图3</strong>: 设备端 vs 离设备仿真延迟对比（WiFi >17ms vs 本地 <12ms）</li>
+          <li><strong>图4</strong>: 浏览器中多种物理仿真（柔性、SDF、空气阻力、软皮肤）</li>
+          <li><strong>图5</strong>: 姿态重定向标记点绑定方案</li>
+          <li><strong>图8</strong>: 图像生成流水线——语义掩码 + 深度条件</li>
+          <li><strong>图9</strong>: 6种接触丰富操作任务</li>
+          <li><strong>图10</strong>: Lucid-XR vs 真实遥操作数据量对比（2x-5x）</li>
+          <li><strong>图11-12</strong>: Sim-to-Real 和 Real-to-Sim 评估结果</li>
+          <li><strong>表1</strong>: 厨房清理任务评估</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>当前需要手工创建基础3D场景，场景自动化生成能力有限</li>
+          <li>依赖单一文本提示驱动多视角图像生成，一致性有待改进</li>
+          <li>XR设备尚未普及到人人都有的程度</li>
+          <li>从"漂浮夹爪"采集的数据能否直接迁移到完整机器人形态仍需验证</li>
+          <li>生成数据的文本标签未充分利用作为额外监督信号</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.00244</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-30</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Robotics, XR, Data Engine</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">10-30分钟 XR 演示; 增强后 5x 扩展</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">任务成功率</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">合成≈真实; 视觉变化下 0% vs 90%/25%; 采集速度 2x-5x</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">ACT vs ACT+LucidSim; 真实 vs 合成</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">Lucid-XR 最吸引人的是愿景——"将机器人数据采集变得像拍短视频一样简单"。如果实现，可能从根本上改变机器人学的数据范式：成千上万用户通过 XR 头显在虚拟环境中演示各种操作任务，自动增强后用于训练机器人基础模型——与互联网规模数据如何推动 CV/NLP 进步如出一辙。从技术角度，将 MuJoCo 编译为 WebAssembly 运行在浏览器中是非常优雅的工程实现——用户只需要浏览器，不需要安装软件、不需要高性能服务器。与其它方法对比，Lucid-XR 的独特定位是"数据采集端"而非"数据生成端"，未来可与神经仿真翻译结合形成完整的数据引擎。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

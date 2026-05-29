@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Computers at Scale: 大规模合成计算机环境用于长周期生产力仿真 - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Synthetic Computers at Scale: 大规模合成计算机环境用于长周期生产力仿真</h1>
+  <div class="meta">
+    <span>Tao Ge, Baolin Peng, Hao Cheng, Jianfeng Gao (Microsoft)</span>
+    <span>2026年4月</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.28181" target="_blank">arXiv:2604.28181</a>
+  </div>
+  <div class="tags">
+    <span class="tag">Agent Simulation</span>
+    <span class="tag">Synthetic Environments</span>
+    <span class="tag">Long-Horizon</span>
+    <span class="tag">Productivity</span>
+    <span class="tag">AI Agents</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>本文提出大规模创建用户专属合成计算机环境的方法，在此环境中运行超过2000轮的长周期生产力仿真，产生丰富经验学习信号，显著提升agent在生产力场景中的表现。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>AI Agent的演进</h4>
+        <p>AI助手正从对话式问答发展到仓库级代码编程，再到能在整个计算机环境工作的长周期agent。这些agent需要跨越数小时甚至数天执行复杂生产力任务。</p>
+        <h4>生产力工作的特点</h4>
+        <ul>
+          <li><strong>上下文高度依赖</strong>：扎根于已有文件、项目历史、前期决策和合作者反馈</li>
+          <li><strong>长周期</strong>：典型生产力任务需要数天到数周</li>
+          <li><strong>协作性</strong>：需要与经理、同事、客户等多方协调</li>
+        </ul>
+        <h4>现有瓶颈</h4>
+        <p>真实agent轨迹难大规模收集（涉及隐私和商业机密），现有合成数据只创建独立任务，缺乏真实用户环境和上下文。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>训练实习生，光出考题不够。更好的方式是为他安排"工位"——配备工作电脑、项目文件、同事联系方式。然后给他分配数周项目，让他在真实环境中工作。</p>
+        <p>本文做的就是<strong>规模化创建"虚拟工位"，在上面训练AI agent</strong>。</p>
+        <h4>三层方法论递进</h4>
+        <ul>
+          <li><strong>从Persona到用户画像</strong>：简单角色描述 -> 详细用户档案（姓名、职务、项目、习惯等）</li>
+          <li><strong>从用户画像到计算机环境</strong>：规划目录结构、文件清单、依赖关系 -> 按序生成文件内容</li>
+          <li><strong>从计算机环境到长周期仿真</strong>：Setup Agent生成目标和合作者 -> Work Agent每周计划/每日执行 -> 完成交付物</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>Step 1: Persona驱动的用户档案生成</h4>
+        <p>LLM将Persona扩展为包含身份、职业背景、项目历史、合作者、工作习惯等的详细档案。</p>
+        <h4>Step 2: 计算机环境规划</h4>
+        <ul>
+          <li>文件系统策略：驱动器布局、存储模式、命名风格</li>
+          <li>文件系统规划：目录树、文件清单、依赖图（哪个文件引用哪个）</li>
+        </ul>
+        <h4>Step 3: 文件内容生成</h4>
+        <p>按依赖顺序生成：公共文件优先下载，用户文件由LLM agent使用工具创建。生成时参考依赖文件确保一致性。</p>
+        <h4>Step 4: 设置目标和协作环境</h4>
+        <ul>
+          <li>Setup Agent生成约一个月的工作目标（含具体交付物）</li>
+          <li>创建模拟合作者（经理、同事、客户等），配有私有参考文件</li>
+        </ul>
+        <h4>Step 5: 每周计划和每日执行循环</h4>
+        <p>Work Agent每周制定计划 -> 每日按时间表执行活动 -> 记录详细日志</p>
+        <h4>Step 6: 学习信号提取</h4>
+        <p>过程信号（搜索/规划/协作行为） + 结果信号（交付物rubric评分）</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键设计解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>依赖感知的文件生成</h4>
+        <p>使用拓扑排序（Kahn算法）确定文件生成顺序。无前驱节点先生成，每个生成的文件为下游依赖提供上下文，确保引用一致性。</p>
+        <h4>评估Rubric生成</h4>
+        <p>同一仿真运行5次 -> 每次裁判审查交付物起草rubric -> 合并5份为最终rubric。涵盖规格、交互、专业知识、参考、质量5个维度。</p>
+        <h4>仿真数据结构</h4>
+        <p>仿真前平均112文件/计算机，仿真后197文件。目录深度稳定（3.22 -> 3.25），说明agent在已有结构中扩展。DOCX占34.8%，XLSX 17.7%，PDF 10.9%，PPTX 4.5%。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>实验规模</h4>
+        <p>1000个Persona，覆盖多种职业分布（商业金融15.8%、技术13.7%、工程13.4%等）。每个Persona创建一个合成计算机。</p>
+        <h4>仿真统计</h4>
+        <ul>
+          <li>平均2272轮/仿真，最长3248轮</li>
+          <li>平均8.59小时运行时间/仿真</li>
+          <li>平均5.5个模拟合作者，31次通信</li>
+          <li>仿真前后文件增长约77%</li>
+        </ul>
+        <h4>资源释放</h4>
+        <p>释放100个合成计算机环境（50 Windows + 50 macOS），500个仿真的回顾分析报告。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>仅在1000个合成计算机上实验，更大规模有待验证</li>
+          <li>文件内容生成依赖LLM，质量受限</li>
+          <li>模拟合作者不如真实人类丰富和不可预测</li>
+          <li>每月目标可能与真实工作有偏差</li>
+          <li>rubric评估的自动化可靠性需验证</li>
+          <li>仿真时间长（8.59小时），规模扩展计算成本高</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.28181</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026年4月</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Agent Simulation, Synthetic Environments</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">1000 Synthetic Computers</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Turns, Runtime, File Count, Rubric Score</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">~2272 turns/run, ~8.59h, 197 files/computer</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">方法类型</span>
+        <span class="info-value">Technical Report / Methodology</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">这篇论文代表了AI agent训练数据合成的重要方向——从"合成任务"到"合成世界"。核心贡献不在于算法创新，而在于系统化的方法论来创建真实的用户特定计算机环境。最值得关注的是环境设计的细致程度：文件间依赖关系、版本历史、用户习惯、协作网络——这种"沉浸式"环境产生的训练信号比孤立任务丰富得多。"过程信号"的捕获（搜索、规划、修改、协作行为）对训练agent的"工作方法"非常有益。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

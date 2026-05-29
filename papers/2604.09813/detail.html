@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COVERT: Controllable and Verifiable Tool-Use Data Synthesis for Agentic Reinforcement Learning - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>COVERT: Controllable and Verifiable Tool-Use Data Synthesis for Agentic Reinforcement Learning</h1>
+  <div class="meta">
+    <span>Siyuan Xu, Shiyang Li, Xin Liu, Tianyi Liu, Yixiao Li, Zhan Shi, Zixuan Zhang, Zilong Wang, Qingyu Yin, Jianshu Chen, Tuo Zhao, Bing Yin</span>
+    <span>2026-04-10</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.09813" target="_blank">arXiv:2604.09813</a>
+  </div>
+  <div class="tags">
+    <span class="tag">reinforcement learning</span>
+    <span class="tag">tool use</span>
+    <span class="tag">data synthesis</span>
+    <span class="tag">oracle-preserving</span>
+    <span class="tag">LLM</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>COVERT 提出了一种两阶段合成数据流水线，先生成可靠的基础工具调用轨迹，再通过"保留最优解"（oracle-preserving）的增强策略系统性地增加环境复杂度，从而为强化学习提供可自动计算奖励的训练环境，显著提升大语言模型在工具调用场景下的鲁棒性。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>大语言模型（LLM）工具调用能力</strong>：现代大语言模型不仅需要回答问题，还需要调用外部工具（API、计算器、代码解释器等）来获取实时信息或执行操作。例如，一个模型可能需要调用天气 API 来回答"今天上海下雨吗？"。</p>
+        <p><strong>监督微调（SFT）</strong>：传统上，训练模型使用工具的方法是收集大量"用户提问 -> 工具调用 -> 工具返回结果 -> 最终回答"的示例数据，让模型模仿这些示例。</p>
+        <p><strong>强化学习（RL）</strong>：与 SFT 不同，RL 让模型自己尝试调用工具，然后根据结果的好坏给予奖励或惩罚。这种方式可以让模型学会更复杂的策略，但它需要一个可以执行工具调用的环境和可靠的奖励信号。</p>
+        <p><strong>RLVR（Verifiable Rewards RL）</strong>：一种强化学习范式，其中奖励可以通过规则自动计算（例如判断答案是否正确），而不需要人工标注。</p>
+        <p><strong>验证数据合成的挑战</strong>：为 RL 合成工具使用数据面临两难——既要合成足够多样化的场景（包含各种干扰、噪声、错误情况），又要确保知道"正确解"是什么，这样才能自动计算奖励。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>COVERT 的核心洞察可以用一个比喻来理解：想象你在训练一个厨师（LLM）做菜。传统的 SFT 方式是给厨师看菜谱，照着做就好。但如果要训练厨师应对复杂情况——冰箱里有多余的食材（干扰工具）、客人说"我想吃那个红红的圆的东西"（模糊查询）、炉子偶尔会熄火（工具输出错误）——SFT 就无能为力了。</p>
+        <p>COVERT 的做法是：<strong>先让厨师在简单环境下做菜（基础轨迹生成），确保他会最基本的菜式。然后在一个模拟厨房里，系统性地制造各种意外情况，但厨师手里始终有一份"标准答案"——无论环境怎么变，最正确的做菜步骤和最终菜品质量是已知的。</strong> 这样，当厨师在模拟厨房里练习时，系统可以自动判断他做得好不好。</p>
+        <p>核心的"保留最优解"（Oracle-Preserving）原则是：在增加环境复杂度时，确保正确的工具调用步骤（c*）和最终答案（a*）保持不变，这样模型在复杂环境中的表现就可以通过简单的参考匹配来评估。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一阶段：可靠基础轨迹生成</h4>
+        <p><strong>步骤 1：种子池初始化。</strong> 从一个手动精心挑选的小型工具使用轨迹集合开始（种子池），每个轨迹包含：系统提示(s)、用户查询(u)、可用工具集(T)、最优工具调用(c*)、工具输出(o*)、最终答案(a*)。</p>
+        <p><strong>步骤 2：自进化生成。</strong> 每轮从种子池随机采样一个轨迹作为上下文示例，让 LLM 根据工具规范、多样性指令和示例生成新的候选轨迹。通过验证的轨迹被添加回种子池。</p>
+        <p><strong>步骤 3：多层次验证。</strong> 每个候选轨迹通过三个检查器：格式检查器（检查结构标签和 JSON 有效性）、规则检查器（检查参数约束和类型）、语义检查器（LLM 判断工具选择是否合理）。</p>
+        <p><strong>步骤 4：多样性指令。</strong> 维护一个异质提示元素池（工具领域、参数类型、参数数量等），每轮随机组合，确保覆盖广泛的工具使用场景。</p>
+        <h4>第二阶段：Oracle-Preserving 增强</h4>
+        <p>六种增强类型：<strong>（1）干扰工具</strong>——添加语义相似但无关的工具；<strong>（2）查询改写</strong>——变为间接模糊表达；<strong>（3）多格式解析</strong>——工具输出嵌入日志或改变格式；<strong>（4）噪声输出</strong>——添加冗余/错误标记；<strong>（5）错误输出</strong>——工具返回错误消息，期望模型检测异常（需 Judge 辅助）；<strong>（6）问题查询</strong>——模拟无关、不需要工具或缺少参数的查询。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>奖励函数</strong>：R(τ) = λ_fmt · r_fmt(τ) + λ_cor · r_cor(τ, m_k)</p>
+        <p>整体奖励 = 格式奖励（检查标签和JSON有效性）+ 正确性奖励（根据增强类型计算）。</p>
+        <p><strong>两种正确性验证模式</strong>：</p>
+        <ul>
+          <li><strong>精确验证（Exact）</strong>：直接比较模型输出与最优解(c*)和正确答案(a*)，确定性的参考匹配。</li>
+          <li><strong>Judge 辅助验证（Judge-Assisted）</strong>：用轻量级 LLM（Qwen2.5-Instruct-7B）判断模型行为是否符合特定能力目标。</li>
+        </ul>
+        <p><strong>多轮交互</strong>：r_cor = (1/T) * Σ r_cor^(t)，对每一轮的正确性取平均。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>基准选择</strong>：BFCL v3（最权威的函数调用评测）和 ACEBench（综合性工具使用评估），覆盖单轮、多轮、并行调用及干扰工具场景。</p>
+        <p><strong>通用能力监控</strong>：LiveCodeBench（代码）、AIME/Math500/GSM8K（数学）、MMLU-Pro（知识）、IFEval（指令遵循）、GPQA（科学推理）。</p>
+        <p><strong>模型与基线</strong>：Qwen2.5-Instruct-7B/14B 为基础模型，对比 TOUCAN-SFT 基线。</p>
+        <p><strong>关键结果</strong>：</p>
+        <ul>
+          <li>14B 上 BFCL v3 +3.4，ACEBench +6.3</li>
+          <li>最大提升在增强目标类别：无关检测 +11.9，特殊任务 +14.2</li>
+          <li>SFT+RL 堆叠取得最佳效果，证明两者互补</li>
+          <li>通用能力几乎无退化（最大 -1.0），而 SFT 基线退化严重</li>
+          <li>多轮和智能体任务未提升，符合预期</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>：COVERT 流水线总览——阶段 I 自进化生成 + 阶段 II oracle-preserving 增强</li>
+          <li><strong>图2</strong>：阶段 I 详细流程——提示构建、LLM 生成、多层次检查、种子池扩展</li>
+          <li><strong>图3</strong>：Oracle-preserving 增强示例——从基础轨迹在查询和工具环境中注入扰动</li>
+          <li><strong>表1</strong>：六种增强类型及其修改组件、保留 oracle、可控参数和验证器类型</li>
+          <li><strong>表2/3/5</strong>：BFCL v3 和 ACEBench 详细准确率对比</li>
+          <li><strong>表4</strong>：通用能力基准测试结果</li>
+          <li><strong>图5</strong>：训练奖励曲线</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>多轮交互能力有限</strong>：模拟环境主要针对短到中等长度交互，未模拟紧密耦合的状态依赖关系。</li>
+          <li><strong>Judge 辅助验证非确定性</strong>：部分增强依赖 LLM Judge，其决策非确定，尚未进行系统的人类一致性研究。</li>
+          <li><strong>环境复杂度覆盖有限</strong>：当前六种扰动能覆盖常见场景，但真实世界可能包含更复杂的交互模式。</li>
+          <li><strong>与其他方法隔离比较</strong>：因训练数据、工具集和提示协议的差异，未与 ToolRL/ToolZero 直接比较。</li>
+          <li><strong>通用能力轻微退化</strong>：虽然可接受，但在某些基准存在轻微下降。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.09813</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-10</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">reinforcement learning, tool use</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">BFCL v3, ACEBench</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">工具调用准确率</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">14B: BFCL 56.5→59.9, ACEBench 53.0→59.3</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Qwen2.5-Instruct, TOUCAN-SFT</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        COVERT 的核心贡献在于"oracle-preserving"设计原则——将环境扰动与标准答案解耦，使得在复杂环境中也能自动计算奖励。该思路对各种 RL 训练场景都有借鉴意义。值得注意的是，COVERT-RL 在提升工具鲁棒性的同时几乎没有损害通用能力，与 SFT 的退化形成鲜明对比，表明 RL 作为后期精调策略更适合在特定技能和通用能力间取得平衡。多轮任务未提升的根因在于——轮次越多，"最优动作"越难定义。未来扩展到多轮场景可能需要分层 oracle。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

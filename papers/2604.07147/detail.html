@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Context Evolution for Scalable Synthetic Data Generation - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Dynamic Context Evolution for Scalable Synthetic Data Generation</h1>
+  <div class="meta">
+    <span>Ryan Lingo, Rajeev Chhajer</span>
+    <span>2026-04-08</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.07147" target="_blank">arXiv:2604.07147</a>
+  </div>
+  <div class="tags">
+    <span class="tag">合成数据</span>
+    <span class="tag">模式坍缩</span>
+    <span class="tag">动态上下文</span>
+    <span class="tag">语义记忆</span>
+    <span class="tag">尾部采样</span>
+    <span class="tag">LLM多样性</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>提出动态上下文演化（DCE）框架，通过口头化尾部采样（VTS）、语义记忆和自适应提示演化三种机制解决 LLM 在批量生成中的跨批次模式坍缩问题，在三个领域上实现 0% 的坍缩率（朴素基线 5.6%），每次生成仅需约 $0.50/千条。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>跨批次模式坍缩</h4>
+        <p>本文定义的新现象。当 LLM 被反复独立提示（每次清空上下文）时，生成内容的多样性逐渐丧失——相同或高度相似的概念反复出现。前 30 批主题多样，到第 50 批开始重复，到第 200 批时 34% 与前 50 批近乎重复。</p>
+
+        <h4>口头化概率估计</h4>
+        <p>让 LLM 自我评估其输出内容的"可预测性"。不要求严格校准的概率，只要提供概念间的相对排序即可。</p>
+
+        <h4>语义去重与 HDBSCAN</h4>
+        <p>将文本嵌入向量空间后计算余弦相似度来判断语义重复。HDBSCAN 是一种不预设聚类数量的密度聚类算法。</p>
+
+        <h4>温度缩放与核采样</h4>
+        <p>标准 token 级别多样性控制方法。本文测试的 gpt-5-mini API 不暴露这些参数，使得 token 级别干预不可用。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>DCE 用三种互补策略解决"创意枯竭"问题：</p>
+        <ol>
+          <li><strong>VTS（口头化尾部采样）</strong>：每次想出创意，让模型自评"别人是否也能轻易想到"？太容易想到的就丢弃。</li>
+          <li><strong>语义记忆</strong>：维护"创意数据库"，防止不同批次的语义重复。</li>
+          <li><strong>自适应提示演化</strong>：每次生成前回顾记忆库，引导模型聚焦尚未探索的概念领域。</li>
+        </ol>
+        <p>三者的组合效果是 1+1+1 > 3：VTS 过滤显而易见的，去重防止重复，提示演化主动引导新方向。单独任何一个不够，三者合力消除模式坍缩。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 0：初始化</h4>
+        <p>τ=0.10, δ=0.85, B=200 批次, n=5 候选/批。前 40% 探索，后 60% 利用。</p>
+
+        <h4>步骤 1：构造提示</h4>
+        <p>根据记忆状态（最新 10 个创意、密集区域、类别分布）和轮换策略构造生成提示。</p>
+
+        <h4>步骤 2：VTS 过滤</h4>
+        <p>LLM 同时输出自我评估概率 P<sub>i</sub>，P<sub>i</sub> ≥ τ 的丢弃。</p>
+
+        <h4>步骤 3：语义去重</h4>
+        <p>嵌入为 1536 维向量，与记忆库中所有嵌入比较余弦相似度，max ≥ δ 的丢弃。</p>
+
+        <h4>步骤 4-5：更新记忆 + 循环</h4>
+        <p>通过筛选的创意存入 ChromaDB。重复直到完成所有批次。</p>
+
+        <h4>四种轮换策略</h4>
+        <ul>
+          <li><strong>Gap Targeting</strong>：定位创意最少的类别</li>
+          <li><strong>Assumption Inversion</strong>：反转近期创意的隐含假设</li>
+          <li><strong>Cross-industry Stimulus</strong>：从无关领域引入类比</li>
+          <li><strong>Constraint Variation</strong>：施加极端约束跳出默认假设</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>有效多样性体积 (EDV)</h4>
+        <p>EDV<sub>batch</sub> = (1/n) Σ<sub>i</sub> [(1 − P<sub>i</sub>) × min<sub>j∈M</sub>(1 − cos(e<sub>i</sub>, e<sub>j</sub>))]</p>
+        <p>衡量每批生成的两个维度：</p>
+        <ul>
+          <li><strong>深度</strong> (1 − P<sub>i</sub>)：创意有多"令人惊讶"</li>
+          <li><strong>广度</strong> min(1 − cos(e<sub>i</sub>, e<sub>j</sub>))：与已有创意的差异程度</li>
+        </ul>
+        <p>乘法形式是刻意的：深度和广度必须都高才能得高分。仅新颖但雷同，或独特但明显，都会得到低分。</p>
+
+        <h4>坍缩率</h4>
+        <p>后 50 批中与先 50 批存在近重复（cosine > 0.85）的创意比例。0% 表示持续的概念原创性。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>三领域的难度梯度</h4>
+        <ul>
+          <li>可持续包装（4% 坍缩）→ 易</li>
+          <li>创意写作（8.4% 坍缩）→ 中</li>
+          <li>教育考试（34% 坍缩）→ 难</li>
+        </ul>
+
+        <h4>消融设计的关键发现</h4>
+        <ul>
+          <li>去重是实现 0% 坍缩的必要条件</li>
+          <li>提示演化增加概念广度（DCE 18 簇 vs 去重-only 9 簇）</li>
+          <li>VTS 和去重互补不重叠（96.9% VTS 拒绝的创意语义新颖）</li>
+          <li>Claude Haiku 受益更大（去重拒绝率从 30.1% 降至 11.0%）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图 1</strong>: DCE 系统架构图</li>
+          <li><strong>图 2</strong>: 第 100 批的简化提示示例</li>
+          <li><strong>图 3</strong>: 第 10 批 vs 第 190 批的提示演化对比</li>
+          <li><strong>图 4</strong>: 四种多样性策略示例</li>
+          <li><strong>图 5</strong>: EDV 过滤空间二维示意图</li>
+          <li><strong>图 6</strong>: 朴素 vs DCE 的新颖度和簇数变化</li>
+          <li><strong>图 7</strong>: 200 批 EDV 变化轨迹</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ol>
+          <li>VTS 概率估计未严格校准，只能提供相对排序</li>
+          <li>去重依赖嵌入模型质量</li>
+          <li>实验规模限于 1,000 个创意，更大规模未知</li>
+          <li>模型自我评估可能有偏见</li>
+          <li>下游任务验证有限（仅 DeBERTa 分类器）</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.07147</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-08</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">自然语言处理 / 合成数据 / LLM</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">可持续包装 / 教育考题 / 创意写作提示</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">EDV, 坍缩率, HDBSCAN簇数</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">DCE坍缩率 0.0% vs 朴素 5.6%; EDV保持 23.6%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Naive, VTS only, Dedup only, Prompt evo only 等 7 种</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        DCE 是一个"巧妙而务实"的解决方案——它没有提出新架构或训练方法，而是通过系统性的工程手段解决了 LLM 合成数据中的实际问题。VTS 的设计特别有意思：让模型评估自己创意的"可预测性"，利用了 LLM 对自身输出分布的隐式知识。三种机制各自简单但组合效果显著。"每次约 $0.50/千条"的成本非常吸引人。特别欣赏跨模型验证——DCE 在"本来就爱重复"的 Claude Haiku 上反而更有价值（去重拒绝率降 19 个百分点）。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

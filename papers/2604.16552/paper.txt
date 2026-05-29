@@ -1,0 +1,1078 @@
+Co-generation of Layout and Shape from Text via
+Autoregressive 3D Diffusion
+Zhenggang Tang1,2∗ , Yuehao Wang1,3∗ , Yuchen Fan1 , Jun-Kun Chen1,2 , Yu-Ying Yeh1 , Kihyuk Sohn1 ,
+Zhangyang Wang3 , Qixing Huang3 , Alexander Schwing2 , Rakesh Ranjan1 , Dilin Wang1,† , Zhicheng Yan1,†
+1
+∗
+
+Meta Reality Labs, 2 University of Illinois Urbana-Champaign, 3 University of Texas at Austin
+equal contribution, † project lead
+
+arXiv:2604.16552v2 [cs.CV] 29 Apr 2026
+
+Recent text-to-scene generation approaches largely reduced the manual efforts required to create
+3D scenes. However, their focus is either to generate a scene layout or to generate objects, and few
+generate both. The generated scene layout is often simple even with LLM’s help. Moreover, the
+generated scene is often inconsistent with the text input that contains non-trivial descriptions of the
+shape, appearance, and spatial arrangement of the objects. We present a new paradigm of sequential
+text-to-scene generation and propose a novel generative model for interactive scene creation. At the
+core is a 3D Autoregressive Diffusion model 3D-ARD+, which unifies the autoregressive generation
+over a multimodal token sequence and diffusion generation of next-object 3D latents. To generate
+the next object, the model uses one autoregressive step to generate the coarse-grained 3D latents in
+the scene space, conditioned on both the current seen text instructions and already synthesized 3D
+scene. It then uses a second step to generate the 3D latents in the smaller object space, which can
+be decoded into fine-grained object geometry and appearance. We curate a large dataset of 230K
+indoor scenes with paired text instructions for training. We evaluate 7B 3D-ARD+ on challenging
+scenes, and showcase the model can generate and place objects following non-trivial spatial layout
+and semantics prescribed by the text instructions.
+
+1. Position the bed frame
+at the center of the scene.
+2. Place the quilt
+over the bed and the
+carpet under the bed.
+3. Place the light modern
+nightstand with drawers
+on the carpet, to the
+left side of the bed
+4. Place the modern nightstand with drawers
+on the carpet, to the right side of the bed
+
+5. Position the light-blue
+table lamp on the top surface
+of the left nightstand,
+towards its back-left corner
+
+6. Position the light-blue
+table lamp on the top surface
+of the right nightstand,
+towards its back-right corner
+7. Arrange the decorative
+floral arrangement on the duvet
+of the bed, towards the foot of
+the bed
+
+Figure 1 We present a 3D Autoregressive Diffusion model 3D-ARD+ to sequentially generate 3D objects from detailed
+
+text instructions, which not only describe the object shape and appearance, but also prescribe complex spatial relations
+between objects. 3D-ARD+ model generates a bedroom scene (left: occupancy voxel, right: appearance) precisely
+following the text instructions.
+
+1
+
+Introduction
+
+The creation of immersive 3D scenes is crucial in gaming (UKCMA., 2022; Bhat et al., 2025; Hu et al., 2024;
+Li et al., 2025), virtual reality (Siddiqui et al., 2024; Zhou et al., 2024a, 2025c), and simulation for embodied
+AI (Yang et al., 2024c,b; Nasiriany et al., 2024; Deitke et al., 2022; Szot et al., 2021). This scene creation
+process is often interactive, where the user can compose a scene by sequentially adding objects with custom
+shape, appearance, and spatial arrangement. Conventional workflows (Amirkhanov et al., 2025; Schönberger
+1
+
+et al., 2016) often involve a time-consuming process that requires 3D artists to manually compose the scene,
+create detailed object geometry, and set up texture mapping. To reduce manual efforts, various text-to-scene
+approaches are proposed to synthesize 3D scenes from text input (Yang et al., 2024c; Li et al., 2024; Zhou
+et al., 2024b; Yang et al., 2024a; Bokhovkin et al., 2025; Ling et al., 2025; Zhou et al., 2025b; Wang et al.,
+2025b; Yang et al., 2025; Zhu et al., 2025), including models for layout generation (Tang et al., 2024a), and
+object generation conditioned on layout (Zhang et al., 2024b; Hu et al., 2024; Yan et al., 2024; Wu et al.,
+2024). However, fewer methods generate both (Vilesov et al., 2023; Fang et al., 2025).
+For scene layout generation, earlier methods generate scene layout natively, but are limited to the layout of
+large objects only (e.g. sofa) and simple spatial relations, such as 2D layout (Fang et al., 2025) and basic
+relations (e.g. a chair next to the table) (Tang et al., 2024a; Vilesov et al., 2023). They often do not handle
+more complex spatial relations, such as Position the table lamp on the top surface of the right nightstand,
+towards its back-right corner (Figure 1). More recent methods (Zhang et al., 2024b; Wang et al., 2025b; Zhou
+et al., 2025b; Feng et al., 2023; Fu et al., 2024; Yang et al., 2024c; Li et al., 2024; Hong et al., 2025) exploit
+LLM (Hurst et al., 2024; Ouyang et al., 2022) to extract scene information from text input and generate a
+rough layout, which, however, often deviates from the text description, does not satisfy spatial relations, and
+needs further heuristic optimization based on spatial constraints and object interactions (e.g. Scene motif
+in (Pun et al., 2025), refinement in AnyHome (Fu et al., 2024)).
+To generate objects conditioned on the scene layout, simple methods retrieve 3D assets from external
+sources (Tang et al., 2024a; Yang et al., 2024b; Ling et al., 2025), which, however, often leads to the final
+scene inconsistent with the textual description. Advanced methods distill 3D representation from multi-view
+2D images (Yang et al., 2024a; Zhang et al., 2024b; Vilesov et al., 2023) or decode 3D representation from 3D
+latent codes generated by diffusion models (Wu et al., 2024; Yan et al., 2024). However, generated objects are
+often limited to a predefined set of object categories (Fang et al., 2025; Bokhovkin et al., 2025; Yan et al.,
+2024) or lack geometric details compared to text input (Wu et al., 2024).
+To support the interactive scene creation with detailed object shape and appearance, we propose a novel 3D
+AutoRegressive Diffusion model (3D-ARD+) to natively generate objects with diverse shapes and non-trivial
+spatial arrangements according to the sequential text input. When the text input prescribes fine details about
+the shape, appearance, and spatial relations of objects, we show that it is challenging for existing approaches,
+while our 3D-ARD+ model performs significantly better. The 3D-ARD+ model processes the text instructions
+sequentially. Each text instruction describes the shape, appearance and placement of a new object, and our
+3D-ARD+ model autoregressively generates the placement, fine-grained geometry, and appearance of the new
+object.
+Under the hood, for each text instruction, our model processes the text tokens encoded from all seen text
+input, and the 3D latents (Xiang et al., 2025) of the current scene to predict the 3D latents of the next object
+in the large scene. A subsequent generation step is used to generate the 3D latents of the new object in the
+smaller object space, which can be decoded into fine-grained 3D Gaussians. The newly generated object is
+tokenized and appended to the multimodal token sequence to condition the future object generation in an
+autoregressive manner. The 3D-ARD+ model adopts the DiT transformer architecture (Peebles and Xie,
+2023) with causal attention between text- and 3D tokens, and unrestricted attention between 3D tokens.
+To train the 3D-ARD+ model, we curated a proprietary dataset consisting of 230K indoor scenes. We prompt
+a VLM to generate step-by-step text instructions to mimic the scene creation process. On the evaluation
+set, which contains 50 sets of text instructions for composing non-trivial multi-object scenes, we extensively
+compare our 3D-ARD+ model with several competing methods (Huang et al., 2025b; Xiang et al., 2025), and
+validate the 3D-ARD+ model performs significantly better in preserving the spatial relations and generating
+object geometry and appearance, even when object scale varies largely.
+We summarize our contributions as follows:
+• We present a new paradigm for compositional text-to-3D generation through an autoregressive 3D diffusion
+transformer, facilitating sequential object placement to synthesize complex scenes.
+• We propose a co-generation approach of layout and shape based on our autoregressive 3D diffusion modeling
+to achieve fine-grained generation results.
+
+2
+
+3D Asset
+
+Text Tokens
+3D VAE Latents
+
+Gen. Tokens
+
+3D VAE Latents
+
+Und. Tokens
+Multi-modal Transformer
+
+3D VAE Encoder,
+Noise Injection
+
+Text Tokenizer
+
+<|BOS|> Place
+the tall display
+pedestal at
+center. <|EOS|>
+
+𝜖𝑡1
+
+Instruction 1
+
+Occupancy
+Volume of
+Object 1
+
+3D VAE Encoder,
+Patchification
+
+3D VAE Encoder,
+Noise Injection
+
+Text Tokenizer
+
+<|BOS|>
+Position the
+plant on the top
+surface. <|EOS|>
+
+Instruction 2
+
+…
+
+3DGS
+Decoder
+3D VAE
+Decoder
+
+𝜖𝑡2
+Occupancy
+Volume of
+Object 2
+
+Latents
+
+Figure 2 Overview of 3D-ARD model for coarse-grained scene generation. Left: at training time, the model takes text
+
+tokens, 3D understanding tokens, and noised 3D generation tokens as input, and predicts a time-dependent noise.
+Right: at inference time, the model iteratively transforms a random noise into 3D latents, which can be decoded by 3D
+VAE decoder and 3D Gaussian (3DGS) decoder to generate a 3D object for each step.
+
+• We develop a data pipeline to collect and process a large dataset of 230K indoor scenes with paired sequential
+text-scene data, enabling large-scale training of our 3D generation model.
+
+2
+
+Related Work
+
+2.1
+
+Text-to-3D Generation
+
+Early Text-to-3D approaches generate 3D objects by distilling 2D diffusion priors (Rombach et al., 2022; Peebles
+and Xie, 2023), without any 3D training data, including DreamFusion (Poole et al., 2023), Luciddreamer (Wang
+et al., 2023b), and many others (Lin et al., 2023; Wang et al., 2023a; Zhu et al., 2024; Liang et al., 2024). Multiview diffusion models (Shi et al., 2024b; Liu et al., 2024; Tang et al., 2024b; Long et al., 2024) directly generate
+pose-consistent image views, which can be used to reconstruct 3D objects either via optimization (Long et al.,
+2024) or another multi-view transformer (Tang et al., 2025). Recent 3D generative models (Nichol et al.,
+2022; Jun and Nichol, 2023; Xiang et al., 2025; Zhang et al., 2024a) learn to directly map text to 3D latents
+or explicit 3D representations but are not capable of distinguishing individual objects and preserving the
+spatial arrangement prescribed in the text. It is still challenging to apply such Text-to-3D approaches to the
+task of interactive multi-object scene generation, where the user still needs to manually place the generated
+individual objects into the 3D scene.
+
+2.2
+
+3D Indoor Scene Generation
+
+Indoor scene generation approaches often leverage LLMs (Ouyang et al., 2022; Hurst et al., 2024), 2D (Podell
+et al., 2023; Rombach et al., 2022), and 3D generative models (Poole et al., 2023; Xiang et al., 2025). While
+some are focused on scene layout generation, others focused on generating objects or both. For scene layout
+generation, autoregressive (Paschalidou et al., 2021) and diffusion (Tang et al., 2024a; Fang et al., 2025)
+models are often used to generate a scene code and 3D object attributes. CG3D (Vilesov et al., 2023) uses
+a diffusion model for compositional 3D object generation, but is often limited to modeling simple spatial
+relations. With the tremendous advances in LLMs, many work exploit them for scene layout generation (Feng
+et al., 2023; Zhang et al., 2024b; Wang et al., 2025b; Zhou et al., 2025b; Yang et al., 2024c; Li et al., 2024;
+Hong et al., 2025; Çelen et al., 2024; Ran et al., 2025). Although LLMs improve the scene diversity, the result
+is often not well aligned with the text input and requires further optimizations (Yang et al., 2024c; Çelen
+et al., 2024; Ran et al., 2025). AnyHome (Fu et al., 2024) prompts the LLM to convert the input text into
+structured representations, but still rectifies the room layout by Score Distillation Sampling (Poole et al.,
+2023). HSM (Pun et al., 2025) uses a VLM to extract room type and objects from the text, but still needs
+multiple steps to generate the final layout, such as extracting support region, generating scene motif and
+optimizing the room layout. Our 3D-ARD+ model natively generates the next object conditioned on the seen
+3
+
+text instructions and already generated objects, and thus places the next object in the scene consistent with
+the input.
+To create 3D objects in the scene, (Tang et al., 2024a; Yang et al., 2024b; Ling et al., 2025) retrieve 3D assets
+from asset libraries (Deitke et al., 2023b,a), but it lacks coherence to text instruction or between objects.
+Instead, recent works generate 3D objects (Yang et al., 2024a; Zhang et al., 2024b; Vilesov et al., 2023; Wu
+et al., 2024; Yan et al., 2024; Fang et al., 2025; Bokhovkin et al., 2025). BlockFusion (Wu et al., 2024) and
+SceneFactor (Bokhovkin et al., 2025) generate 3D objects holistically as a scene, thus lacking geometric details
+for individual objects, and requiring further refinement. SceneCraft (Yang et al., 2024a) reconstructs 3D
+NeRF representation from multi-view images. CG3D (Vilesov et al., 2023), DreamScene (Li et al., 2024)
+generate 3D objects with variants of score distillation sampling (Poole et al., 2023). In contrast, our 3D-ARD+
+generates 3D latents, which can be decoded into 3D representation (e.g., 3D Gaussian) of individual objects
+in the scene step-by-step, thereby maintaining the fine-grained details and high fidelity.
+With the rise of video diffusion models (VDMs), generating 3D scenes from images or videos has been studied.
+ArtiScene (Gu et al., 2025) extracts 3D attributes from isometric scene layouts and generates 3D objects
+via image-to-3D model. StarGen (Zhai et al., 2025), HunyuanWorld-Voyager (Huang et al., 2025a) propose
+long-range, pose-controllable VDMs whose frames can be turned into 3D Gaussian splats. However, these
+two-stage approaches are susceptible to error accumulation, and the quality of 3D reconstruction is limited by
+the fidelity of the intermediate images or videos.
+
+2.3
+
+Multimodal Generative Models
+
+Since the success of visual generation models based on the text prompt (Ramesh et al., 2021; Saharia et al.,
+2022; Rombach et al., 2022; Dai et al., 2023), it has been studied to generate visual contents beyond the text
+input, such as reference images. Earlier work focused on building a specialized model for each set of reference
+images (Gal et al., 2023; Ruiz et al., 2023). However, such approaches are expensive and limited to making
+reference to only a few concepts.
+Following the success of LLMs, multimodal generative models are introduced (Hurst et al., 2024; Comanici
+et al., 2025; Zhou et al., 2025a; Team, 2024; Shi et al., 2024a; Chen et al., 2025; Xie et al., 2025; Pan et al.,
+2025; He et al., 2025; Wang et al., 2025a; Wu et al., 2025a; Deng et al., 2025; Zhang et al., 2026). Compared to
+earlier works based on fine-tuning, multimodal generative models are fast and flexible, as they take multimodal
+inputs (e.g. reference image) in an in-context manner to generate multimodal outputs. Chameleon (Team,
+2024), ILLUME (Wang et al., 2025a), MUSE-VL (Xie et al., 2025), and Janus-family (Wu et al., 2025a; Chen
+et al., 2025) employ a discrete image tokenizer so that both text and vision modalities can be modeled using
+a single autoregressive transformer. On the other hand, Transfusion (Zhou et al., 2025a), LMfusion (Shi
+et al., 2024a), MetaQuery (Pan et al., 2025) and Bagel (Deng et al., 2025) develop models by combining the
+best of both worlds, where the discrete (e.g. text) token is processed using next-token prediction, while the
+continuous (e.g. image) token is processed via diffusion. The proposed 3D-ARD+ is inspired by the latter
+that combines next-token prediction and diffusion for multimodal generation, but is designed to generate 3D
+representation directly from our autoregressive-diffusion model.
+
+3
+
+Method
+
+We tackle the task of sequential text-to-scene generation, and the goal is to generate individual objects in
+a multi-step process based on sequential text instructions, which often prescribes the shape, appearance,
+functional use and spatial arrangement of the new object at each step. We do not generate walls, floors and
+ceilings since they can be easily generated by prior methods (Raistrick et al., 2024; Yang et al., 2024c; Fu
+et al., 2024; Pun et al., 2025).
+We propose a novel 3D Autoregressive Diffusion model 3D-ARD for coarse-grained scene generation (Figure 2),
+and further extend it into a 3D-ARD+ model for fine-grained scene generation (Figure 4). Both are trained
+using a diffusion objective (Liu et al., 2023). We address three key challenges below. 1): How to build a
+model to generate the next object with coarse shape and appearance conditioned on the text input and the
+already synthesized 3D scene (if any)? In Section 3.1, we present the 3D-ARD model architecture. 2): How to
+4
+
+generate objects with fine geometric details and appearance when the object size varies and the scene is often
+much larger? In Section 3.2, we present an extended 3D-ARD+ model for refining the object geometry using
+extra refinement steps. 3) The lack of training data with paired scene and sequential text input. In Section 3.3,
+we introduce our data pipeline to curate a large-scale indoor scene dataset with paired text instructions.
+
+3.1
+
+3D-ARD: Autoregressive 3D Diffusion
+
+We denote the sequential text instructions as {Tt }N
+t=1 where N is the total steps. The text instruction Tt
+for generating the next object often not only describes the shape and appearance of the object, but also its
+spatial arrangement. An example from Figure 1 is “Position the light-blue table lamp on the top surface of the
+right nightstand, towards its back-right corner.” Therefore, the next-object generation should be conditioned
+on all seen text instructions and the already synthesized 3D objects (if any). Inspired by Transfusion (Zhou
+et al., 2025a), we build a multi-modal transformer model that simultaneously processes text tokens XtT , 3D
+understanding tokens XtU and 3D generation tokens XtG at each step t.
+We tokenize the text string Tt into a sequence of discrete tokens with the BAGEL tokenizer (Deng
+et al., 2025), and use standard embedding layers to convert tokens into vectors Embed(Tt ) of dimension C.
+At each step, we concatenate text tokens of all seen text instructions to obtain XtT .
+Text tokens.
+
+At training time, for each of the existing objects {Ot′ }t−1
+t′ =1 in the step t, we take a
+3D binary volume Vt′ ∈ {0, 1}M ×M ×M , which represents the occupancy of object Ot′ in the whole scene, and
+use a VAE encoder to encode it into low-resolution 3D latents St′ ∈ RD×D×D×CS . To reduce the number of
+tokens, we process St′ using a patchification layer with non-overlapping patches of size 2, followed by a linear
+projection layer to align with the text embedding dimension C. The 3D understanding tokens XtU include
+tokens of all existing objects.
+3D understanding tokens.
+
+Inspired by TRELLIS (Xiang et al., 2025), the occupancy of an object in the scene can
+be represented by a list of active voxels {pi }L
+i=1 , where pi is the position index of a voxel, and L the total number
+M ×M ×M
+of active voxels. The sparse voxels {pi }L
+,
+i=1 are converted into a dense binary 3D volume V ∈ {0, 1}
+D×D×D×CS
+which is further encoded by a 3D VAE encoder into low-resolution 3D latents S ∈ R
+. During
+model training, we obtain the 3D generation tokens in the current step by applying patchification with a
+patch size of 1 and linearly projecting a noised version of S into XtG . Note the generation tokens will be later
+denoised and decoded to predict the occupancy of next object in the scene.
+3D generation tokens.
+
+We train the 3D-ARD model on a curated training dataset (Section 3.3) with paired scene
+and sequential text instructions. Over the generation steps {t}, we autoregressively predict the denoised
+3D latents of individual objects, which can be decoded into a 3D occupancy volume V in the scene. Unlike
+Transfusion (Zhou et al., 2025a), which predicts both text token and image patches and thus applies objectives
+on all output tokens, our goal is to generate the next object in the scene. Therefore, we apply diffusion
+objective to the denoised 3D generation tokens only. Specifically, we model the 3D latents distribution using
+the Rectified flow model (Liu et al., 2023), where in the forward pass a noised sample is obtained based on a
+time-dependent linear interpolation x(s) = (1 − s)x0 + sϵ between a clean sample x0 (which is S in our case)
+and a random noise ϵ. In the backward pass, the noised sample is denoised according to a time-dependent flow
+v(x, s), which is approximated by the transformer backbone trained with the flow matching objective below.
+Training recipe.
+
+L(θ) = Es,x0 ,ϵ ∥vθ (x, s) − (ϵ − x0 )∥22
+
+(1)
+
+where θ denotes the learnable parameters.
+The majority of the 3D-ARD model’s parameters θ are with the multimodal transformer
+backbone, which consists of 28 blocks with self-attention (Peebles and Xie, 2023). To explicitly reveal different
+types of tokens in the sequence, we insert BOS and EOS tokens to denote the beginning and end of text tokens.
+Similarly, we insert BO3D and EO3D tokens for 3D understanding and generation tokens. We implement a
+3D-ARD transformer.
+
+5
+
+Scene Space
+
+Conditions: 3D und. tokens of
+object 1, 2, …, 2t-1
+
+Object Space
+
+Zoom-in of conditions
+at step 2t-1
+
+Generation: object generated in
+object space at step 2t
+
+Figure 4 Fine-grained object generation in 3D-ARD+ model. 3D-ARD+ model generates 3D latents in the object space to
+
+obtain more fine-grained geometry.
+
+generalized causal attention between three types of input tokens (Figure 3). For text tokens, it uses standard
+causal attention, including attention to the text tokens and 3D understanding tokens from earlier steps.
+For 3D understanding tokens, it uses the standard
+causal attention to text tokens, but unrestricted
+attention to themselves, allowing every understanding token to attend to every other understanding
+token in the scene. For 3D generation tokens, it
+uses a standard causal attention to text and 3D
+understanding tokens, since the generation of next
+object should be conditioned on all seen text and already synthesized objects. They have unrestricted
+attention to themselves, allowing every generation
+token to attend to every other generation token.
+
+Text
+3D Generation
+3D Understanding
+
+At inference time, for each text
+instruction Tt , we first sample a random noise ϵ as
+x(1), and iteratively follow the approximate flow
+Figure 3 The generalized causal attention used by 3D-ARD
+vθ (x, s), conditioned on all past text tokens and
+model. Tokens along the horizontal and vertical directions
+3D understanding tokens, to update the sample
+are input and output tokens, respectively.
+x(s) until we obtain a denoised sample x(0). We
+decode x(0) into a binary volume V via a 3D VAE
+decoder to denote the occupancy of the object in the scene. To obtain the geometry and appearance of the
+final object, we extract the active voxels {pi }L
+i=1 from V , iteratively denoise a randomly initialized noise by
+running the off-the-shelf TRELLIS 3D VAE decoder based on sparse flow transformer (Xiang et al., 2025)
+conditioned on the current object text description to obtain the structured latent {(zi , pi )}L
+i=1 , which can be
+decoded into 3D Gaussians using the TRELLIS 3DGS decoder (See Figure 1).
+Model inference.
+
+3.2
+
+3D-ARD+: Fine-grained Scene Generation
+
+Due to computational constraints, the resolution of the generated object in the scene space V ∈ {0, 1}M ×M ×M
+is limited (M =64 in our experiments), resulting in only coarse-grained object geometry for common objects
+(Figure 7 Top). To address this limitation, we extend the 3D-ARD model by adding an extra step to generate
+3D latents of the same resolution D×D×D in the smaller object space after each current generation step, and
+the resulting model is referred to as 3D-ARD+ model. It uses a generation process of 2N steps for sequential
+text instructions {Tt }N
+t=1 (Figure 4). Below, we present details on how to prepare tokens at even steps {2t},
+where fine-grained objects are generated.
+At an even step 2t, we take text tokens of the instruction Tt already prepared at the step 2t − 1,
+as well as two new special tokens BOR and EOR, which denote the beginning and end of refinement text, as
+Text tokens.
+
+6
+
+1). Front View Selection
+
+2). Captioning
+Plant
+Laptop
+
+3). Spatial Reasoning
+
+4). Assembly Plan
+
+On the
+table, left
+
+On the table,
+right
+
+3. Place the
+laptop on the
+left side of
+the table
+
+At center
+
+In front of
+the table
+
+1. Place the table
+at the center
+
+4. Place the plant
+to the right of
+the laptop
+
+√
+Table
+
+Ergonomic
+Chair
+
+2. Position
+the ergonomic
+chair in front
+of the table
+
+Figure 5 Dataset construction pipeline includes four steps: (1) Front view selection, (2) Captioning, (3) Spatial reasoning,
+
+and (4) Generating assembly plan.
+
+the text tokens at the step 2t.
+At an even step 2t, we first prepare 3D understanding tokens from all past odd
+steps {2t′ − 1}tt′ =1 as in Section 3.1. For all past even steps {2t′ }t−1
+t′ =1 , we take the groundtruth dense binary
+3D volume V2t′ in the object space, and use a 3D VAE encoder to encode it into a low-resolution 3D latents
+S2t′ . Similar to Section 3.1, latents S2t′ are further patchified and linearly projected to reduce the token
+numbers and align the feature dimension.
+3D understanding tokens.
+
+To prepare 3D generation tokens, we take the groundtruth binary occupancy volume V
+in the object space, encode it into low-resolution 3D latents S via a 3D VAE encoder, and apply the Rectified
+Flow time-dependent linear interpolation to obtain a noisy latent. As in Section 3.1, We further patchify the
+latents with a patch size of 1 and apply a projection to obtain the 3D generation tokens.
+3D generation tokens.
+
+3D-ARD+ model at both odd and even generation steps also attaches the conditional flow
+matching objective (Equation 1) to the denoised 3D generation tokens to train the transformer backbone.
+Model training.
+
+Similarly to the inference of the 3D-ARD model in Section 3.1, the 3D latents generated in
+the local object space are decoded into a binary occupancy volume V , where the active voxels with normalized
+coordinates are extracted to be used by the TRELLIS 3D VAE based on sparse flow transformer to generate
+structured latents. To put the fine occupancy volume in the scene space, we first calculate the bounding box
+of the coarse one and then transform the fine one accordingly.
+Model inference.
+
+3.3
+
+Dataset Construction
+
+To enable sequential scene generation, we construct a high-quality indoor dataset with step-wise assembly
+instructions. The raw data is from a proprietary indoor dataset, which consists of parts of a scene but lacks
+assembling instructions. To generate the instructions, our data pipeline consists of four main stages (Figure 5).
+Given multi-view renderings of each object group, we leverage a VLM to identify the
+canonical front view that maximizes visual informativeness while minimizing occlusion. The model analyzes
+specific cues such as furniture orientation (e.g. cabinet doors, bed headboards) to determine the optimal
+viewing angle for subsequent labeling.
+Step 1: View selection.
+
+For each object in the scene, we generate multi-granularity textual descriptions by
+presenting the VLM with both the complete scene view and individual object-focused views. The captions
+capture essential attributes including object type, material properties, color, geometric characteristics, and
+critically structural elements that support other objects.
+Step 2: Object captioning.
+
+7
+
+…
+Object id 1
+Position a
+brown wooden
+bookshelf at
+the center
+
+2
+Position a stack of
+books on the 2nd layer
+from the top, within the
+leftmost compartment
+
+3
+… to the
+right of
+object 2
+
+7
+
+8
+
+9
+
+… on the
+top layer,
+leftmost
+
+… on the top
+layer, to the
+right of object 7
+
+… on the top
+layer, to the
+right of object 8
+
+Final Scene
+
+Figure 6 An example of step-by-step generation. Our 3D-ARD+ model closely follows the text instructions and adds a
+
+total of 8 stacks of books to different compartments in a bookshelf.
+
+We incorporate 3D bounding box data (including dimensions, center
+positions, and spatial extents) to provide a precise geometric context for this spatial reasoning step. A
+top-down visualization is also generated to facilitate it.
+Step 3: Spatial relationship analysis.
+
+Combining the visual observations, object captions, geometric context, and
+spatial reasoning, the VLM generates a sequential assembly plan consisting of step-by-step instructions that
+specifies the placement order from foundational objects to dependent components.
+Step 4: Assembly plan generation.
+
+4
+
+Experiments
+
+4.1
+
+Implementation Details
+
+We implement our approach in PyTorch (Paszke et al., 2019). We use the dense binary occupancy volume
+V ∈ {0, 1}M ×M ×M with resolution M =64 to represent the occupancy of objects in the scene space or the
+smaller object space. An off-the-shelve 3D VAE from TRELLIS (Xiang et al., 2025) is used to encode V
+into a low-resolution continuous volume S ∈ RD×D×D×CS , where D = 16 and CS = 8. All text tokens, 3D
+understanding tokens, and 3D generation tokens use the feature dimension 128.
+3D-ARD+ model training. We use pre-trained multimodal transformer model from Bagel (Deng et al., 2025),
+which contains 7B active parameters and 28 self-attention building blocks. We finetune it on our curated
+indoor data for 120K steps with learning rate 1e − 4 using 128 Nvidia H100 GPUs for a week. The maximum
+token size per sequence is 20,480.
+
+KV pairs of text tokens for all seen text instructions are stored in the KV
+cache (Pope et al., 2022). KV pairs of denoised 3D generation tokens are also stored. We utilize the Euler
+sampler for generation, employing 50 sampling steps. The CFG coefficient (Ho and Salimans, 2022) is set to 4
+for text conditions and 2 for 3D condition tokens, following the configurations in (Deng et al., 2025).
+3D-ARD+ model inference.
+
+Our dataset consists of 230K indoor scenes from typical room types (bedrooms, living
+rooms, kitchens, dining areas, bathrooms). Each scene contains 2–15 parts with diverse compositions: adjacent
+furniture (e.g. bed with nightstands), furniture-object assemblies (e.g. table with tableware), or grouped small
+objects. Each scene is normalized together to be within the unit bounding box. Each part has a corresponding
+assembly instruction (several to 40 words) describing its spatial placement. We also include a single object
+data with 1M assets in our training data to enrich object-level diversity.
+Indoor training data.
+
+4.2
+
+Evaluation Settings
+
+We construct a held-out testing data by filtering out a subset of 50 unseen text instructions in the training
+data for challenging scene composition tasks. These scenes span diverse room types (e.g. kitchen, bedroom,
+living room), varying spatial scales (from groups of large furniture to groups of small objects), and different
+object counts, ensuring comprehensive coverage of compositional complexity and spatial reasoning challenges.
+8
+
+3D-ARD
+
+3D-ARD+
+
+Figure 7 Comparing results from 3D-ARD and 3D-ARD+ models. Top: coarse-grained; Bottom: fine-grained.
+
+Our evaluation set consists of sequential text instructions captioned by a VLM, as detailed in Section 3.3. See
+examples in the appendix.
+
+4.3
+
+Baselines
+
+We choose the largest Text-to-3D model TRELLIS (Xiang et al., 2025) as a baseline, which
+is open-sourced with 2B parameters. To prepare the text input, we use a VLM to summarize all steps into
+one instruction.
+TRELLIS-text XL.
+
+MIDI (Huang et al., 2025b) is a recent image-to-scene model to generate
+multi-object scenes by segmenting the scene image using Grounded-SAM (Ren and et al., 2024), and applying
+a multi-instance diffusion model (Huang et al., 2025b). To prepare the image input, we summarize all text
+instructions into an overall description of the scene, and use a text-to-image model to generate a scene image.
+MIDI: Multi-Instance Diffusion.
+
+We reuse the 3D bounding boxes in the test set. Then we use the TRELLIS-text XL model
+to generate 3D objects from object captions, and fit the generated object to the bounding box afterwards.
+BB.+TRELLIS.
+
+In this baseline, we first use the text instructions to prompt a LLM for generating
+detailed object captions and predicting 3D bounding boxes. Then we use the TRELLIS-text XL model to
+generate actual 3D objects from those captions, rescale and position each to fit its bounding box.
+LLM-layout+TRELLIS.
+
+4.4
+
+Qualitative Results
+
+Figure 6 demonstrates how 3D-ARD+ enables creation of a compositional scene by following a sequence of text prompts. As shown in the results, 3D-ARD+ follows text
+instructions at each step, and can generate object shape and appearance close to the text instructions while
+also placing the object based on the prescribed spatial arrangement.
+3D-ARD+ sequential generation results.
+
+In Figure 9, we qualitatively compare our 3D-ARD+ model with four baselines
+as our primary evaluation. TRELLIS-text XL will hallucinate unrelated objects (e.g. paper towel in row
+1) or generate objects inconsistent with the text input (e.g. more than expected pillows in row 2). MIDI
+requires an image aligned with the text as the input. We empirically observe that when images generated
+from text instructions by a VLM are used as input, MIDI may still fail to produce plausible object shapes
+and placements. See more details in the supplementary. For BB.+TRELLIS, it is difficult to avoid object
+collision after placing individual objects, generated by TRELLIS-text XL, into the scene according to the
+groundtruth bounding box (e.g. row 3). For LLM-layout+TRELLIS, LLM can predict 3D bounding box
+Comparisons with baselines.
+
+9
+
+Input GT. Condition
+
+GT. Appearance Generation
+
+Final Scene Generation
+
+2) Position the long dining bench directly behind and aligned with the longer side of the rectangular dining table. It stands on the
+floor and provides seating along one side of the table. 3) Place the modern dining armchair with a black upholstered bucket seat in
+front of the rectangular dining table... 4) Place the modern dining armchair with a light blue upholstered bucket seat in front of the
+rectangular dining table …
+
+2) Position the flat-screen computer monitor on the top surface of the main segment of the L-shaped desk, centering it against the
+back cubicle panel for optimal viewing. 3) Place the ergonomic office chair directly in front of the main desk surface of the Lshaped workstation, ensuring it is centrally aligned for comfortable user access and mobility within the workspace.
+
+Figure 8 Conditioned next-object generation. Given the ground-truth fundamental object (table or desk) and subsequent
+
+textual instructions, our model generates subsequent objects properly.
+
+Quantitative comparisons on the indoor evaluation set. We report several metrics, including Kernel Distance (Bińkowski et al., 2018) with Inception-v3 (KID) and DINOv2 encoders, CLIP-text, and CLIP-image scores (Radford et al., 2021).
+
+Table 1
+
+KID (↓)
+
+KDD (↓)
+
+CLIP-text (↑)
+
+CLIP-image (↑)
+
+P-FID (↓)
+
+P-IS (↑)
+
+MIDI
+TRELLIS-text XL
+BB.+TRELLIS
+LLM-layout+TRELLIS
+
+1.308
+1.543
+1.694
+1.376
+
+98.721
+96.928
+101.287
+88.425
+
+22.607
+22.086
+20.726
+22.645
+
+74.896
+73.306
+66.555
+71.896
+
+17.661
+11.267
+19.430
+12.564
+
+2.281
+2.508
+2.553
+2.435
+
+Ours
+
+1.244
+
+49.021
+
+27.447
+
+76.103
+
+2.837
+
+2.596
+
+of individual objects poorly for complex text input (e.g. row 1 vs. 3). Even the subsequent generation of
+individual objects by TRELLIS-text XL are plausible, the spatial arrangement in the composed scene still
+significantly deviates from the text instructions. In contrast, our method successfully captures object types,
+shapes, appearance, and their spatial locations as specified in the text instructions, resulting in meaningful
+compositional 3D generation.
+Our model supports conditioned generation where the first 3D object is
+given by the user, and subsequent objects are generated based on text prompts. In our implementation, we
+first convert the input mesh condition into 64 × 64 × 64 grids, and transform the mesh using a user-input
+layout (specified by translation and rotation matrices) to obtain coarse-level grids. Then, we can encode the
+grids using our employed 3D VAE and prefill the corresponding 3D tokens with KV caching. After doing this,
+the subsequent generation will be conditioned on the prefilled 3D tokens of the user input. Figure 8 presents
+the results of our model for demonstrating this capability.
+Conditioned next-object generation.
+
+4.5
+
+Quantitative Comparisons
+
+We follow previous work (Xiang et al., 2025; Zhang et al., 2024a) to choose our evaluation
+metrics. For evaluating the visual quality of generated scenes, we conduct the evaluation of 3D generation
+on their rendered images. We employ kernel distance metrics, including Kernel Inception Distance (KID)
+Evaluation metrics.
+
+10
+
+Table 2 Ablation study of object-level training data and patch size, using CLIP-text and P-FID scores.
+
+Method
+
+CLIP-text (↑)
+
+P-FID (↓)
+
+w/o object-level training data
+patch size for gen. tokens = 2
+
+24.772
+24.647
+
+6.238
+4.521
+
+Final Model
+
+27.447
+
+2.837
+
+(Bińkowski et al., 2018) using InceptionV3, and Kernel Distance with DINOv2 (KDD) encoders. For each
+scene in our training set, we randomly place cameras from left, right, front and back views to render images
+and construct the reference batch with 10K images. Similarly, we render random views for each baseline in the
+test set to form the generation batch with 5K images. To measure the consistency between text descriptions
+and generated scenes, we use CLIP scores, comparing both text and image references. To obtain a single
+reference text description (rather than a list of instructions) and image for each scene, we first input the
+textual instructions into a VLM to generate the corresponding images. We then query it to describe these
+generated images, using the resulting descriptions as reference text prompts. For 3D-level evaluation, we
+report PointNet++-based FID (P-FID) and Inception Score (P-IS). The reference set consists of 5K randomly
+sampled test examples, and each model generates 1.5K-1.7K samples using the same test instruction subset.
+To compute P-FID and P-IS, 4,096 points are randomly sampled from the reference and generated scenes.
+We present our quantitative results in Table 1 as a secondary evaluation. Our method consistently
+outperforms all baseline approaches across every metric, aligning with our visual comparison. Beyond improved
+distribution alignment with the training data, as measured by KID, KDD, and P-FID, our model also achieves
+substantial gains in CLIP-Text, CLIP-Image, and P-IS. These metrics are computed independently of the
+training distribution, indicating that the improvements reflect enhanced generation quality rather than
+overfitting to the training data domain.
+Results.
+
+4.6
+
+Ablation Study
+
+Ablating refinement stage (3D-ARD vs. 3D-ARD+). In Figure 7, we compare the results of 3D-ARD and
+3D-ARD+ to illustrate the improvements introduced by the refinement stage. In the left example (the
+ornament case), we show 3D-ARD+ generates more fine-grained objects with the designed refinement step.
+The right example (the sofa case) shows that generating appearance directly on coarse geometry is likely to
+cause artifacts in the resulting texture. In addition, the shape of the pillow after the refinement stage also has
+smoother geometry, showing the effectiveness of our approach.
+
+We conduct an ablation study on two key factors that affect generation
+quality: (1) whether single-object data is included in the training set, and (2) the patch size used for 3D
+generation tokens in the transformer. All models in this ablation study use the same hyperparameters and
+model size as our final model described in the main text. Table 2 summarizes the results. The results suggest
+two main observations. First, even without object-level training data, the model can produce reasonable
+spatial layouts guided by text instructions, as indicated by competitive CLIP-Text scores. However, the
+P-FID metric reveals that the generated shapes are of low quality. Second, our experiments show that using a
+patch size of 2 for generation tokens (the exact setting used for 3D understanding tokens) introduces “patching
+artifacts”, leading to severe holes in the decoded 3DGS results. Therefore, we adopt a patch size of 1 for
+generation tokens, which significantly improves the final generation quality.
+Ablating object-level data and patch size.
+
+5
+
+Conclusion
+
+We present a novel Autoregressive 3D Diffusion model 3D-ARD+ for compositional text-to-3D co-generation
+of layout and shape. A large-scale indoor scene dataset with paired text instructions is curated to train the
+3D-ARD+ model. On a challenging evaluation set, the proposed 3D-ARD+ model significantly outperforms
+other competing methods in both visual comparisons and quantitative evaluations. Our model can serve as
+
+11
+
+a base model for a series of future post-training work, such as physics-informed supervised fine-tuning for
+generating more realistic scenes.
+
+12
+
+Text Instructions
+
+Reference Image
+(by a Public VLM)
+
+MIDI
+
+BB. + TRELLIS
+
+LLM Layout
++ TRELLIS
+
+TRELLIS-text
+XL
+
+Ours
+
+1) Place the two-tiered, corner shower caddy
+as the foundational support structure... 2)
+Place the small, round bottle on the front-left
+side of the lower shelf of the shower caddy. 3)
+Place the small, cylindrical bottle on the
+back-right side of the lower shelf of the
+shower caddy... 4) Place the tall, cylindrical
+bottle on the left-front side of the upper shelf
+of the shower caddy. 5)... 6)...
+1) Place the lavish three-seater sofa as the
+foundational element of the scene... 2)
+Position the rectangular decorative throw
+pillow with an ornate, swirling abstract
+pattern ... 3) Place … throw pillow … on the
+sofa's seat ... 4) Place the second square
+decorative throw pillow with a central
+embroidered floral pattern on the sofa's seat...
+5) … pillow ... on the far right section of the
+sofa's seat...
+(1) Place the light wood-toned rectangular
+desk unit as the foundational base... 2) Attach
+the light wood-toned open shelving unit onto
+the left side of the desk unit's tabletop... 3)
+Insert the flat, rectangular dark gray panel
+into the right section ... positioning it directly
+on the desk ...adjacent to the open shelving...
+
+1) Place the rectangular nightstand … as the
+foundational furniture piece, providing the
+main surface for other items. 2) Place the
+table lamp ... on the top surface of the
+nightstand... 3) Position the rectangular photo
+frame on the top surface …between the lamp
+and where the plant will be placed. 4) Place
+the decorative potted plant with lush green
+leaves ... on the top surface of the nightstand,
+... adjacent to the photo frame.
+
+1) Place the modern side table featuring a
+round, tray-like silver metal top and a
+minimalistic wire metal base as the central
+and foundational element of the scene,
+providing the primary surface for other items.
+2) Position the rectangular book ... on the top
+surface of the side table, to the left of the
+center. 3) Place the rectangular book ... on the
+top of the first book...
+
+1) Place the minimalist rectangular bench
+with its white upholstered top and slim white
+metal legs … green fabric runner, which is
+draped over its right section…. 2) Place the
+first decorative book … onto the green fabric
+runner on the right side of the bench… serve
+as the base for the next stacked item. 3) Stack
+the second decorative book … directly on top
+of the first decorative book…
+1) Place the dark brown wooden media
+console... 2) Position the modern flat-screen
+television on the broad top surface of the dark
+brown wooden media console, ... 3) Place ...
+books horizontally on the lower left open
+shelf ..., to the left of the television bay. 4)
+Place ... books horizontally on the lower right
+open shelf ..., to the right of the television bay.
+5) Arrange ... books vertically on an upper
+open display shelf of ... entertainment unit
+
+Figure 9 Qualitative comparison. Visual results of our method and existing single-object generation and multi-object
+
+generation approaches are presented with corresponding input text instructions and reference images generated by a
+VLM. Bold text highlights object kinds, italic text shape/appearance descriptions, and underline locations.
+
+13
+
+Sample 1
+
+Sample 2
+
+Sample 3
+1) Mount the wall-mounted decorative shelf as the primary
+and foundational structure of the scene, ensuring it is level to
+support subsequent items. This shelf provides the flat display
+surface for other objects and implicitly includes the central
+picture frame. 2) Place the decorative potted plant with vibrant
+green leaves and a white pot onto the flat display surface of
+the shelf, positioning it specifically on the left side, to the left
+of where the picture frame is located. 3) Place the second
+decorative potted plant with vibrant green leaves and a white
+pot onto the flat display surface of the shelf, positioning it
+specifically on the right side, to the right of where the picture
+frame is located, mirroring the first plant.
+
+1) Place the dark brown or black nightstand as the
+foundational element of the scene, providing a stable top
+surface that will support the lamp. 2) Position the white
+ceramic table lamp centrally on the top surface of the
+nightstand, ensuring it is stable and ready to provide
+illumination.
+
+1) Place the stylish armchair as the central and foundational
+element of the scene, providing the main seating surface and
+supporting all other items. 2) Position the soft, light grey
+square cushion onto the seating area of the armchair, resting
+against its backrest to provide comfort. 3) Drape the black and
+white houndstooth patterned throw blanket over the left
+armrest of the armchair, with a portion folded onto the seat, to
+serve as a decorative accent.
+
+Figure S1 Diversity of generation results. Three samples are generated for each sequence of text instructions, illustrating
+
+the variations of output produced by our method. The first-row results are generated via conditioning on the groundtruth geometry of the base object. Results in the second and third rows are generated from scratch.
+
+Appendix
+A
+
+More Results
+
+A.1
+
+Diversity of Generation
+
+To demonstrate the generative diversity of our model, we provide multiple generations with different random
+seeds from identical text instructions. Figure S1 shows that given the same prompt, our model produces
+varied yet semantically consistent results.
+
+A.2
+
+Additional Qualitative Results
+
+In addition to the comparisons provided in the main text, Figure S11 presents further generation results
+produced by our method and various baseline approaches. In the presented cases, our method demonstrates
+superior visual quality in synthesizing compositional scenes that follow the provided text instructions,
+outperforming the baseline approaches. Furthermore, several baseline methods, including MIDI, BB. +
+TRELLIS, and LLM Layout + TRELLIS, fail to generate output for certain instructions (either empty output
+or crashes when querying models), revealing the instability of the baseline systems.
+
+14
+
+(a) View 0
+
+(b) View 1 (Selected)
+
+(c) View 2
+
+(d) View 3
+
+Figure S2 View selection example. Given four different viewpoint renderings of the same scene, our method selects
+View 1 as the canonical front view.
+
+(a) Part 0
+
+(b) Part 1
+
+(c) Part 2
+
+(d) Part 3
+
+Figure S3 Normalized input views for object captioning. Each part is extracted and normalized from the selected front
+view to provide clear, focused views for detailed caption generation.
+
+B
+
+Data Curation Details
+
+Our data curation pipeline leverages a VLM for all stages of processing, including view selection, object
+captioning, and assembly plan generation. Below we detail the specific prompts and procedures used at each
+stage.
+Throughout this section, we use a nightstand scene as a running example to illustrate each stage of our data
+curation pipeline. This scene consists of four objects: Part 0 is a blue hydrangea potted plant, Part 1 is a
+rectangular picture frame, Part 2 is a modern table lamp, and Part 3 is a grey nightstand with a gold base
+(the foundational furniture piece).
+
+B.1
+
+View Selection
+
+To identify the canonical front view from multi-view renderings, we provide the following system instructions
+along with 4 different viewpoint images. Figure S2 shows an example where our method selects the most
+informative viewing angle from four candidate views. The complete prompt is shown in Figure S4.
+
+B.2
+
+Object Captioning
+
+For each object in the scene, we generate multi-granularity (one in around 20 words, another in around 5 words)
+textual descriptions. The model receives two types of images: (1) the entire scene view (all_together.png,
+using the selected front view from Figure S2) showing the complete furniture group, and (2) normalized views
+of each part (norm_part_x.png) as shown in Figure S3. The complete prompt is shown in Figure S7.
+B.2.1
+
+Example Generated Captions
+
+Figure S8 shows example captions generated by our pipeline for a nightstand scene.
+
+15
+
+

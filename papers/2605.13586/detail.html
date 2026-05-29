@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HetScene: Heterogeneity-Aware Diffusion for Dense Indoor Scene Generation - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>HetScene: Heterogeneity-Aware Diffusion for Dense Indoor Scene Generation</h1>
+  <div class="meta">
+    <span>Zini Chen, Junming Huang, Rong Zhang, Jiamin Xu, Cheng Peng, Chi Wang, Weiwei Xu</span>
+    <span>2026-05-13</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.13586" target="_blank">arXiv:2605.13586</a>
+  </div>
+  <div class="tags">
+    <span class="tag">3D scene generation</span>
+    <span class="tag">indoor scene</span>
+    <span class="tag">diffusion model</span>
+    <span class="tag">layout generation</span>
+    <span class="tag">primary-secondary objects</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>HetScene 提出了一种异质性感知的两阶段扩散框架，通过将室内物体分解为主物体（床、沙发等大件家具）和次物体（书本、台灯等小件物品）分别生成，解决了现有方法在稠密室内场景中难以兼顾全局布局和局部细节的问题。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>室内场景生成</strong>：目标是自动生成合理的 3D 室内布局——确定房间中应该放置哪些家具以及它们的位置、朝向和尺寸。这是计算机图形学和具身智能的基础技术。</p>
+        <p><strong>主物体 vs 次物体</strong>：主物体如床、沙发、餐桌，体型大、数量少、受房间整体结构约束；次物体如书籍、台灯、装饰品，体型小、数量多、依赖附近的主物体。</p>
+        <p><strong>扩散模型</strong>：一种生成模型，通过逐步向数据添加噪声然后学习逆向去噪过程来生成新数据。</p>
+        <p><strong>场景图</strong>：表示场景中物体之间空间关系的数据结构，节点代表物体，边代表关系。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>HetScene 的核心洞察可以类比室内设计中的"先搭骨架，再填细节"原则。你会先决定大件家具的位置（床、沙发、餐桌），确定功能分区，然后再考虑小物件（台灯、装饰品）的摆放。</p>
+        <p>然而现有方法把所有物体视为"同等重要"，混在一起生成——大床的位置和小台灯的位置在同一个优化过程中决定，导致相互干扰。大件家具需要全局考虑（靠墙、留通道），小物件需要局部考虑（支撑关系），两者的统计规律完全不同。</p>
+        <p>HetScene 的解决方案是显式解耦为两个阶段：<strong>结构布局生成（SLG）</strong>只生成主物体，关注房间整体功能组织；<strong>上下文布局生成（CLG）</strong>以主物体为锚点，围绕它们生成次物体。这样将联合生成转化为"全局规划+局部填充"的组合。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 1：层次化场景表示</h4>
+        <p>定义主物体集合（64 类）和次物体集合（37 类）。每个物体表示为 (类别, 位置, 尺寸, 朝向)，用固定大小的槽位矩阵表示。</p>
+        <h4>步骤 2：结构布局生成（SLG）</h4>
+        <p>扩散模型条件输入包括：文本描述（BERT编码）、房间掩码（ResNet-18）、可学习场景图（LSG）。LSG 编码有向关系图，通过轻量级 Transformer 生成全局图 token 指导生成。</p>
+        <h4>步骤 3：上下文布局生成（CLG）</h4>
+        <p>将 SLG 生成的主物体（固定不加噪声）与带噪声的次物体拼接成 token 序列，通过自注意力让次物体关注主物体和其他次物体。只对次物体反向传播。</p>
+        <h4>步骤 4：空间-语义调制</h4>
+        <p>引入可学习标量 γ_pos 加权空间嵌入，防止几何信号压倒语义信号，确保稠密场景中的收敛。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>扩散模型基础</strong>：前向过程 q(x_t|x_0) = N(x_t; √ᾱ_t·x_0, (1-ᾱ_t)I) 逐步加噪；网络目标 L = E[||ϵ - ϵ_θ(x_t, t)||²] 学习预测噪声。</p>
+        <p><strong>附加 IoU 损失</strong>：L = L_noise + λ·L_IoU，惩罚边界框重叠。</p>
+        <p><strong>空间-语义调制</strong>：x' = x + γ_pos · e_pos，可学习标量 γ_pos 控制空间嵌入强度。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>数据集</strong>：M3DLayout 基准（3D-FRONT + Matterport3D + Inf3DLayout），101 语义类别，11,508 训练场景。</p>
+        <p><strong>评估指标</strong>：FID/KID（三个正交平面投影）、CLIP Score（文本语义一致性）。</p>
+        <p><strong>关键结果</strong>：全测试集所有投影平面最优——XZ-FID 14.76（第二好 16.71）。3D-FRONT 和 Inf3DLayout 上表现最佳。消融验证每个组件有效。</p>
+        <p><strong>定性观察</strong>：基线出现物体漂浮/重叠，HetScene 布局物理合理且密度更高。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>图1：两阶段概览——文本/关系图/房间足迹到主物体布局再到完整场景</li>
+          <li>图2：核心流水线——数据集构建和网络架构</li>
+          <li>图3：与 SOTA 方法的定性比较</li>
+          <li>图4：LSG 条件的定性消融</li>
+          <li>表1：全测试集定量比较（FID/KID/CLIP）</li>
+          <li>表2：按数据源分解的定量结果</li>
+          <li>表3：逐步消融实验结果</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>对噪声数据（真实扫描 MP3D）的鲁棒性有限</li>
+          <li>主/次物体分类是人为定义的，场景间可能不通用</li>
+          <li>固定槽位上界（主 20 / 次 100）可能无法覆盖特别复杂的房间</li>
+          <li>场景可视化依赖 M3DLayout 3D 资产库</li>
+          <li>两阶段计算时间比单阶段更长</li>
+          <li>未充分利用门/窗等建筑元素的语义信息</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.13586</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-05-13</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">3D scene generation</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">M3DLayout</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">FID, KID, CLIP Score</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">XZ-FID 14.76（SOTA），全指标最优</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">ATISS, DiffuScene, MiDiffusion</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        HetScene 的核心价值在于"先骨架再细节"的分解思路——直觉上合理且实际有效。可学习场景图（LSG）的设计巧妙：不是简单编码关系标签，而是让模型自主发现空间语义模式，比硬编码规则更灵活。空间-语义调制虽然只是一个可学习标量，但反映了多模态特征组合中数值尺度差异导致训练不稳定这一常见但易被忽视的问题。未来可考虑将主次划分也变为可学习的。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

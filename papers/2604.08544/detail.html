@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIM1: Physics-Aligned Simulator as Zero-Shot Data Scaler in Deformable Worlds - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+.header .meta span { margin-right: 1.5rem; }
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.header .links a:hover { text-decoration: underline; }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.section-header:hover { background: var(--bg-alt); }
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+.section-body.hidden { display: none; }
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+.sidebar {}
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.sidebar-card .info-row:last-child { border-bottom: none; }
+.sidebar-card .info-label { color: var(--text-muted); }
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SIM1: Physics-Aligned Simulator as Zero-Shot Data Scaler in Deformable Worlds</h1>
+  <div class="meta">
+    <span>Yunsong Zhou, Hangxu Liu, Xuekun Jiang, Xing Shen, et al.</span>
+    <span>2026-04-10</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.08544" target="_blank">arXiv:2604.08544</a>
+  </div>
+  <div class="tags">
+    <span class="tag">物理对齐</span>
+    <span class="tag">柔性物体</span>
+    <span class="tag">零样本</span>
+    <span class="tag">sim-to-real</span>
+    <span class="tag">数据引擎</span>
+    <span class="tag">R2S2R</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>SIM1 是首个专门为柔性物体操作设计的物理对齐仿真数据引擎，通过精确的场景数字化、稳定化的柔性体解算器和扩散轨迹生成，实现纯合成数据训练的策略零样本迁移到真实机器人，达到 15:1 的数据性价比。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>柔性物体操作的独特挑战</h4>
+        <p>与刚性物体不同，柔性物体（衣物、毛巾、布料）在操作过程中形状、接触点和拓扑结构持续变化。传统刚性物体方法（如抓取点检测、简单拾取放置）完全不适合。</p>
+        <h4>Real-to-Sim-to-Real (R2S2R)</h4>
+        <p>先对真实环境进行数字化重建（Real→Sim），在仿真中生成和扩增数据，然后将训练好的策略部署回真实世界（Sim→Real）。</p>
+        <h4>顶点块下降法 (VBD) 与应变约束</h4>
+        <p>VBD 将布料网格顶点视为粒子，通过迭代优化更新位置以最小化能量。应变约束控制顶点之间的最大允许拉伸距离。SIM1 在此基础上增加了增强型 VBD 来稳定刚-柔交互。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>核心理念</strong>：仿真失败不是因为它是"合成的"，而是因为它"没有接地气"（ungrounded）。在柔性物体操作中，几何、物理和运动三个层面的微小不匹配都会被形变放大。</p>
+        <p><strong>类比</strong>：教人叠衬衫。如果用完全不同的衬衫（尺寸、材质、版型）教学，学到的技巧用不上。SIM1 的做法是：先精确测量真实衬衫的每一个参数，在仿真中创建完全一致的"数字克隆"，再基于精确克隆来设计和扩增训练数据。</p>
+        <p><strong>三层物理对齐</strong>：</p>
+        <ul>
+          <li><strong>几何对齐</strong>：亚毫米精度的3D扫描重建</li>
+          <li><strong>动态对齐</strong>：稳定化解算器 + 物理参数校准</li>
+          <li><strong>运动对齐</strong>：结构化轨迹分解 + 扩散运动生成</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：SIM1-Scene 场景数字化</h4>
+        <p>使用专业3D扫描仪（EinScan Rigil Pro）对衣物进行高精度扫描，亚毫米精度重建带纹理网格。机器人从CAD模型生成URDF文件精确导入。环境资产手动创建并按真实尺寸缩放。</p>
+        <h4>第二步：SIM1-Sim 变形稳定物理仿真</h4>
+        <p>基于增强型AVBD解算器，在标准VBD迭代后检查每个网格边的拉伸。当边长超过 (1+ξ)l₀ 时激活虚拟弹性约束，注入额外张力到VBD优化中。同时通过双向同步基础设施进行视觉校准，迭代调整物理参数。</p>
+        <h4>第三步：SIM1-DataGen 结构化数据合成</h4>
+        <p>将示教轨迹分解为"交互段"和"运动段"。交互段池化随机组合增加多样性；运动段通过条件扩散模型生成平滑过渡。两级有效性过滤（粒子状态规则 + 视频二分类器）+ Blender 视觉随机化。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>应变约束</strong>：C(e) = ||e_i - e_j|| - (1+ξ)l₀ ≤ 0。当边的实际长度超过允许范围时激活。</p>
+        <p><strong>应变能量</strong>：E_strain(e) = ½k^{(n)}C(e)² + λ^{(n)}C(e)。增广拉格朗日形式，k 是惩罚刚度，λ 累积约束力。</p>
+        <p><strong>参数更新</strong>：k^{(n+1)} = min(k_max, k^{(n)} + β|C(e)|)，λ^{(n+1)} = λ^{(n)} + k^{(n)}C(e)。渐进递增避免数值不稳定性。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>主要任务</strong>：T恤折叠（抓取→提起→拉直→翻转→折叠，>20秒）。</p>
+        <p><strong>评估</strong>：域内 + 4种泛化（空间±8cm/±15°、纹理、光照、视角±5°）。</p>
+        <p><strong>关键发现</strong>：</p>
+        <ul>
+          <li>相同数据量下（200条），纯合成数据（87%）与真实数据（97%）差距仅10%</li>
+          <li>泛化上超越真实基线：空间+50%、纹理+13%、光照+47%</li>
+          <li>从零训练：真实数据0% vs 合成数据76%，证明是数据质量而非预训练带来提升</li>
+          <li>1个真实样本 ≈ 15个合成样本（域内）；1:5（纹理泛化）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>: SIM1框架总览——实用场景数字化到零样本迁移完整流程</li>
+          <li><strong>图2</strong>: 框架详图——场景数字化、变形稳定物理仿真、结构化柔性操作合成</li>
+          <li><strong>图3</strong>: 变形稳定解算器原理和参数校准基础设施</li>
+          <li><strong>图4-5</strong>: 数据采集设置、资产和场景可视化</li>
+          <li><strong>图6</strong>: 5种柔性操作任务（T恤折叠、毛巾翻转、短裤折叠等）</li>
+          <li><strong>图7-8</strong>: 评估结果和数据规模-性能曲线</li>
+          <li><strong>图9-10</strong>: 零样本迁移定性结果和消融对比</li>
+          <li><strong>表1</strong>: 消融实验定量结果</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>材料标定需要专家引导的参数调整，不能全自动化</li>
+          <li>需要专业3D扫描设备，增加了部署门槛</li>
+          <li>主要验证了T恤折叠，更广泛任务验证有待展开</li>
+          <li>几何重建假设衣物处于静态挂载状态</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.08544</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-10</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Robotics, Deformable Objects</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">1000条真实; 200条种子 → 2000-10000条合成</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">任务成功率（30次/配置）</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">零样本 ✓ 90%(π₀.₅)/76%(π₀); 1:15数据等价比</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">真实数据 vs 遥操作 vs 生成数据; π₀.₅ vs π₀</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">SIM1 证明了"物理对齐的仿真可以作为可靠数据源"这一观点。在柔性物体领域，每个仿真细节的偏差都会被形变放大，从"根"上对齐是唯一可行的路径。15:1的数据等价比惊人——考虑到真实数据采集需要专业操作员、专用硬件和时间成本，这个比例在实际应用中可能更大。一个有趣的方向：能否将物理参数校准过程自动化？如果能构建自动化的"仿真-真实差异检测"系统，通过优化算法自动搜索最佳参数，SIM1的自动化程度将大大提高。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

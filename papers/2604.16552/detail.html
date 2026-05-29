@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D-ARD+: 基于自回归3D扩散的文本到场景布局与形状联合生成 - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>3D-ARD+: 基于自回归3D扩散的文本到场景布局与形状联合生成</h1>
+  <div class="meta">
+    <span>Zhenggang Tang, Yuehao Wang, Yuchen Fan et al. (Meta Reality Labs, UIUC, UT Austin)</span>
+    <span>2026年4月</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.16552" target="_blank">arXiv:2604.16552</a>
+  </div>
+  <div class="tags">
+    <span class="tag">3D Generation</span>
+    <span class="tag">Text-to-3D</span>
+    <span class="tag">Autoregressive Diffusion</span>
+    <span class="tag">Scene Layout</span>
+    <span class="tag">7B Model</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>3D-ARD+ 提出了一种全新的自回归扩散范式，能够根据详细文本指令逐步生成3D场景，同时精确控制每个物体的布局位置、几何形状和外观纹理，在复杂空间关系建模上显著超越已有方法。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>3D场景生成</h4>
+        <p>传统3D场景制作需要专业艺术家手动建模、贴图、布置，耗时巨大。近年来出现了"文本到场景"（text-to-scene）方法，用户只需输入文本描述即可自动生成3D场景。</p>
+        <h4>当前方法的局限性</h4>
+        <ul>
+          <li><strong>布局生成与物体生成割裂</strong>：现有方法要么只生成场景布局（物体位置和大小），要么只生成单个物体，很少同时做两件事。这导致生成的场景不一致。</li>
+          <li><strong>空间关系理解浅薄</strong>：即使用大语言模型帮助，现有方法也只能处理"椅子在桌子旁边"这种简单关系。</li>
+          <li><strong>物体细节不足</strong>：很多方法只能生成预定义类别，无法生成任意形状的物体。</li>
+        </ul>
+        <h4>关键基础技术</h4>
+        <ul>
+          <li><strong>扩散模型</strong>：从随机噪声逐步去噪生成清晰数据的生成范式。</li>
+          <li><strong>自回归生成</strong>：逐步生成序列数据，每一步基于之前生成的内容。</li>
+          <li><strong>3D VAE</strong>：将3D物体压缩到低维隐空间再解码回3D表示。</li>
+          <li><strong>Rectified Flow</strong>：高效的扩散模型变体，用线性插值连接噪声和数据的分布。</li>
+          <li><strong>3D高斯泼溅（3DGS）</strong>：用高斯椭球体表示场景，支持高质量实时渲染。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>想象你是一个室内设计师，按客户需求逐步布置房间。客户依次告诉你：在房间中央放一张床、在床上放被子、在左边放床头柜……每次都要理解当前描述，看看房间里已有什么，再决定下一件物品放哪里、长什么样。3D-ARD+ 就是把这个过程自动化了。</p>
+        <h4>三个核心创新</h4>
+        <ul>
+          <li><strong>"边看边画"的双步生成机制</strong>：每生成一个物体，模型先在场景空间确定位置和大小（粗粒度），再在物体空间精细刻画形状和纹理。就像雕塑家先搭骨架再精雕细琢。</li>
+          <li><strong>统一的自回归-扩散框架</strong>：文本用自回归方式处理（一个词一个词预测），3D信息用扩散方式处理（从噪声逐步生成）。"分类处理、统一建模"让模型既能理解语言，又能生成高质量3D内容。</li>
+          <li><strong>大规模数据集驱动</strong>：构建23万个室内场景，每个场景都配备逐步文本指令，相当于给模型提供23万套"室内设计教程"。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>Step 1: 文本编码与3D场景表示</h4>
+        <p>文本指令通过BAGEL分词器编码为离散token。场景中已有物体用64x64x64的二进制占用体积表示，通过3D VAE压缩为16x16x16的低分辨率隐变量。</p>
+        <h4>Step 2: 3D-ARD 粗粒度场景生成</h4>
+        <ul>
+          <li>已有物体的压缩隐变量经过分块和投影成为"3D理解token"</li>
+          <li>当前要生成物体的加噪隐变量作为"3D生成token"</li>
+          <li>所有token输入多模态Transformer，采用广义因果注意力机制</li>
+          <li>训练目标：Rectified Flow匹配损失，预测噪音和干净样本的差值</li>
+        </ul>
+        <h4>Step 3: 3D-ARD+ 细粒度精炼</h4>
+        <ul>
+          <li>奇数步：在场景空间中生成物体的粗粒度占用</li>
+          <li>偶数步：提取粗粒度物体边界框，在更小"物体空间"中生成细粒度隐变量</li>
+          <li>解码为3D高斯，获得精细几何和外观</li>
+        </ul>
+        <h4>Step 4: 推理过程</h4>
+        <p>采样随机噪声 -> 50步Euler去噪 -> 无分类器引导（CFG）-> 解码为占用体积 -> 提取活跃体素 -> TRELLIS稀疏流Transformer生成结构化隐变量 -> 3D高斯解码</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>Flow Matching 目标函数</h4>
+        <p>L(&theta;) = E[ || v_&theta;(x, s) - (&epsilon; - x_0) ||^2 ]</p>
+        <ul>
+          <li>x<sub>0</sub>：干净样本（真实3D隐变量）</li>
+          <li>&epsilon;：随机高斯噪声</li>
+          <li>s：时间步，控制噪声程度</li>
+          <li>x(s) = (1-s)x<sub>0</sub> + s&epsilon;：噪声和数据的线性插值</li>
+          <li>v<sub>&theta;</sub>(x, s)：神经网络预测的去噪方向</li>
+          <li>整个目标让模型预测的方向接近真实方向</li>
+        </ul>
+        <h4>广义因果注意力机制</h4>
+        <ul>
+          <li>文本token之间：标准因果注意力</li>
+          <li>3D理解token：对文本因果注意力，彼此无限制注意力</li>
+          <li>3D生成token：关注所有文本和3D理解token，彼此无限制注意力</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>数据集</h4>
+        <p>23万个室内场景（卧室、客厅、厨房、餐厅、浴室），每场景2-15个部件。数据构建管道四阶段：视角选择 -> 物体标注 -> 空间关系分析 -> 组装计划生成。额外100万单物体数据增强多样性。</p>
+        <h4>评估设置</h4>
+        <p>50个未见过的测试场景，对比方法包括TRELLIS-text XL（2B参数）、MIDI（多实例扩散）、BB.+TRELLIS（真实边界框+TRELLIS）、LLM-layout+TRELLIS。</p>
+        <h4>关键结果</h4>
+        <p>全面超越所有对比方法：CLIP-text 27.447（+21% vs 最佳基线22.645），P-FID 2.837（大幅优于最佳基线11.267）。消融实验证实了物体级训练数据的重要性，以及patch size=1对生成质量的提升。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>：3D-ARD+生成的卧室场景示例，展示了7步文本指令逐步生成场景的过程</li>
+          <li><strong>图2</strong>：3D-ARD模型架构概览</li>
+          <li><strong>图4</strong>：3D-ARD+细粒度生成机制</li>
+          <li><strong>图5</strong>：数据集构建管道的四个阶段</li>
+          <li><strong>图7</strong>：3D-ARD vs 3D-ARD+对比，展示精炼步骤带来的细节提升</li>
+          <li><strong>表1</strong>：定量对比结果，3D-ARD+在所有指标上领先</li>
+          <li><strong>表2</strong>：消融实验结果</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>不生成墙壁、地板和天花板</li>
+          <li>场景空间分辨率仅64x64x64，限制极细物体的生成质量</li>
+          <li>依赖专有室内数据集，构建成本高</li>
+          <li>模型7B参数，推理计算量大</li>
+          <li>主要覆盖室内场景，未涉及室外场景</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.16552</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026年4月</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">3D Generation, Text-to-3D</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">23万室内场景 + 100万单物体数据</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">KID, KDD, CLIP-text, CLIP-image, P-FID, P-IS</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">CLIP-text 27.447, P-FID 2.837, 全面超越基线</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">TRELLIS-text XL, MIDI, BB.+TRELLIS, LLM-layout+TRELLIS</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">3D-ARD+代表了文本到3D生成的重要方向——从"生成一个3D物体"向"生成完整3D场景"演进。"自回归+扩散"的混合架构值得关注：不同类型的token使用不同处理方式，但共享同一Transformer backbone。特别的是数据集构建的巧思——利用VLM自动生成逐步组装指令，这套方法论对后续研究有重要参考价值。与7B模型结合验证了"大模型在3D生成上同样有效"的论断。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

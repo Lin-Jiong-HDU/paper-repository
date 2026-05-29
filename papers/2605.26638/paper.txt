@@ -1,0 +1,1101 @@
+HyperSim: A Holistic Sim-To-Real Framework For
+Robust Robotic Manipulation
+Junyi Dong1,∗,† , Haotian Luo1,∗ , Ziwei Xu1 , Shengwei Bian1 , Heng Zhang1 , Sitong Mao1 , Jingyi Guo1 ,
+Yang Xu1 , Wenhao Chen1 , Qiuyu Feng1 , Yao Mu2 , Ping Luo3 , Shunbo Zhou1 , and Xiaodong Wu1
+
+arXiv:2605.26638v1 [cs.RO] 26 May 2026
+
+1
+
+CloudRobo Lab, Huawei Cloud Computing Technologies Co.,Ltd.,
+2
+Shanghai Jiao Tong University 3 The University of Hong Kong
+∗
+Equal contribution † Corresponding authors
+
+Fig. 1. Requiring minimal human-collected data (a one-time environment scan and a few dozen demonstrations), our method reconstructs photorealistic
+and geometrically accurate environments to generate adversarial trajectories for policy training. Evaluated using both ACT and π0 policies, our approach
+consistently outperforms the ablated baselines under both zero-shot and few-shot deployments.
+
+Abstract—Scaling data volume and diversity is critical for generalizing embodied intelligence. While synthetic data generation
+offers a scalable alternative to expensive physical data acquisition,
+transferring robotic manipulation policies from simulation to
+the real world (sim-to-real) remains a formidable challenge due
+to the domain gap. This paper presents HyperSim, a holistic
+framework spanning from synthetic data generation to policy
+training and seamless real-world deployment. To systematically
+bridge the sim-to-real gap, HyperSim is realized through three
+core pillars: high-fidelity environment synthesis, adversarial trajectory generation, and sim-and-real co-training. Collectively,
+these modules address domain discrepancies by enhancing visual
+fidelity, expanding data coverage, and enforcing domain-invariant
+representations. We rigorously validate HyperSim through a
+large-scale empirical study involving 400 real-world task executions across two representative manipulation models. Assessed
+across three fine-grained metrics, our complete pipeline achieves
+remarkable sim-to-real success rates of 80% and 95% with
+ACT and π0 , respectively. Furthermore, policies trained on our
+adversarial trajectories exhibit significantly enhanced robustness
+against dynamic uncertainties, achieving a 35% higher completion rate under physical perturbations.
+
+I. I NTRODUCTION
+Driven by recent breakthroughs in multimodal large models,
+the field of robotics is undergoing a paradigm shift from mod-
+
+ular skill learning to data-driven, end-to-end policy learning
+[1], [2]. However, unlike foundation models in vision and
+language that can directly leverage vast internet-scale data,
+embodied agents require paired action-observation sequences
+that encompass detailed physical interactions. Acquiring such
+high-quality robotic datasets necessitates substantial investments in hardware infrastructure and human labor [3]–[5].
+Consequently, with the exponential growth in model parameters and data hunger of emerging robot foundation models
+[6], [7], relying exclusively on real-world data collection has
+become increasingly impractical.
+Synthetic data offers a promising solution to circumvent this
+data bottleneck. While automated generation pipelines have
+made data acquisition in simulation highly efficient, existing
+methodologies [3], [8]–[13] suffer from three critical limitations. First, simulation environments are often oversimplified,
+typically featuring a floating table against a void background,
+which fails to reflect the cluttered and unstructured nature of
+real-world environments. Second, data diversity is constrained
+due to heuristic scene configurations (e.g., fixing object orientations to artificially reduce task complexity) and the predominance of homogeneous, successful-only trajectories. Together,
+
+these factors severely restrict the coverage of the state-action
+manifold. Third, the persistent visual and dynamic mismatch
+between simulation and reality continues to degrade real-world
+performance. Consequently, policies trained solely on simulation data often fail to generalize to physical environments,
+leaving effective sim-to-real transfer a non-trivial challenge.
+To overcome the aforementioned limitations, we introduce
+HyperSim, a holistic framework spanning from synthetic data
+generation to policy training and seamless real-world deployment. HyperSim features a two-layer design that strategically
+separates scalable data generation from advanced domain
+transfer. The base layer establishes a procedural workflow: it
+synthesizes physically plausible and diverse scenes, and decouples complex tasks into distinct motion and interaction primitives for efficient trajectory generation. Building upon this,
+the enhancement layer adopts a modular paradigm to systematically bridge the sim-to-real gap through three mechanisms.
+First, to mitigate visual discrepancies, we employ geometryaware Gaussian Splatting (GS), rendering environments with
+photorealism and geometric fidelity superior to traditional
+meshes. Second, we inject state perturbations during trajectory
+synthesis to capture observations from diverse viewpoints and
+record recovery behaviors. This adversarial mechanism expands the state-action coverage for policy robustness. Finally, a
+sim-and-real co-training strategy is applied to enforce learning
+of domain-invariant representations across paired observations
+and actions. We validate the proposed framework through
+extensive physical experiments on the Galaxy R1 platform.
+Assessed across a set of fine-grained metrics, HyperSim
+demonstrates robust sim-to-real transferability.
+In summary, our main contributions are as follows.
+
+We introduce HyperSim, a comprehensive framework
+that systematically bridges the sim-to-real gap via highfidelity scene construction, expanded state-action coverage, and cross-domain co-training.
+• We propose a hybrid scene synthesis strategy alongside an adversarial trajectory generation mechanism.
+Together, they efficiently procedurally generate diverse,
+photorealistic scenes while injecting dynamic physical
+perturbations to expand the state-action manifold and
+enforce policy recovery.
+• We demonstrate exceptional real-world transferability
+through systematic physical evaluations. Our analysis
+reveals that policy performance is positively correlated
+with synthetic data fidelity and distribution coverage,
+and is further boosted by pre-trained foundation models
+and co-training. Overall, the complete HyperSim pipeline
+achieves an impressive zero-shot success rate of 75%
+and few-shot success rate of 95% with π0 policies. In
+addition, our adversarial mechanism endows the policies
+with enhanced robustness, yielding a 35% improvement
+under external physical disturbances.
+
+•
+
+II. R ELATED W ORK
+A. Environment Construction For Robotics Simulation
+High-fidelity simulation environments are pivotal for mitigating the visual sim-to-real gap in embodied learning. Existing approaches face a fundamental trade-off between visual
+realism and physical interactivity, occupying two ends of
+a spectrum. At one end, procedural generation techniques
+[8], [12], [14] excel in scalability and are well-suited for
+synthesizing physically interactive scenes. However, they often
+lack photorealism and rely on randomization strategies that fail
+to capture the unstructured clutter of the real world. At the
+opposite end, neural rendering methods such as 3D Gaussian
+Splatting (3DGS) [15]–[17] offer unparalleled photorealism
+but are hampered by ambiguous scale estimation and noisy
+geometric meshes, which are detrimental to contact-rich simulations [18]. In contrast, we propose a hybrid approach that
+leverages geometry-aware 3DGS solely for complex background reconstruction while utilizing a constraint-aware generator for the foreground manipulation zone. This ensures both
+visual-physical alignment and the diversity of manipulation
+workspaces.
+B. Scaling Trajectory Generation In Simulation
+Unlike computer vision and natural language processing,
+where models are typically trained on images or texts, embodied intelligence relies on paired action-observation sequences,
+commonly referred to as trajectories. As such, trajectory generation represents a unique and pivotal challenge fundamental to
+embodied AI research. Prior efforts can be broadly categorized
+into demonstration augmentation and piece-wise generation.
+The augmentation approaches exemplified by MimicGen and
+its successors [3], [9], [19], [20] expand a few human demonstrations into thousands of trajectories by applying spatial
+transformation and interpolation to seed data. However, such
+augmentation strategy is prone to generate non-smooth trajectories with discontinuous changes. Conversely, piece-wise
+generation like RoboTwin [12], RoboGen [8] and InternDataA1 [14] decompose tasks into distinct motion and skill primitives. These primitives are then independently synthesized via
+motion planners, constrained optimization, or reinforcement
+learning leveraging privileged simulation states. Our method
+falls into the second category with a novel design that injects
+perturbations into object states and induces recovery motions.
+The resulting adversarial trajectories enable robots to acquire
+richer observations that are crucial for policy generalization.
+C. Sim-To-Real Transfer
+The objective of sim-to-real transfer is to deploy robotic
+control policies trained in simulation to physical hardware
+by mitigating the inherent visual and dynamic discrepancies
+between the two domains. To achieve this, existing literature
+predominantly relies on domain randomization [12] or system
+identification [12]. However, these methods often require domain expertise and tedious trial-and-error to tune parameters
+such as randomization ranges or dynamics coefficients. Alternatively, co-training adopts a different philosophy by jointly
+
+optimizing robot policies over a mixture of simulated and
+real-world data [21]–[23], forcing the extraction and learning
+of domain-invariant representations. Our key insight is that
+the brittleness of the robot policy in real world generalization arises from the combined factors such as mismatches
+in environment complexity and data distribution, as well as
+the visual and physics discrepancy. Therefore, we seek to
+address these issues synergistically in a holistic framework
+with systematic experiments and investigations, rather than
+individually handling them.
+III. T HE P ROPOSED A PPROACH
+HyperSim is a holistic framework encompassing synthetic
+data generation, policy training, and real-world deployment
+(Fig. 2). To systematically close the sim-to-real gap, it integrates three functional modules: high-fidelity scene construction for visual alignment, adversarial trajectory synthesis for
+expanded state-action coverage, and co-training for domaininvariant representations. To seamlessly accommodate these
+capabilities, HyperSim adopts a flexible two-layer architecture.
+Specifically, a base layer drives the standard data pipeline,
+while a customizable enhancement layer flexibly integrates the
+aforementioned advanced sim-to-real transfer techniques. We
+elaborate on these three functional components below.
+A. High-Fidelity Simulation Environment
+Our approach introduces a hybrid synthesis strategy where
+the simulation environment explicitly consists of two components: a foreground manipulation area and a surrounding
+background. This decoupling allows us to efficiently generate
+diverse, physically plausible workspaces in the foreground,
+which are seamlessly embedded within the photorealistic and
+geometrically accurate background.
+For the interactive foreground, we move beyond randomized
+scene generation to enable precise spatial relation modeling.
+As illustrated in Fig.3, we design a library of 18 solvers which
+are categorized into three groups: unary geometric priors, explicit pairwise relations, and implicit multi-object formations.
+The task-specific foreground requirements are translated into
+a subset of these spatial constraints to generate a valid layout.
+This synthesized layout is subsequently populated with highfidelity 3D assets retrieved from established databases or generated by text-to-3D models to ensure physical interactivity.
+Detailed constraints explanations are deferred to the Appendix
+VII-A.
+Complementary to the interactive foreground, our background reconstruction minimizes the visual sim-to-real gap.
+We collect synchronized multimodal data (RGB, LiDAR,
+and IMU) and leverage GPGS [24]—an state-of-art approach
+which exploits geometric priors derived from fused LiDAR
+scans, to reconstruct the environment into a set of Gaussian
+primitives. Incorporating geometric priors effectively alleviates
+the challenge of precise surface reconstruction for weakly
+textured or complex geometries, overcoming a key limitation
+of image-only approaches. Guided by the optimization scheme
+proposed in [24], the Gaussian primitives are spatially aligned
+
+with the surfaces defined by fused LiDAR scans, enabling
+high-fidelity novel view synthesis of both color and depth
+maps. The parameters of Gaussian primitives, including their
+position pk , covariance matrix Σ, opacity ok and spherical
+harmonics coefficients ck which encapsulate view-dependent
+appearance, can be calculated by [15]:
+1
+(1)
+G(p) = exp(− (p − pk )T Σ−1 (p − pk ))
+2
+During volumetric rendering, each 3D Gaussian is projected to
+the image plane as G 2D , then depth-sorted and alpha-blended
+into the final image expressed as pixel color values:
+c(x) =
+
+K
+X
+
+ck ok G
+
+k=1
+
+2D
+
+(x)
+
+k−1
+Y
+
+(1 − oj G 2D (x))
+
+(2)
+
+j=1
+
+The pixel depth values can be rendered by sharing a
+similar strategy as above. Once the Gaussian representation
+is constructed, we leverage TSDF algorithm to fuse rendered
+color and depth maps and generate a colorized mesh structurally aligned with the Gaussian representation. Crucially, this
+hybrid Gaussian-mesh representation natively integrates with
+standard physics simulators: the 3D Gaussian splats facilitate
+photorealistic rendering, while the strictly aligned underlying
+meshes serve as a robust backend for precise collision and
+contact dynamics.
+B. Adversarial Trajectory
+To generate adversarial trajectories, we first decompose
+manipulation tasks into piecewise motion primitives. Subsequently, we introduce a controlled perturbation-and-recovery
+process during trajectory synthesis, which expands the stateaction distribution and induces recovery behaviors.
+1) Piecewise Trajectory Generation: Inspired by prior literature [9], [19], [20], we decompose manipulation tasks into a
+sequence of object-centric subtasks. Let FA denote the objectcentric Cartesian frame, with its origin OA located at the
+target object’s center of mass and its xy-plane parallel to the
+workspace surface. Assuming the use of a standard two-finger
+gripper, we define the tool frame FT with its origin OT at
+the Tool Center Point (TCP). By convention, the x-axis points
+toward the fingertips, the y-axis aligns with the gripper stroke
+connecting the two fingers, and the z-axis follows the righthand rule, as shown in Fig.4.
+A typical manipulation subtask begins with a collision-free
+motion toward the target, which transitions into a transient
+state before physical contact occurs. Inspired by prior works
+[19], [20], we formalize this transient state as the bottleneck
+pose, defined as the specific configuration where the TCP
+enters a small hemisphere of radius d centered at OA ( Fig.4).
+Defining the bottleneck pose effectively partitions a manipulation subtask into two phases: an approaching primitive
+spanning from the initial state to the bottleneck pose, and a
+subsequent interaction primitive governing the object contact
+and manipulation. Consequently, complete subtask trajectories
+can be synthesized in a piecewise manner utilizing a combination of motion planners, inverse kinematics solvers, and
+
+Fig. 2. Overview of the HyperSim framework. HyperSim couples a standard data-to-policy pipeline with an enhancement layer to support physical
+deployment. By integrating high-fidelity environments, adversarial trajectories, and co-training, HyperSim systematically bridges the sim-to-real gap in visual
+fidelity, data coverage, and cross-domain feature representation
+
+rame ℱ�
+
+y
+
+x
+
+z′
+
+Object frame
+ℱ�
+
+��
+
+�′
+
+z
+
+�′
+
+and rotation) when the gripper reaches the bottleneck pose,
+as illustrated in Fig.5. This abrupt alteration of the target’s
+state forces the motion planner to dynamically compute a
+recovery trajectory toward a newly updated bottleneck pose,
+necessitating continuous repositioning and reorientation of the
+end-effector. This perturbation-recovery cycle serves a dual
+purpose: it significantly broadens the spatial coverage of the
+target’s state distribution, and it exposes exteroceptive sensors
+(e.g., the wrist camera) to a highly diverse set of viewpoints
+during the recovery phase. While these adversarial perturbations can theoretically be applied recursively, we empirically
+constrain the maximum number of interventions per trajectory
+to three in order to balance enhanced data diversity with
+motion stability and trajectory length.
+
+y
+x
+
+��
+
+Fig. 3. Spatial relation constraints used for foreground scene generation.
+
+Bottleneck
+Pose
+frame
+
+ℱ�
+
+z′
+
+��
+
+d
+
+�′ TCP frame ℱ
+�
+
+�′
+
+z
+
+��
+
+y
+
+x
+
+Object frame
+ℱ�
+
+Fig. 4. The bottleneck pose and local coordinate frames. The gripper
+TCP enters a small hemisphere of radius d with respect to the target object.
+
+gripper controllers [12], [14]. An illustrative example of these
+segmented primitives is provided in Fig.5.
+2) Adversarial Perturbation And Recovery: Building upon
+this piecewise formulation, we propose a mechanism to inject
+abrupt perturbations into the target’s state (both translation
+
+Fig. 5. Adversarial trajectory generation. Using a cup-placement task as
+an example, the manipulation is decomposed into two subtasks. Within each
+subtask, trajectories are synthesized piecewise, with perturbations injected at
+the bottleneck pose to induce robust recovery behaviors.
+
+C. Sim-And-Real Co-Training
+In contrast to explicit match simulation and real world, cotraining treats simulation and real-world data as generic data
+to be sampled together, which encourages the policies to learn
+invariant features across domains. Let Ds and Dr denote the
+set of simulation data and real data, respectively, where the
+quantity of simulation data is orders of magnitude larger than
+that of the real data, i.e., |Ds | ≫ |Dr |. Following prior work
+[21], [22], we formulate the co-training problem as minimizing
+the behavioral cloning loss
+LDα = αLDs + (1 − α)LDr
+
+(3)
+
+where α ∈ [0, 1] is the co-training ratio represents the probability of drawing a training sample from Ds . In the case where
+α = 1, the model is trained exclusively on simulation data,
+corresponding to a zero-shot deployment setting. Conversely,
+under the co-training paradigm, α is set marginally less than
+1, representing a few-shot strategy where a small amount of
+real-world data is utilized.
+IV. E XPERIMENTS
+The experiments are designed to systematically validate
+three core hypotheses: (H1) the complete HyperSim pipeline
+as well as its ablated variants enable direct, zero-shot policy
+deployment in the real world; (H2) few-shot co-training with
+minimal human demonstrations synergistically improves policy performance; and (H3) the adversarial trajectory mechanism significantly enhances policy robustness against dynamic
+disturbances.
+A. Experiment Setup
+We conduct real-world experiments on a Galaxea R1 humanoid robot with visual observations acquired at 10 Hz from
+head- and wrist-mounted RGB cameras. The evaluation task
+mimics a challenging industrial sorting task that requires the
+robot to transfer a target object (e.g. a red plug) from a central
+deep bin to one of the two adjacent bins. Note that compared
+to flat-surface manipulation, deep-bin picking imposes strict
+kinematic constraints and collision risks, particularly in corner
+cases where the object rests against the bin walls. To generate
+adversarial trajectories, we perturb each component of the
+target 2D position by a random value uniformly drawn from
+[0.02, 0.2]m, and the target orientation is randomly sampled
+from the full range of [−180, 180]o . We design a fixed
+evaluation set of 20 trials initialized with various target poses
+(translation and rotation) and visual distractors to guarantee
+that the evaluation is of non-trivial difficulty (Fig.6). Besides,
+this exact setup remains identical across all evaluated policies
+to ensure fair comparison.
+B. Training Datasets
+To systematically evaluate the contribution of individual
+modules to policy generalization as well as their compositional
+effect, we curate several ablated datasets alongside our holistic
+HyperSim pipeline. We utilize the simulation engine O3DE
+[25] for its native 3DGS and ROS2 support, although our
+
+Fig. 6. Initialization of 20 real-world evaluation trials with varied target poses
+and distractors in the central bin.
+
+framework is compatible with other popular engines such as
+IsaacSim and Sapien. Additionally, a minimal set of human
+demonstrations is collected to investigate sim-real co-training.
+Overall, the training datasets include:
+BaseSim: Standard synthetic data generated via the baseline workflow
+• ADSim: Augments BaseSim with adversarial perturbation and recovery mechanisms
+• 3DGS-ADSim: Enhances ADSim with high-fidelity
+3DGS rendering
+• RealN : A purely real-world dataset comprising N human
+demonstrations
+• RealN &BaseSim / RealN &ADSim: Co-training mixtures combining RealN with their respective simulated
+counterparts
+• HyperSim, or RealN &3DGS-ADSim: The comprehensive dataset integrating all proposed modules in our
+pipeline
+•
+
+C. Evaluation Protocol
+Robotic manipulation policies are conventionally evaluated
+on the basis of task success rate. However, this binary metric
+often fails to capture the true competence of a policy, as it
+treats all failure modes indiscriminately. In fact, a failure that
+occurs after completing a critical step such as reaching the
+bottleneck pose represents a higher level of capability than a
+complete failure. Therefore, we introduce three fine-grained
+metrics to provide a more nuanced assessment:
+Target Alignment Rate (TAR): The success rate of the
+end-effector accurately navigating from its initial state to
+the target’s bottleneck pose.
+• First-Attempt Success Rate (SR1 ): The percentage of trials successfully completed in a single continuous attempt
+without any retries.
+• Overall Success Rate (SR3 ): The percentage of trials
+successfully completed within three attempts.
+•
+
+Under this protocol, we evaluated two representative policies, ACT and π0 , with a rigorous total of more than 400
+real-world trials.
+
+V. S IM TO R EAL S TUDY
+
+Target 2D Pose Distribution
+max_y
+
+This section details our extensive real-world empirical evaluation. We first assess the zero-shot sim-to-real transferability
+of our generated data. Subsequently, we demonstrate the
+synergistic performance gains achieved through few-shot cotraining. We conclude by subjecting the policies to dynamic
+environmental perturbations to rigorously validate their robustness.
+
+BaseSim
+ADSim
+
+min_y
+
+min_x
+
+A. Zero-Shot Transfer
+
+Target Orientation Distribution
+
+Count
+
+We evaluate the zero-shot sim-to-real transfer capabilities
+by fine-tuning two representative policies, ACT and π0 , on
+datasets generated by the ablated variants of HyperSim. The
+quantitative results in Table I yield two critical insights.
+TABLE I
+P ERFORMANCE COMPARISON OF ZERO - SHOT DEPLOYMENTS
+Training Data
+
+Policy
+
+TAR
+
+SR1
+
+SR3
+
+BaseSim
+
+ACT
+
+10%
+
+5%
+
+5%
+
+ADSim
+
+ACT
+
+45%
+
+10%
+
+15%
+
+3DGS-ADSim
+
+ACT
+
+55%
+
+20%
+
+25%
+
+BaseSim
+
+π0
+
+45%
+
+45%
+
+55%
+
+ADSim
+
+π0
+
+75%
+
+60%
+
+70%
+
+3DGS-ADSim
+
+π0
+
+80%
+
+60%
+
+75%
+
+max_x
+
+(a)
+
+70
+60
+50
+40
+30
+20
+10
+0
+-180 -150 -120 -90 -60 -30 0
+30 60
+Orientation [deg]
+
+BaseSim
+ADSim
+
+90 120 150 180
+
+(b)
+
+Fig. 7. Comparison of target 2D pose distribution (a) and orientation
+distribution (b). The 2D poses in BaseSim are heavily concentrated at
+the workspace center, forming an elongated pattern. In contrast, ADSim
+expands these poses across the entire workspace to increase the spatial
+Similarly,- the
+orientation
+distribution in BaseSim is skewed toward
+1 coverage.
+Huawei Proprietary
+Restricted
+Distribution
+the [0, 180o ] interval, while ADSim provides a more uniform distribution.
+
+∗ 3DGS-ADSim: zero-shot configuration of HyperSim
+
+Impact of visual fidelity and adversarial diversity. The
+progressive integration of the enhancement modules (BaseSim
+→ ADSim → 3DGS-ADSim) consistently boosts performance. To begin with, the introduction of ADSim substantially
+elevates the target alignment rate (TAR). We posit that policies
+trained solely on static demonstrations tend to overfit to
+initial states, failing to leverage real-time visual feedback. In
+contrast, the adversarial mechanism exposes the policies to
+sudden target displacements at the grasping bottleneck. This
+intervention not only yields a broader and more uniform target
+state distribution, as shown in Fig.7, but also forces the policies
+to learn closed-loop visuo-motor alignment. Complementarily,
+integrating 3DGS rendering yields an additional performance
+gain of up to 10% across all metrics. This shows that highfidelity rendering more effectively grounds synthetic observations in physical reality, mitigating the visual domain gap
+(Fig.8). Furthermore, the drop in the first-attempt success SR1
+is primarily caused by initial execution errors such as minor
+collisions with bin-walls or unstable grasps. However, with
+up to three retries, the policies can recover up to 15% of
+performance in the overall success rate (SR3 ).
+Synergy Between Foundation Models and Synthetic
+Data. It is interesting to note that under identical training
+conditions, π0 significantly outperforms ACT by a substantial
+25–55% margin across all experiments and metrics. Despite
+the collision-prone nature of the deep-bin configuration and
+highly varied testing scenes, π0 achieves an impressive SR3
+of 75%. This underscores a key takeaway: the generalization
+
+(a)
+
+(b)
+
+(c)
+
+Fig. 8. Comparison of robot head-camera observations. Compared to
+the real-world observation (a), BaseSim and ADSim generate observations
+in a clean background (b), whereas 3DGS-ADSim (c) provides aligned
+observations with complex background details.
+
+priors inherent in large-scale pre-trained models act synergistically with our high-quality synthetic data, dramatically
+lowering the zero-shot sim-to-real barrier.
+1
+
+Huawei Proprietary - Restricted Distribution
+
+B. Few-Shot Co-Training Efficacy
+We evaluate the efficacy of few-shot co-training by integrating a small set of 35 human demonstrations to the
+training data. Results in Table. II demonstrate that co-training
+consistently outperforms simulation-only baselines for both
+ACT and π0 policies. We observe that the driving factors for
+these improvements differ based on model capacity. For the
+ACT policy that exhibits limited zero-shot transferability, cotraining with real data provides essential physical grounding
+to effectively bridge the sim-to-real gap, especially in contact
+dynamics, driving a substantial increase of over 35% in
+both SR1 and SR3 in comparison to zero-shot deployment.
+Conversely, the π0 foundation model already exhibits strong
+zero-shot capabilities. In this context, co-training with real data
+further narrows the sim-to-real gap. This process enhances the
+model’s overall performance, elevating all metrics by over 15%
+
+and bringing the SR3 to 95%. Moreover, co-training policies
+exceed the performance of their real-only counterparts (Table.
+III), indicating that our high-quality synthetic data effectively
+augment the limited number of human demonstrations for
+policy learning.
+TABLE II
+P ERFORMANCE COMPARISON OF FEW- SHOT DEPLOYMENTS
+Training Data
+
+Policy
+
+TAR
+
+SR1
+
+SR3
+
+ADSim
+
+ACT
+
+45%
+
+10%
+
+15%
+
+Real35&ADSim
+
+ACT
+
+85%
+
+65%
+
+75%
+
+3DGS-ADSim
+
+ACT
+
+55%
+
+20%
+
+25%
+
+Real35&3DGS-ADSim
+
+ACT
+
+85%
+
+65%
+
+80%
+
+ADSim
+
+π0
+
+75%
+
+60%
+
+70%
+
+Real35&ADSim
+
+π0
+
+90%
+
+65%
+
+85%
+
+3DGS-ADSim
+
+π0
+
+80%
+
+60%
+
+75%
+
+Real35&3DGS-ADSim
+
+π0
+
+95%
+
+75%
+
+95%
+
+∗ Real35&3DGS-ADSim: few-shot configuration of HyperSim
+
+TABLE III
+P ERFORMANCE OF REAL - ONLY BASELINES
+Training Data
+
+Policy
+
+TAR
+
+SR1
+
+SR3
+
+Real35
+
+ACT
+
+70%
+
+45%
+
+60%
+
+Real35
+
+π0
+
+85%
+
+70%
+
+70%
+
+VI. C ONCLUSION , L IMITATION , AND F UTURE WORK
+This paper presents HyperSim, a systematic framework
+designed to bridge the sim-to-real gap for vision-based robotic
+manipulation under zero-shot and few-shot paradigms. By
+integrating high-fidelity environment construction, adversarial
+trajectory generation, and sim-and-real co-training, our approach mitigates discrepancies across visual rendering, statespace distribution, and data representation. Our extensive
+evaluation across a suite of fine-grained metrics yields three
+takeaways. First, data fidelity and coverage are pivotal to
+successful sim-to-real transfer. Second, large-scale pre-trained
+foundation models, high-quality synthetic data, and co-training
+exhibit profound synergies. Third, training with adversarial
+data that inherently incorporates dynamic uncertainties leads
+to a stronger capability to recover from perturbations during
+inference.
+Despite these advances, we acknowledge that limitations
+exist in the current scope. The hardware safety constraints
+associated with the collision-prone deep-container manipulation, coupled with the resource-intensive nature of physical
+evaluation, have currently constrained our empirical validation
+to a specific task suite and a single humanoid embodiment.
+Consequently, our immediate future work will focus on scaling
+the HyperSim pipeline across a broader spectrum of complex
+manipulation tasks and diverse robotic morphologies. Ultimately, we aim to open-source the HyperSim pipeline as well
+as the generated dataset to further solidify the role of data
+synthesis as a cornerstone for generalized Embodied AI.
+VII. A PPENDIX
+A. Spatial Relation Constraints For Foreground Generation
+
+C. Dynamic Robustness
+We design a dynamic perturbation test to assess policy robustness, an aspect often under-explored in prior work. While
+scene initialization remains the same as previous experiments
+(Fig. 4), a human operator abruptly alters the target object’s
+state during online policy inference. We record the TAR and
+SR1 to evaluate the direct policy response against perturbations. As shown in Table.IV, policies trained with adversarial trajectories (both Real35&ADSim and Real35&3DGSADSim) exhibit superior robustness with SR1 being 60%
+compared to 25% achieved by the non-adversarial counterpart
+(Real35&BaseSim). This improvement stems from the adversarial mechanism, which inherently incorporates dynamic uncertainties into the training data, thereby enforcing a stronger
+capability to recover from perturbations during inference.
+TABLE IV
+P ERFORMANCE COMPARISON AGAINST DYNAMIC PERTURBATIONS
+Training Data
+
+Policy
+
+TAR
+
+SR1
+
+Real35&BaseSim
+
+π0
+
+30%
+
+25%
+
+Real35&ADSim
+
+π0
+
+80%
+
+60%
+
+Real35&3DGS-ADSim
+
+π0
+
+80%
+
+60%
+
+We introduce 18 distinct spatial relation constraints to
+generate fine-grained manipulation regions in a controllable
+manner. The names and descriptions of these constraints are
+detailed in Table. V.
+B. Additional Real World Experiments
+We conducted a group of experiments comparing co-training
+performance with the real-only baselines. We train policies using a fixed set of 400 simulation trajectories while varying the
+number of real-world demonstrations. The evaluation results
+are presented in Table.VI. As expected, performance scales
+positively with real-world data quantity for both real-only and
+co-trained policies. More importantly, the co-trained policies
+consistently surpass their real-only counterpart. This suggests
+that our high-quality synthetic data act as a complementary
+data source, effectively preventing the policies from overfitting
+to the limited real-world demonstrations.
+R EFERENCES
+[1] M. Kim, K. Pertsch, S. Karamcheti, T. Xiao, A. Balakrishna, S. Nair,
+R. Rafailov, E. Foster, G. Lam, P. Sanketi, Q. Vuong, T. Kollar, B. Burchfiel, R. Tedrake, D. Sadigh, S. Levine, P. Liang, and C. Finn, “Openvla: An open-source vision-language-action model,” arXiv preprint
+arXiv:2406.09246, 2024.
+[2] S. Liu, L. Wu, B. Li, H. Tan, H. Chen, Z. Wang, K. Xu, H. Su, and
+J. Zhu, “Rdt-1b: a diffusion foundation model for bimanual manipulation,” arXiv preprint arXiv:2410.07864, 2024.
+
+TABLE V
+S PATIAL R ELATION C ONSTRAINTS
+Name
+
+Description
+
+scale(OBJ, RANGE)
+
+scale OBJ within the RANGE
+randomize OBJ 2D pose within
+the RANGE
+randomize OBJ 3D pose within
+the RANGE
+
+pose2D(OBJ, RANGE)
+pose3D(OBJ, RANGE)
+place on surface(OBJ, REF)
+place left edge(OBJ, REF)
+place right edge(OBJ, REF)
+place top edge(OBJ, REF)
+place bottom edge(OBJ, REF)
+place to left(OBJ, REF)
+place to right(OBJ, REF)
+
+place OBJ on top of REFERENCE
+place OBJ near the left edge of
+the REFERENCE
+place OBJ near the right edge of
+the REFERENCE
+place OBJ near the top edge of
+the REFERENCE
+place OBJ near the bottom edge of
+the REFERENCE
+place OBJ to the left of
+the REFERENCE
+place OBJ to the right of
+the REFERENCE
+
+place in right(OBJ, REF)
+
+place OBJ in front of REFERENCE
+
+place behind(OBJ, REF)
+
+place OBJ behind REFERENCE
+place OBJ to the front-left of
+the REFERENCE
+place OBJ to the front-right of
+the REFERENCE
+place OBJ to the back-left of
+the REFERENCE
+place OBJ to the back-right of
+the REFERENCE
+place multiple OBJs randomly inside
+the REFERENCE
+place multiple non-overlapped OBJs
+inside the REFERENCE
+place OBJ with OBSTACLES
+inside the REFERENCE
+
+place front left(OBJ, REF)
+place front right(OBJ, REF)
+place back left(OBJ, REF)
+place back right(OBJ, REF)
+random placement(OBJs, REF)
+no overlapping(OBJs, REF)
+with obstacles(OBJ, OBS, REF)
+
+TABLE VI
+C OMPARISON OF R EAL -O NLY AND C O -T RAINED P OLICIES
+Training Data
+
+Policy
+
+TAR
+
+SR1
+
+SR3
+
+Real10
+
+π0
+
+70%
+
+35%
+
+45%
+
+Real20
+
+π0
+
+85%
+
+40%
+
+45%
+
+Real35
+
+π0
+
+85%
+
+70%
+
+70%
+
+Real10&ADSim
+
+π0
+
+75%
+
+35%
+
+55%
+
+Real20&ADSim
+
+π0
+
+85%
+
+55%
+
+65%
+
+Real35&ADSim
+
+π0
+
+90%
+
+65%
+
+85%
+
+Real35&3DGS-ADSim
+
+π0
+
+95%
+
+75%
+
+95%
+
+[3] S. Nasiriany, A. Maddukuri, L. Zhang, A. Parikh, A. Lo, A. Joshi,
+A. Mandlekar, and Y. Zhu, “Robocasa: Large-scale simulation of everyday tasks for generalist robots,” in Robotics: Science and Systems
+(RSS), 2024.
+[4] K. Wu, C. Hou, J. Liu, Z. Che, X. Ju, Z. Yang, M. Li,
+Y. Zhao, Z. Xu, G. Yang et al., “Robomind: Benchmark
+on multi-embodiment intelligence normative data for robot
+manipulation,” in Robotics: Science and Systems (RSS) 2025.
+Robotics: Science and Systems Foundation, 2025. [Online]. Available:
+https://www.roboticsproceedings.org/rss21/p152.pdf
+[5] H. Fan, H. Dai, J. Zhang, J. Li, Q. Yan, Y. Zhao, M. Gao,
+J. Wu, H. Tang, and H. Dong, “Twinaligner: Visual-dynamic alignment
+
+empowers physics-aware real2sim2real for robotic manipulation,” 2025.
+[Online]. Available: https://arxiv.org/abs/2512.19390
+[6] P. Intelligence, K. Black, N. Brown, J. Darpinian, K. Dhabalia,
+D. Driess, A. Esmail, M. Equi, C. Finn, N. Fusai, M. Y. Galliker,
+D. Ghosh, L. Groom, K. Hausman, B. Ichter, S. Jakubczak, T. Jones,
+L. Ke, D. LeBlanc, S. Levine, A. Li-Bell, M. Mothukuri, S. Nair,
+K. Pertsch, A. Z. Ren, L. X. Shi, L. Smith, J. T. Springenberg,
+K. Stachowicz, J. Tanner, Q. Vuong, H. Walke, A. Walling,
+H. Wang, L. Yu, and U. Zhilinsky, “π0.5 : a vision-language-action
+model with open-world generalization,” 2025. [Online]. Available:
+https://arxiv.org/abs/2504.16054
+[7] G. A. Team, “Gen-0: Embodied foundation models that
+scale with physical interaction,” Generalist AI Blog, 2025,
+https://generalistai.com/blog/nov-04-2025-GEN-0.
+[8] Y. Wang, Z. Xian, F. Chen, T.-H. Wang, Y. Wang, K. Fragkiadaki,
+Z. Erickson, D. Held, and C. Gan, “Robogen: Towards unleashing
+infinite data for automated robot learning via generative simulation,”
+arXiv preprint arXiv:2311.01455, 2023.
+[9] A. Mandlekar, S. Nasiriany, B. Wen, I. Akinola, Y. Narang, L. Fan,
+Y. Zhu, and D. Fox, “Mimicgen: A data generation system for
+scalable robot learning using human demonstrations,” arXiv preprint
+arXiv:2310.17596, 2023.
+[10] H. Ha, P. Florence, and S. Song, “Scaling up and distilling down:
+Language-guided robot skill acquisition,” 2023.
+[11] P. Hua, M. Liu, A. Macaluso, Y. Lin, W. Zhang, H. Xu, and L. Wang,
+“Gensim2: Scaling robot data generation with multi-modal and reasoning llms,” in 8th Annual Conference on Robot Learning.
+[12] T. Chen, Z. Chen, B. Chen, Z. Cai, Y. Liu, Z. Li, Q. Liang, X. Lin,
+Y. Ge, Z. Gu et al., “Robotwin 2.0: A scalable data generator and
+benchmark with strong domain randomization for robust bimanual
+robotic manipulation,” arXiv preprint arXiv:2506.18088, 2025.
+[13] H. Wu, Y. Liu, J. Dong, H. Zhang, S. Mao, H. Wang, W. Wu, and
+S. Zhou, “Ascent: Autonomous skill learning toward complex embodied
+tasks with foundation models,” in 2025 IEEE International Conference
+on Robotics and Automation (ICRA). IEEE, 2025, pp. 16 752–16 758.
+[14] Y. Tian, Y. Yang, Y. Xie, Z. Cai, X. Shi, N. Gao, H. Liu,
+X. Jiang, Z. Qiu, F. Yuan, Y. Li, P. Wang, J. Cai, J. Zeng,
+H. Dong, and J. Pang, “Interndata-a1: Pioneering high-fidelity synthetic
+data for pre-training generalist policy,” 2025. [Online]. Available:
+https://arxiv.org/abs/2511.16651
+[15] B. Kerbl, G. Kopanas, T. Leimkuehler, and G. Drettakis, “3d
+gaussian splatting for real-time radiance field rendering,” ACM
+Trans. Graph., vol. 42, no. 4, Jul. 2023. [Online]. Available:
+https://doi.org/10.1145/3592433
+[16] B. Huang, Z. Yu, A. Chen, A. Geiger, and S. Gao, “2d gaussian splatting
+for geometrically accurate radiance fields,” in ACM SIGGRAPH 2024
+Conference Papers, ser. SIGGRAPH ’24. New York, NY, USA:
+Association for Computing Machinery, 2024. [Online]. Available:
+https://doi.org/10.1145/3641519.3657428
+[17] D. Chen, H. Li, W. Ye, Y. Wang, W. Xie, S. Zhai, N. Wang, H. Liu,
+H. Bao, and G. Zhang, “Pgsr: Planar-based gaussian splatting for
+efficient and high-fidelity surface reconstruction,” IEEE Transactions on
+Visualization and Computer Graphics, vol. 31, no. 9, pp. 6100–6111,
+2025.
+[18] S. Yang, W. Yu, J. Zeng, J. Lv, K. Ren, C. Lu, D. Lin, and
+J. Pang, “Novel demonstration generation with gaussian splatting
+enables robust one-shot manipulation,” 2025. [Online]. Available:
+https://arxiv.org/abs/2504.13175
+[19] E. Johns, “Coarse-to-fine imitation learning: Robot manipulation from
+a single demonstration,” in 2021 IEEE international conference on
+robotics and automation (ICRA). IEEE, 2021, pp. 4613–4619.
+[20] N. Di Palo and E. Johns, “Learning multi-stage tasks with one demonstration via self-replay,” in Conference on Robot Learning. PMLR,
+2022, pp. 1180–1189.
+[21] A. Wei, A. Agarwal, B. Chen, R. Bosworth, N. Pfaff, and
+R. Tedrake, “Empirical analysis of sim-and-real cotraining of diffusion
+policies for planar pushing from pixels,” 2025. [Online]. Available:
+https://arxiv.org/abs/2503.22634
+[22] A. Maddukuri, Z. Jiang, L. Y. Chen, S. Nasiriany, Y. Xie, Y. Fang,
+W. Huang, Z. Wang, Z. Xu, N. Chernyadev, S. Reed, K. Goldberg,
+A. Mandlekar, L. Fan, and Y. Zhu, “Sim-and-real co-training: A simple recipe for vision-based robotic manipulation,” in Proceedings of
+Robotics: Science and Systems (RSS), Los Angeles, CA, USA, 2025.
+
+[23] J. Yang, C. Finn, and D. Sadigh, “Invariance co-training
+for robot visual generalization,” 2025. [Online]. Available:
+https://arxiv.org/abs/2512.05230
+[24] Z. Xu, W. Chen, S. Wang, Z. Ouyang, S. Bian, and S. Zhou, “Gpgs:
+Geometric priors for 3d gaussian splatting in structural environments,”
+in 2025 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS), 2025, pp. 15 695–15 702.
+[25] Open 3D Foundation, “O3DE Documentation,” 2021. [Online].
+Available: https://docs.o3de.org
+
+

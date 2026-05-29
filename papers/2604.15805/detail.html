@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>From Seeing to Simulating: Generative High-Fidelity Simulation with Digital Cousins - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+.header .meta span { margin-right: 1.5rem; }
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.header .links a:hover { text-decoration: underline; }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.section-header:hover { background: var(--bg-alt); }
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+.section-body.hidden { display: none; }
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+.sidebar {}
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.sidebar-card .info-row:last-child { border-bottom: none; }
+.sidebar-card .info-label { color: var(--text-muted); }
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>From Seeing to Simulating: Generative High-Fidelity Simulation with Digital Cousins for Generalizable Robot Learning and Evaluation</h1>
+  <div class="meta">
+    <span>Jasper Lu, Zhenhao Shen, Yuanfei Wang, Shugao Liu, et al.</span>
+    <span>2026-04-17</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.15805" target="_blank">arXiv:2604.15805</a>
+  </div>
+  <div class="tags">
+    <span class="tag">Digital Cousins</span>
+    <span class="tag">场景生成</span>
+    <span class="tag">全景图</span>
+    <span class="tag">sim-to-real</span>
+    <span class="tag">世界模型</span>
+    <span class="tag">泛化学习</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>WorldComposer 提出"数字表亲"（Digital Cousins）概念，通过从真实世界的全景照片生成高保真仿真场景，再通过语义和几何编辑产生大量多样化的变体场景，为机器人学习提供无限可扩展、高保真度的训练和评估平台。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>数字孪生 vs 数字表亲</h4>
+        <p><strong>数字孪生</strong>（Digital Twin）是真实场景的精确虚拟复制品。<strong>数字表亲</strong>（Digital Cousins）是本文提出的新概念——保留原始场景的结构逻辑，但在外观、布局、物体配置上有系统性变化。"表亲"提供了一种"一对多"的场景生成能力，比孪生更适合训练泛化策略。</p>
+        <h4>3D Gaussian Splatting (3DGS) & Marble</h4>
+        <p>3DGS 将场景表示为3D高斯原语集合，实现照片级真实的新视角合成。Marble 是 World Labs 的多模态世界模型，可以从单张全景图生成完整的3D场景。</p>
+        <h4>Point-to-Plane ICP</h4>
+        <p>点云配准算法，通过最小化点到对应点所在平面的距离来对齐两个点云，比 Point-to-Point ICP 收敛更快更稳定。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>核心洞察</strong>：与其花费大量精力精确重建每一个真实场景（数字孪生），不如从一个真实场景出发，利用生成模型创造大量存在系统性差异的变体场景（数字表亲）。</p>
+        <p><strong>类比</strong>：想象你是一个演员。如果只在同一个舞台上排练（数字孪生），换一个舞台就可能出错。但如果你在100个不同的"表亲舞台"上排练过——有些布景颜色不同，有些家具摆放不同，有些光照不同——那么无论把你放在什么样的舞台上，你都能自如表演。</p>
+        <p><strong>三大流程</strong>：</p>
+        <ul>
+          <li>全景图 → Marble → 3DGS场景 + 碰撞网格</li>
+          <li>自然语言提示编辑 → 数字表亲变体</li>
+          <li>多房间拼接 → 完整可导航房屋环境</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>生成式场景构建</h4>
+        <p>单张360°全景图 → Marble世界模型 → 3DGS（视觉渲染）+ 碰撞网格（物理交互）。通过自然语言提示（如"把橱柜改成灰蓝色"）编辑生成数字表亲。</p>
+        <h4>多房间拼接</h4>
+        <p>粗对齐：SuperPoint + LightGlue 特征匹配，通过已知相机高度恢复度量尺度。精细优化：Point-to-Plane ICP。最终将多个房间的3DGS合并到统一坐标系。</p>
+        <h4>高保真交互仿真</h4>
+        <p>三种交互式物体资产库：刚性（凸分解）、关节（精确关节限制）、柔性（PBD/FEM/动态网格）。LLM提供常识放置先验。</p>
+        <h4>四个泛化层次</h4>
+        <p>Train → Unseen Scene → Unseen Object → Unseen Scene & Object</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>度量尺度恢复</strong>：t_ab = α·t̂_ab, α = h / median({n^T p_i | p_i ∈ P_g})。利用已知相机高度 h 恢复单目视觉中丢失的度量尺度。</p>
+        <p><strong>ICP损失</strong>：E_ICP = Σ((T_fine·p_i^a - p_j^b)^T n_j^b)²。最小化点到对应点所在平面的有符号距离平方和。</p>
+        <p><strong>泛化层次设计</strong>：四个逐渐严格的测试条件，层层递进地诊断策略在不同维度上的脆弱性。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>任务谱</strong>：刚性（摆餐具）、关节（开微波炉/关抽屉）、柔性+流体（叠衣/倒水/切香肠/组装汉堡）。</p>
+        <p><strong>评估策略</strong>：ACT, DP, SmolVLA, π₀ 四种代表性方法。</p>
+        <p><strong>发现</strong>：</p>
+        <ul>
+          <li>数字表亲数据显著提升泛化：Pour Water 的 S&O 泛化从0.46→0.70</li>
+          <li>纯仿真(Twin) ≈ 真实数据：50条Sim vs 50条Real表现相当</li>
+          <li>仿真-真实 Pearson r=0.91——仿真评估可靠预测真实性能</li>
+          <li>1000条表亲数据使成功率从10%升至85%</li>
+          <li>多房间导航：零样本策略VLFM达68%成功率</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>: WorldComposer框架——全景图→数字表亲→机器人任务</li>
+          <li><strong>图2</strong>: 系统架构——Marble生成、多房间拼接、资产库</li>
+          <li><strong>图3</strong>: 8种仿真任务和数字表亲示例</li>
+          <li><strong>图5</strong>: 真实→仿真→真实流水线和定性分析</li>
+          <li><strong>图6</strong>: 性能随表亲数据规模增长曲线（10%→85%）</li>
+          <li><strong>图7</strong>: 仿真-真实相关性散点图（r=0.91）</li>
+          <li><strong>图8</strong>: 多房间导航轨迹和第一人称视角</li>
+          <li><strong>表I-III</strong>: DP/π₀仿真和真实世界评估</li>
+          <li><strong>表IV</strong>: 多房间导航结果</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>当前Marble生成整体场景网格，无法独立操作单个物体</li>
+          <li>多房间拼接处存在纹理不连续问题</li>
+          <li>场景生成质量受限于Marble世界模型能力</li>
+          <li>3DGS大量高斯原语在高分辨率渲染时计算开销较大</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.15805</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-17</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Robotics, Scene Generation</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">50-100条专家示教; 50-1000条数字表亲</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">4层次成功率 (SR)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">Sim-Real r=0.91; 1000表亲→10%→85%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">ACT, DP, SmolVLA, π₀; 纯真实vs仿真vs协同训练</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">"数字表亲"这个概念非常精妙——它巧妙规避了"精确重建"这个困难问题（数字孪生），转而追求"足够多样的近似重建"。多样性往往比精确性更重要：一个在100个不同场景上训练的策略，即使每个场景都不完全精确，也比在1个完美场景上训练的策略泛化能力更强。Sim-Real相关性的严格验证（r=0.91）是重要贡献——仿真评估可以真正成为真实世界测试的可靠替代。与前三篇对比：HyperSim侧重"单个场景质量"，ComSim侧重"数据翻译"，SIM1侧重"柔性体仿真"，WorldComposer侧重"场景从无到有的多样化生成"。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

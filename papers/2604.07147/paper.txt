@@ -1,0 +1,1199 @@
+Dynamic Context Evolution for Scalable Synthetic Data
+Generation
+Ryan Lingo
+Honda Research Institute, USA, Inc.
+ryan_lingo@honda-ri.com
+
+Rajeev Chhajer
+Honda Research Institute, USA, Inc.
+rajeev_chhajer@honda-ri.com
+
+arXiv:2604.07147v1 [cs.CL] 8 Apr 2026
+
+Abstract
+Large language models produce repetitive output when prompted independently across
+many batches, a phenomenon we term cross-batch mode collapse: the progressive loss of
+output diversity when a language model is prompted repeatedly without access to its prior
+generations. Practitioners have long mitigated this with ad hoc deduplication and seed
+rotation, but no principled framework exists. We introduce Dynamic Context Evolution
+(DCE), comprising three mechanisms: (1) verbalized tail sampling (the model labels each
+idea with a guess about how obvious it is, and obvious ideas are discarded), which filters highprobability candidates via model self-assessment; (2) semantic memory, which maintains a
+persistent embedding index to reject near-duplicates across batches; and (3) adaptive prompt
+evolution, which reconstructs the generation prompt each batch using memory state and
+rotating diversity strategies. In experiments across three domains (sustainable packaging
+concepts, educational exam questions, and creative writing prompts) and two model families
+(gpt-5-mini1 and claude-haiku-4-5), A component ablation across 2–3 random seeds
+per method shows that DCE achieves 0.0 ± 0.0% collapse versus 5.6 ± 2.0% for naive
+prompting, while producing 17–18 HDBSCAN clusters per seed versus naive’s volatile 2–
+17, indicating reliably richer conceptual structure. These results are validated with an
+independent embedding model (all-MiniLM-L6-v2) and hold across sensitivity sweeps of
+the VTS threshold τ and dedup threshold δ. Deduplication and prompt evolution are
+individually insufficient but jointly effective, at approximately $0.50 per 1,000 candidates
+using only standard API calls, with no fine-tuning or custom architectures required.
+
+1
+
+Introduction
+
+Consider the following experiment. Prompt a language model to generate five educational exam
+questions. Record the output. Clear the conversation. Repeat 200 times. In the first 30 batches,
+the model produces genuinely distinct questions spanning diverse topics. By batch 50, the same
+question structures resurface with superficial variation. By batch 200, 34% of questions in the
+final 50 batches are near-duplicates of questions from the first 50, meaning over a third of the
+output is redundant.
+We call this phenomenon cross-batch mode collapse: the progressive loss of output diversity
+when a language model is prompted repeatedly without access to its prior generations. Unlike
+single-session repetition, which can be mitigated by conversational context, cross-batch collapse
+is structural. Each API call begins with a blank context window. The model has no mechanism
+to avoid revisiting high-probability regions of its output distribution. The severity varies by
+domain (from 4% in sustainable packaging to 34% in educational content), but the pattern is
+1
+gpt-5-mini-2025-08-07 is a lightweight model in OpenAI’s GPT-5 family, accessed via API. It supports
+structured output. At the time of our experiments, the API did not expose temperature or top-p controls for
+this snapshot, making diversity interventions at the decoding level unavailable and concept-level approaches like
+DCE necessary.
+
+1
+
+consistent: without intervention, repeated prompting converges toward a narrow subset of the
+output space.
+Practitioners have long been aware of this tendency and have adopted ad hoc countermeasures: post-hoc deduplication, seed rotation, prompt paraphrasing, and manual curation. These
+approaches are effective to varying degrees, but they lack a principled framework: there is no systematic way to know how much diversity is being lost, when additional intervention is needed, or
+which combination of techniques is sufficient. DCE formalizes these intuitions into a measurable,
+reproducible pipeline.
+This problem is consequential for synthetic data generation, where diversity directly determines downstream utility. A classifier trained on 1,000 paraphrases of 50 concepts learns 50
+categories. A classifier trained on 1,000 genuinely distinct concepts can learn far richer structure.
+Existing approaches are insufficient. Token-level interventions such as temperature scaling [Holtzman et al., 2020] and nucleus sampling introduce lexical variation without altering the
+underlying concept distribution. Indeed, with gpt-5-mini, these controls are not even available;
+the API does not expose temperature or top-p parameters. Best-of-N sampling optimizes quality, not diversity. Self-consistency prompting [Wang et al., 2023] drives output toward consensus.
+None provide the model with memory of what it has already generated.
+We introduce Dynamic Context Evolution (DCE), a generation framework built on three
+complementary mechanisms: a self-assessment filter that discards predictable candidates, a persistent semantic memory that prevents near-duplicate acceptance, and an adaptive prompt system that steers each batch toward unexplored conceptual territory. Together, these mechanisms
+eliminate cross-batch collapse while maintaining output quality. We validate DCE across three
+domains (sustainable packaging, educational exam questions, and creative writing prompts),
+two model families (GPT-5-mini and Claude Haiku 4.5), and a seven-method ablation study,
+demonstrating that the mechanisms are individually insufficient but jointly effective.
+
+2
+
+Related Work
+
+Synthetic data generation with LLMs. Recent work has demonstrated the viability of
+using language models to generate training data for downstream tasks [Yu et al., 2023, Josifoski
+et al., 2023, Li et al., 2024]. However, these approaches typically focus on single-pass generation
+or quality filtering, and do not address the diversity degradation that occurs across hundreds of
+independent generation batches.
+Model collapse. Shumailov et al. [2024] demonstrate that training models on recursively
+generated synthetic data leads to progressive quality degradation. Our work addresses a related
+but distinct phenomenon: output repetition within a single generation campaign, where the
+model’s lack of cross-batch memory causes it to revisit high-probability outputs.
+Diversity in text generation. Token-level strategies such as nucleus sampling [Holtzman
+et al., 2020] and temperature scaling control the randomness of word selection but do not
+influence which concepts the model chooses to express. Self-consistency [Wang et al., 2023]
+deliberately reduces diversity by selecting the most common answer across samples. Verbalized
+probability estimation [Zhang et al., 2025] asks the model to assess the likelihood of its own
+outputs, which we adapt as a novelty filter.
+Active learning and Bayesian optimization. DCE’s exploration-exploitation structure is
+inspired by active learning [Settles, 2009] and Bayesian optimization [Snoek et al., 2012], which
+balance broad search with targeted refinement. DCE adapts this principle informally: early
+batches explore broadly, later batches target gaps. Unlike these frameworks, DCE does not
+optimize an explicit acquisition function; the analogy is structural rather than formal.
+2
+
+LLMs as crowdsourcing replacements. Wu et al. [2023] explore using LLMs to replicate
+human crowdsourcing pipelines. Our work extends this direction by addressing the specific
+challenge of maintaining diversity at scale, which human crowds achieve naturally through participant variation but LLMs lack.
+
+3
+
+Method
+
+DCE augments the standard generation pipeline with three mechanisms, each targeting a specific
+failure mode of repeated independent prompting. Figure 1 shows the complete generation loop,
+and Figure 5 illustrates how the filtering mechanisms interact to select candidates.
+batch b
+
+Phase & Strategy
+
+Prompt
+Constructor
+
+prompt
+
+LLM
+Generator
+
+candidates
+
+VTS Filter
+
+Pi < τ
+
+accepted
+(cos < δ)
+
+Dedup Check
+sim scores
+
+Pi ≥ τ rejected
+
+Semantic
+Memory
+
+cos ≥ δ rejected
+persists across sessions
+
+recent ideas, dense regions, category gaps
+
+Figure 1: System architecture of the DCE generation loop. The pipeline flows left to right: the
+prompt constructor assembles each batch’s prompt from phase/strategy settings and semantic
+memory state, the LLM generates candidates, and successive filters (VTS, dedup) gate acceptance into the memory bank. The feedback loop along the bottom returns memory state (recent
+ideas, dense regions, category gaps) to the prompt constructor for the next batch.
+
+3.1
+
+Verbalized Tail Sampling
+
+Each candidate idea is generated alongside a self-assessed probability score: the model labels
+each idea with a guess about how obvious it is, and obvious ideas are discarded. Specifically, the
+model estimates the likelihood that another language model, given the same domain prompt,
+would produce the same concept. Candidates with probability estimates above a threshold
+τ = 0.10 are discarded.
+For example, a candidate “smart water bottle” with P = 0.45 is rejected as predictable, while
+“shipping containers with walls of compressed agricultural waste that decompose into fertilizer”
+with P = 0.03 is retained.
+The probability estimates are not calibrated in an absolute sense [Zhang et al., 2025]. However, they provide a reliable relative ordering between obvious and non-obvious candidates, which
+is sufficient for filtering purposes. This mechanism targets the depth dimension of diversity: it
+ensures that accepted ideas are not merely the most probable completions.
+
+3.2
+
+Semantic Memory
+
+Every accepted idea is embedded into a 1536-dimensional vector using text-embedding-3-small [Neelakantan et al., 2022] and stored in a persistent vector database (ChromaDB [Chroma, 2023]).
+Before a new candidate is accepted, the system computes its cosine similarity to all stored embeddings. Any candidate with similarity exceeding δ = 0.85 to any stored idea is rejected as a
+near-duplicate.
+
+3
+
+This mechanism operates at the semantic level rather than the lexical level. “Smart water
+bottle” and “intelligent hydration vessel” share few words but produce nearly identical embeddings; the memory filter catches both. The database persists across sessions, ensuring that
+generation can be paused and resumed without loss of deduplication state.
+This mechanism targets the breadth dimension of diversity: it prevents the accepted set
+from accumulating redundant entries, even when the redundancy is expressed through different
+surface forms.
+
+3.3
+
+Adaptive Prompt Evolution
+
+The generation prompt is reconstructed before each batch using three sources of information
+derived from the current memory state:
+• The 10 most recently accepted ideas, presented as exclusions
+• 5 ideas from the densest regions of the embedding space, flagged as over-represented territory
+• The current distribution of ideas across categories, highlighting underrepresented areas
+In addition, each batch applies one of four diversity strategies in round-robin rotation:
+Gap targeting. Directs the model toward categories with the fewest accepted ideas, explicitly
+prioritizing underrepresented areas of the concept space.
+Assumption inversion. Identifies assumptions implicit in recent ideas and instructs the model
+to invert them, forcing exploration of complementary regions.
+Cross-industry stimulus. Provides analogies from unrelated domains (e.g., hospitality, aerospace,
+marine engineering) to break domain-specific fixation. Combining ideas from distant fields
+produces concepts that within-domain prompting rarely generates.
+Constraint variation. Applies extreme constraints (e.g., “must cost nothing,” “must work
+without electricity,” “must be reusable 100 times”) to shift the model away from default
+design assumptions.
+Category quality. Gap targeting relies on the model’s self-assigned category labels to identify
+underrepresented areas. The consistency of these labels is validated empirically in Section 5.9.
+The generation campaign is divided into two phases: the first 40% of batches prioritize broad
+exploration, while the remaining 60% shift to gap-filling within the discovered space.
+Prompt assembly example. Figure 2 shows a simplified version of the prompt sent at batch
+100 (gap-targeting strategy, exploitation phase). The prompt integrates memory state (recent
+ideas, category distribution, dense regions) with the current strategy directive, giving the model
+specific guidance on where to explore next.
+Prompt evolution over time. Figure 3 contrasts the prompt at batch 10 (exploration phase,
+sparse memory) with batch 190 (exploitation phase, full memory), showing how the prompt
+adapts as the concept space fills.
+Strategy examples. Figure 4 illustrates all four diversity strategies with concrete prompt
+snippets and example outputs.
+
+4
+
+Generate 5 sustainable packaging concepts. ← base template
+For each idea, estimate the probability that
+another LLM would generate the same concept. ← VTS instruction
+PHASE: Exploitation (gap-filling). ← from batch number
+Focus on filling gaps in underrepresented
+categories rather than broad exploration.
+STRATEGY: Gap targeting. ← round-robin
+The following categories have the fewest
+accepted ideas. Prioritize these areas:
+- Thermal regulation (2 ideas)
+- Ocean-degradable materials (3 ideas)
+- Agricultural waste reuse (4 ideas)
+RECENT IDEAS (do not repeat these): ← from memory
+- Kelp-fiber insulation panels
+- Phase-change cooling wraps
+- ... (10 most recent)
+OVER-REPRESENTED (avoid these regions): ← from memory
+- Biodegradable films (dense cluster)
+- Mushroom-based materials (dense cluster)
+CATEGORY DISTRIBUTION: ← from memory
+Biodegradable films: 47 | Reusable: 38
+Edible packaging: 31 | Thermal: 2 ...
+
+Figure 2: Simplified prompt at batch 100 (exploitation phase, gap-targeting strategy). Annotations show which DCE component contributes each section. The full prompt template is in
+Appendix A.
+Algorithm 1 Dynamic Context Evolution
+1: for each batch b = 1 to B do
+2:
+Construct prompt from memory state, strategy s = b mod 4, and phase
+3:
+Generate n candidate ideas with structured output
+4:
+Filter: discard candidates with self-assessed Pi ≥ τ
+5:
+Deduplicate: discard candidates with maxj∈M cos(ei , ej ) ≥ δ
+6:
+Update memory: embed and store all accepted candidates
+7: end for
+
+3.4
+
+Generation Loop
+
+Algorithm 1 summarizes the complete DCE pipeline.
+where τ = 0.10 is the probability threshold and δ = 0.85 is the similarity threshold.
+
+4
+
+Evaluation Metrics
+
+Standard text generation metrics (perplexity, BLEU, ROUGE) measure quality or fidelity, not
+conceptual diversity across a large set of generated items. We introduce Effective Diversity
+Volume (EDV) and use it alongside collapse rate to evaluate sustained diversity.
+
+4.1
+
+Effective Diversity Volume
+
+EDV measures whether each batch continues to produce ideas that are both surprising (low
+model-assessed probability) and novel (far from all previously accepted ideas). For a batch of n
+accepted ideas:
+
+5
+
+Batch 10 (exploration, cross-industry)
+
+Batch 190 (exploitation, gap targeting)
+
+PHASE: Exploration.
+Focus on breadth -- explore widely.
+
+PHASE: Exploitation (gap-filling).
+Focus on filling underrepresented areas.
+
+STRATEGY: Cross-industry stimulus.
+Imagine packaging designed by someone
+from: Veterinary medicine, Textile
+manufacturing, Urban planning.
+
+STRATEGY: Gap targeting.
+These categories need more ideas:
+- Thermal regulation (2 ideas)
+- Ocean-degradable materials (3 ideas)
+- Agricultural waste reuse (4 ideas)
+
+RECENT IDEAS (do not repeat):
+- Mycelium foam inserts
+- Edible rice-paper wraps
+... (8 more, all from batches 1-9)
+
+RECENT IDEAS (do not repeat):
+- Compressed hemp fiber crates
+- Algae-ink printed labels
+... (8 more, from batches 180-189)
+
+CATEGORY DISTRIBUTION (3 total):
+Biodegradable films: 12
+Edible packaging: 8
+Reusable containers: 7
+(only 3 categories after 10 batches)
+
+OVER-REPRESENTED (avoid):
+- Biodegradable films (dense cluster)
+- Mushroom-based materials (dense)
+- Edible coatings (dense cluster)
+CATEGORY DISTRIBUTION (47 total):
+Biodegradable films: 47
+Reusable containers: 38
+Edible packaging: 31
+Mycelium-based: 28
+Seaweed/algae: 22
+Agricultural waste: 16
+Insulation/thermal: 12
+Water-soluble: 9
+Compressed fiber: 7
+Mineral-based: 5
+Thermal regulation: 2
+Ocean-degradable: 3
+(+ 35 more categories with 1–4 ideas)
+
+3 categories · 27 ideas · exploration phase
+
+47 categories · 950 ideas · 3 dense regions flagged
+
+Figure 3: Prompt evolution: batch 10 (left) vs. batch 190 (right). The summary callouts below
+each panel highlight the key quantitative difference: early prompts have sparse memory and
+prioritize broad exploration, while late prompts have rich category distributions, identify dense
+regions to avoid, and target specific gaps.
+
+n
+
+1X
+EDVbatch =
+(1 − P ) × min(1 − cos(ei , ej ))
+| {z i} j∈M
+n
+i=1
+|
+{z
+}
+depth
+
+(1)
+
+breadth
+
+where Pi is the self-assessed probability and M is the memory bank at the time of evaluation. A flat EDV curve over batches indicates sustained exploration; a declining curve indicates
+convergence toward previously visited regions.
+Why multiplication? The multiplicative form is deliberate: it requires both depth and
+breadth for a high score. An idea that is surprising but nearly identical to a stored idea
+(Pi = 0.02, breadth ≈ 0) contributes near-zero EDV, as does an obvious but distant idea
+(Pi = 0.90, breadth = 0.5). A weighted sum would allow one strong dimension to compensate
+for a weak one, which would not reflect our design goal: we want ideas that are both non-obvious
+and semantically novel. The multiplicative form encodes this conjunctive requirement directly.
+We note that this encodes a specific design preference, not a universal truth about diversity. In
+domains where novel twists on familiar concepts matter more than entirely new territory, an
+additive form may be preferable.
+To verify that our results are not an artifact of the multiplicative form, Table 1 compares method rankings under all three formulations using the packaging domain data (seed
+42, all-MiniLM-L6-v2 embeddings).
+Rankings are stable across formulations (ranks 3–7 are identical; only the top two swap under
+additive). Under all three formulations, naive ranks first or second in EDV retention. This
+reflects a property of the retention ratio: naive starts with a lower absolute EDV (its early
+batches are unconstrained and initially diverse), so the ratio of late-to-early EDV can be higher
+6
+
+STRATEGY: Gap targeting. ← round-robin
+These categories are underrepresented:
+- Thermal regulation (2 ideas)
+- Ocean-degradable materials (3 ideas)
+At least half your ideas MUST target these.
+Output: Seaweed-cellulose thermal liner
+that regulates temperature via phase change
+and dissolves in seawater (P = 0.03).
+------------------------------------------STRATEGY: Assumption inversion. ← round-robin
+Recent ideas assume the following:
+- Packaging is disposable after use
+- Consumer removes packaging manually
+Invert each assumption. Generate ideas where:
+- Packaging is permanent / reusable
+- Packaging removes itself (dissolves, etc.)
+Output: Self-dissolving mineral shell
+that liquefies on contact with water,
+leaving zero waste (P = 0.04).
+------------------------------------------STRATEGY: Cross-industry stimulus. ← round-robin
+Imagine packaging designed by someone from:
+- Aerospace engineering
+- Marine biology
+What would they do differently?
+Output: Pressure-sealed ablative wrap
+(aerospace) that sheds layers in transit,
+each composting independently (P = 0.02).
+------------------------------------------STRATEGY: Constraint variation. ← round-robin
+CONSTRAINT: The packaging must cost nothing
+to produce (use only waste materials).
+Output: Compressed coffee-ground bricks
+collected from cafes, molded into shipping
+containers that compost in 30 days (P = 0.02).
+
+Figure 4: All four diversity strategies with prompt snippets and example outputs. Gap targeting
+steers toward underrepresented categories. Assumption inversion negates implicit assumptions
+in recent ideas. Cross-industry stimulus introduces framing from distant domains. Constraint
+variation applies extreme constraints to break default design assumptions.
+even when absolute late-batch diversity is worse. For absolute EDV values and collapse rates,
+which together give the full picture, see Table 2. We retain the multiplicative form for its
+interpretive clarity as a conjunctive requirement.
+We report both absolute EDV values and the retention ratio (EDV at batch 200 divided by
+EDV at batch 1) throughout. The retention ratio captures how well diversity is maintained as
+the concept space fills, while absolute values reveal the starting level. A method could maintain
+high retention of a low initial EDV, which the absolute values expose.
+Informal calibration. An EDV retention of 23.6% means that batch 200 ideas score roughly
+one-quarter as high on the depth×breadth product as batch 1 ideas, but still pass both filters
+(0% collapse rate at δ = 0.85). Late-batch ideas occupy denser but non-overlapping regions of
+the concept space: they are less surprising individually but remain semantically distinct from
+all prior ideas.
+
+4.2
+
+Collapse Rate
+
+Collapse rate measures the proportion of ideas in the final 50 batches that are near-duplicates
+(cosine similarity > 0.85) of ideas from the first 50 batches. A collapse rate of 0% indicates that
+the end of the generation campaign is as conceptually original as the beginning. We distinguish
+the underlying phenomenon (the model revisiting high-probability outputs across independent
+7
+
+Table 1: EDV retention (%) under three formulations (packaging domain, seed 42, MiniLM
+embeddings). Rankings are nearly identical: VTS + dedup is the lowest-ranked method in all
+three, and the top methods cluster within a narrow range. Minor rank swaps occur at the top
+(naive and prompt evo + dedup exchange positions 1–2 under the additive form), but the overall
+ordering is stable.
+Method
+Naive
+Prompt evo + dedup
+DCE (full)
+VTS only
+Dedup only
+Prompt evo only
+VTS + dedup
+
+Multiplicative
+
+Additive
+
+Geometric
+
+Rank
+
+32.7
+31.4
+28.7
+28.0
+27.2
+24.5
+19.7
+
+64.0
+64.9
+63.7
+62.7
+62.3
+61.4
+58.5
+
+56.9
+55.9
+53.4
+52.8
+52.0
+49.2
+43.9
+
+1/2/1
+2/1/2
+3/3/3
+4/4/4
+5/5/5
+6/6/6
+7/7/7
+
+sessions) from this operationalization, which uses cosine similarity exceeding δ as a proxy. The
+measured collapse rate depends on both the embedding model and the threshold; our crossembedding validation (Section 5.3) confirms that the results are robust to these choices.
+
+5
+
+Experiments
+
+Unless otherwise noted, experiments use gpt-5-mini-2025-08-07 for generation and text
+-embedding-3-small (1536 dimensions) for embeddings, generating ideas in batches of 5 across
+200 batches (1,000 candidate ideas per method; accepted idea counts vary by method due to
+filtering). We evaluate on three domains: sustainable packaging concepts, educational exam
+questions for introductory biology and computer science, and creative writing prompts.
+
+5.1
+
+Experiment 1: Characterizing Cross-Batch Collapse
+
+We first establish that cross-batch collapse is a real and measurable phenomenon under naive
+prompting (independent batches with no memory or filtering).
+Figure 6 presents two complementary views, comparing naive prompting against DCE. Under naive prompting, batch novelty (average minimum cosine distance between new ideas and
+all prior ideas) drops from 1.0 to approximately 0.20 within 60 batches. Concurrently, HDBSCAN [Campello et al., 2013] cluster count plateaus after batch 60, indicating that subsequent
+batches contribute no new conceptual categories. DCE maintains substantially higher novelty
+throughout and continues growing the cluster count past batch 100.
+
+5.2
+
+Experiment 2: Component Ablation
+
+We compare seven configurations to isolate the contribution of each mechanism. The first four
+represent the original ablation; the remaining three decompose DCE’s components further:
+1. Naive: independent batches, no filtering or memory
+2. VTS only: verbalized tail sampling filter, no memory or prompt evolution
+3. VTS + dedup: VTS with semantic memory, no prompt evolution
+4. DCE (full): all three mechanisms (VTS + memory + adaptive prompt evolution)
+5. Dedup only: semantic memory without VTS or prompt evolution
+8
+
+Breadth (distance from memory)
+
+Depth (how surprising)
+
+Rejected by dedup
+
+high
+
+surprising but too similar
+to something in memory
+
+Accepted (high EDV)
+surprising and far from memory
+“walls made of compressed
+agricultural waste”
+P = 0.03 · nearest = 0.31
+
+“intelligent hydration vessel”
+P = 0.05 · nearest = 0.92
+low
+
+high
+
+Rejected by both
+
+Rejected by VTS
+
+obvious and redundant
+
+novel territory but obvious idea
+
+“eco-friendly water bottle”
+P = 0.52 · nearest = 0.91
+
+“smart water bottle”
+P = 0.45 · nearest = 0.22
+
+EDVbatch = n1
+
+low
+
+P
+
+i depthi × breadthi
+
+(averaged over accepted ideas per batch)
+
+Figure 5: The EDV filtering space. Each candidate is scored on depth (how surprising, determined by VTS) and breadth (how distant from memory, determined by deduplication). Only
+candidates that pass both filters (top-right quadrant) contribute to EDV. The quadrant labels
+show which filter rejects candidates in each region.
+6. Prompt evo only: adaptive prompts without VTS or dedup
+7. Prompt evo + dedup: adaptive prompts with semantic memory, no VTS
+Note that token-level baselines (temperature scaling, nucleus sampling) were planned but
+could not be executed because gpt-5-mini does not expose temperature or top-p parameters;
+only the default decoding configuration is available.
+The results in Table 2, reported as mean ± std over 2–3 seeds per method, reveal several
+patterns. The primary result is collapse rate: any method that includes deduplication achieves
+0.0 ± 0.0% collapse across all seeds, while methods without it show nonzero collapse (naive: 5.6
+± 2.0%), confirming that semantic memory is necessary for reliable collapse prevention. Second,
+HDBSCAN cluster analysis (Table 3) shows that DCE produces 17–18 clusters consistently
+across seeds, versus naive’s highly variable 2–17, demonstrating that DCE reliably produces
+richer conceptual structure. Third, DCE achieves the highest mean EDV retention (23.6 ± 3.5%),
+though with only 3 seeds this difference is not statistically significant (p = 0.50, Wilcoxon signedrank) and should be interpreted as directional evidence, not a confirmed effect. The full DCE
+pipeline’s advantage comes from the prompt actively steering the model toward underexplored
+territory each batch; adding deduplication to VTS without prompt evolution yields comparable
+EDV retention (22.1 ± 2.7%) because the memory filter rejects near-duplicates without providing
+alternative directions. Ablation-only methods (below the rule in Table 2) report single-seed
+results; in particular, dedup-only’s 26.1% EDV retention exceeds DCE’s multi-seed mean of
+23.6%, and this comparison should be interpreted cautiously given the high variance across
+seeds.
+Seed rotation baseline. A common practitioner approach is to rotate across multiple random
+seeds and deduplicate the pooled output. To test this, we pool naive generations from three
+seeds (42, 123, 456) and process them in round-robin order: all ideas from seed 42 batch 1, then
+9
+
+Cumulative HDBSCAN Cluster Count
+
+Batch Novelty (10-batch avg)
+
+Batch Novelty Over Time
+Naive
+DCE
+
+1
+0.8
+0.6
+collapse onset
+
+0.4
+0.2
+0
+
+50
+100
+150
+Batch Number
+
+200
+
+Cluster Count Over Time
+20
+
+Naive
+DCE
+
+10
+
+0
+0
+
+50
+100
+150
+Batch Number
+
+200
+
+Figure 6: Collapse characterization: naive prompting vs. DCE (200 batches, 10-batch rolling
+averages). Left: naive novelty decays steadily after batch ∼60 (annotated), while DCE maintains
+elevated novelty throughout. Right: cluster count saturates early under naive prompting but
+continues growing under DCE, indicating sustained conceptual exploration.
+seed 123 batch 1, then seed 456 batch 1, then seed 42 batch 2, and so on. We then apply greedy
+post-hoc deduplication at δ = 0.85, processing ideas in this interleaved order. Greedy dedup is
+order-dependent (the first idea encountered is kept; later near-duplicates are rejected), so the
+interleaving simulates the round-robin seed rotation that practitioners commonly use. The result
+(bottom row of Table 2) shows that seed rotation with dedup achieves 0% collapse and 21.6%
+EDV retention but, despite starting from 3× the candidate pool (3,010 ideas from 3 seeds),
+produces lower EDV retention than DCE’s multi-seed mean of 23.6% (Table 2). Seed rotation
+increases the initial pool through model stochasticity, but without adaptive steering, the model
+exhausts its repertoire in each seed independently, and post-hoc dedup can only select from
+what was generated. DCE’s prompt evolution actively steers toward underexplored territory
+each batch, achieving higher EDV retention from fewer total candidates.
+Why not just deduplicate? Dedup-only achieves 0% collapse and 26.1% EDV retention
+(single seed), which exceeds DCE’s multi-seed mean of 23.6%. However, prompt evolution’s key
+advantage is conceptual breadth, not just collapse prevention: DCE produces 18 HDBSCAN
+clusters by batch 200 versus 9 for dedup-only (Table 3). Dedup-only narrows the accepted set to
+whatever the model happens to generate without redirection; prompt evolution actively steers
+toward underexplored territory.
+Figure 7 shows the EDV trajectory for all seven methods across 200 batches, split into two
+panels for readability: methods without deduplication (left) and methods with deduplication
+(right). The DCE curve appears as a gray dashed reference in the left panel.
+Table 3 reports HDBSCAN cluster counts across all methods, computed using an independent embedding model (all-MiniLM-L6-v2) for consistency. By batch 200, DCE and promptevolution methods produce the richest cluster structure (17–19 clusters), far exceeding naive’s 2.
+At earlier checkpoints individual methods occasionally exceed DCE (e.g., dedup only at batch
+50, prompt evo + dedup at batch 100), but these intermediate counts reflect transient embedding
+geometry rather than stable conceptual breadth (see below).
+Interpreting intermediate cluster counts. The non-monotonic trajectories in Table 3 (e.g.,
+VTS + dedup at 5→5→2, dedup-only at 5→2→9) reflect transient embedding geometry, not
+stable measures of conceptual breadth. HDBSCAN is density-sensitive: adding ideas can merge
+10
+
+Table 2: Ablation results on the packaging domain across 200 batches. The top four methods
+report mean ± std over 2–3 random seeds (see Seeds column); ablation-only methods (below
+the rule) use a single seed. EDV retention is the ratio of last-batch to first-batch EDV. Methods
+using dedup achieve 0% collapse consistently; methods without it do not. DCE achieves both
+the highest mean EDV retention and zero collapse across all seeds.
+Method
+
+Seeds
+
+EDV Retention
+
+Collapse
+
+Multi-seed methods (mean ± std)
+Naive
+VTS only
+VTS + dedup
+DCE (full)
+
+3
+2
+3
+3
+
+20.4 ± 6.1%
+22.4 ± 1.3%
+22.1 ± 2.7%
+23.6 ± 3.5%
+
+5.6 ± 2.0%
+3.2 ± 1.2%
+0.0 ± 0.0%
+0.0 ± 0.0%
+
+Single-seed ablations
+Dedup only
+Prompt evo only
+Prompt evo + dedup
+Seed rotation + dedup (3 seeds)
+
+1
+1
+1
+1
+
+26.1%
+24.7%
+25.8%
+21.6%
+
+0.0%
+2.8%
+0.0%
+0.0%
+
+or split clusters as local density changes. The batch-200 counts, aggregated over seeds, are the
+appropriate comparison point. DCE’s cross-seed consistency at batch 200 (18, 18, 17 clusters)
+versus naive’s volatility (2, 14, 17) is itself informative: DCE reliably produces a rich cluster
+structure regardless of random seed. Intermediate checkpoints are included for completeness but
+should not be over-interpreted.
+
+5.3
+
+EDV Validation with Independent Embeddings
+
+Since both EDV components rely on pipeline-internal signals, we validate the metric using an
+independent embedding model. We take the same generated outputs from the packaging domain
+and re-embed them with all-MiniLM-L6-v2 [Reimers and Gurevych, 2019] (384 dimensions,
+trained on a different corpus than text-embedding-3-small), then recompute EDV retention
+and collapse rate. No new generation is performed; only the embedding step differs.
+Table 4 shows partial rank stability across embeddings. The bottom two ranks are preserved
+(VTS + dedup lowest, VTS only third), but the top two methods swap: DCE leads under
+OpenAI embeddings (28.5% vs. 27.0% for naive), while naive leads under MiniLM (32.7% vs.
+28.7% for DCE). This swap is consistent with naive’s higher absolute retention under MiniLM
+across all methods, suggesting that the MiniLM embedding space compresses the distances that
+separate naive ideas less aggressively. The key structural finding — that dedup-enabled methods
+occupy distinct rank positions from non-dedup methods — holds under both embeddings.
+Collapse rate robustness was also tested with MiniLM embeddings at three thresholds: at
+δ = 0.80, 0.85, and 0.90, DCE and VTS + dedup maintain 0% collapse, while naive shows
+0.8% at δ = 0.85. This confirms that the collapse-prevention results are not an artifact of the
+generation embedding model.
+
+5.4
+
+VTS Rejection Analysis
+
+To understand what VTS actually filters, we analyze the naive generation data (which contains
+no filtering) as a proxy for the full generation distribution. For each naive idea, we determine
+whether VTS would reject it (Pi ≥ 0.10) and whether dedup would reject it (cosine similarity
+> 0.85 to any prior idea), producing a 2×2 confusion matrix.
+
+11
+
+Without Deduplication
+
+EDV (Effective Diversity Volume)
+
+1.0
+
+With Deduplication
+Naive
+VTS Only
+Prompt Evo Only
+DCE (Full) (ref.)
+
+0.8
+
+VTS + Dedup
+Dedup Only
+Prompt Evo + Dedup
+DCE (Full)
+
+0.6
+
+0.4
+
+0.2
+0
+
+25
+
+50
+
+75
+
+100
+
+125
+
+Batch Number
+
+150
+
+175
+
+200
+
+0
+
+25
+
+50
+
+75
+
+100
+
+125
+
+Batch Number
+
+150
+
+175
+
+200
+
+Figure 7: EDV over 200 batches (10-batch rolling averages; raw values shown faintly), split by
+deduplication status. Left: methods without dedup all show declining EDV; the smoothed DCE
+reference (gray dashed) is clearly above all of them by batch 50. Right: methods with dedup
+achieve 0% collapse; DCE (thick line) maintains the highest EDV throughout, confirming that
+prompt evolution adds value beyond dedup alone.
+The results reveal that VTS and dedup operate on almost entirely non-overlapping populations. Of the 852 ideas VTS would reject (probability ≥ 0.10), 826 (96.9%) are semantically
+novel; they would pass the dedup filter. This means VTS is not destroying useful diversity; it is
+filtering ideas that are predictable but distinct. Conversely, the dedup filter catches only 30 ideas
+(3.0%), almost all of which VTS would also accept. The two mechanisms thus address complementary failure modes: VTS removes the “obvious but novel” ideas that inflate the concept
+space without adding depth, while dedup catches the rare near-duplicates that VTS misses.
+VTS probability and typicality. The strongest justification for VTS comes from the confusion matrix above: VTS and dedup target non-overlapping populations, with 96.9% of VTSrejected ideas being semantically novel. This population-level separation confirms that VTS
+removes a distinct class of candidates that dedup alone would miss. As a secondary check,
+we embed all 1,000 naive ideas with an independent model (all-MiniLM-L6-v2) and measure
+each idea’s cosine distance to the distribution centroid. The Spearman correlation between
+self-assessed probability and centroid distance is significantly negative (ρ = −0.065, p = 0.04),
+indicating that higher self-assessed probability weakly predicts closer proximity to the distribution center. However, the signal is weak in absolute terms (Cohen’s d = 0.056 between
+VTS-accepted and VTS-rejected groups; R2 < 0.005). The practical value of VTS comes from
+the population-level separation shown in Table 5, not from fine-grained probability calibration.
+
+5.5
+
+Cross-Domain Validation
+
+To test whether DCE generalizes beyond a single domain, we repeat the comparison on educational exam questions and creative writing prompts. Table 6 summarizes results across all three
+domains.
+The three domains span a range of natural redundancy levels: packaging (4% naive collapse),
+creative writing (8.4%), and education (34%). In all three, DCE achieves 0% collapse and the
+highest EDV retention. The creative writing domain provides an intermediate test case: naive
+collapse is moderate but nontrivial, and DCE raises EDV retention from 16.7% to 27.7%, a
+66% relative improvement. The educational domain exhibits the worst naive collapse (34%),
+suggesting that exam questions have a narrower natural concept distribution. Deduplication
+12
+
+Table 3:
+HDBSCAN cluster counts at batch milestones (MiniLM embeddings,
+min_cluster_size = 5).
+By batch 200, DCE and methods with prompt evolution
+maintain 17–19 clusters, while naive generation collapses to just 2. Cluster counts are
+sensitive to min_cluster_size: at {5, 7, 10} DCE produces more clusters than naive, but at
+min_cluster_size=3 naive exceeds DCE (32.7 vs. 19.7), likely because fine-grained clustering
+fragments naive’s repetitive output into many small groups. Absolute counts across {3, 5, 7, 10}:
+DCE 19.7, 17.7, 11.7, 5.0; naive 32.7, 11.0, 8.0, 4.3. Across seeds 42, 123, 456, DCE produces
+18, 18, 17 clusters respectively (naive: 2, 14, 17), with DCE showing notably lower variance.
+Method
+
+Clusters@50
+
+Clusters@100
+
+Clusters@200
+
+Naive
+VTS only
+VTS + dedup
+DCE (full)
+
+2
+2
+5
+3
+
+8
+6
+5
+8
+
+2
+14
+2
+18
+
+Dedup only
+Prompt evo only
+Prompt evo + dedup
+
+5
+3
+2
+
+2
+8
+12
+
+9
+17
+19
+
+Cross-seed summary at batch 200 (seeds 42, 123, 456)
+DCE (3 seeds)
+—
+—
+17.7 ± 0.6
+Naive (3 seeds)
+—
+—
+11.0 ± 7.9
+Table 4: EDV validation: original OpenAI embeddings vs. independent MiniLM embeddings
+(seed 42; Table 2 reports multi-seed means). The bottom two ranks are stable across embeddings
+(VTS + dedup lowest, VTS only third), but DCE and naive swap at the top: DCE leads under
+OpenAI embeddings while naive leads under MiniLM.
+Method
+
+EDV ret (OpenAI)
+
+EDV ret (MiniLM)
+
+27.0%
+23.8%
+18.3%
+28.5%
+
+32.7%
+28.0%
+19.7%
+28.7%
+
+Naive
+VTS only
+VTS + dedup
+DCE (full)
+
+rejection rates are also higher across the board (15.5% for VTS + dedup, 8.1% for DCE),
+indicating that the model generates more repetitive content in this domain. Importantly, DCE
+still achieves 0% collapse and the lowest rejection rate among dedup-enabled methods, confirming
+that adaptive prompting helps the model avoid duplicates proactively rather than relying solely
+on post-hoc rejection.
+
+5.6
+
+Cross-Model Validation
+
+To test model generality, we run the packaging domain experiment with claude-haiku-4-5 (Anthropic) using the same pipeline. Since Anthropic’s API does not support OpenAI’s structured
+output format, we provide the JSON schema in the system prompt and parse the response.
+Claude Haiku generates substantially more repetitive content than GPT-5-mini: VTS +
+dedup rejects 30.1% of candidates (vs. 5.7% for GPT-5-mini). This makes DCE’s contribution
+even more valuable: adaptive prompting reduces rejection from 30.1% to 11.0%, a 19-percentagepoint improvement. The model-agnostic nature of DCE’s mechanisms (prompt construction,
+embedding-based dedup) means the pipeline transfers to new model families without modification.
+13
+
+Table 5: VTS vs. dedup decision analysis on naive generation data (1,000 ideas). VTS and
+dedup target largely non-overlapping populations: 96.9% of VTS-rejected ideas are semantically
+novel (would pass dedup), confirming that VTS filters on predictability, not redundancy.
+VTS accept (P < 0.10)
+VTS reject (P ≥ 0.10)
+
+Dedup accept
+
+Dedup reject
+
+144 (14.4%)
+826 (82.6%)
+
+4 (0.4%)
+26 (2.6%)
+
+Table 6: Cross-domain results (200 batches each, seed 42; Table 2 reports multi-seed means).
+DCE achieves 0% collapse across all three domains. The educational domain exhibits the most
+severe naive collapse (34%), making DCE’s intervention most valuable there. Creative writing
+falls between the other two domains in natural redundancy.
+
+5.7
+
+Domain
+
+Method
+
+Ideas accepted
+
+EDV retention
+
+Collapse rate
+
+Packaging
+Packaging
+Packaging
+
+Naive
+VTS + dedup
+DCE
+
+1,000
+943
+950
+
+27.0%
+18.3%
+28.5%
+
+4.0%
+0.0%
+0.0%
+
+Education
+Education
+Education
+
+Naive
+VTS + dedup
+DCE
+
+1,000
+845
+919
+
+16.8%
+25.0%
+26.2%
+
+34.0%
+0.0%
+0.0%
+
+Writing
+Writing
+Writing
+
+Naive
+VTS + dedup
+DCE
+
+1,000
+947
+972
+
+16.7%
+25.9%
+27.7%
+
+8.4%
+0.0%
+0.0%
+
+Sensitivity Analysis
+
+We test sensitivity to all three key hyperparameters: the exploration-exploitation split, the VTS
+threshold τ , and the dedup threshold δ.
+Exploration-exploitation split. We vary the proportion of batches allocated to the exploration phase versus the exploitation phase, testing seven configurations from 0/100 (all exploitation) to 100/0 (all exploration).
+VTS threshold τ . We test τ ∈ {0.05, 0.10, 0.20}, with τ = 0.10 being the default.
+The VTS threshold controls the aggressiveness of the probability filter. At τ = 0.05, only
+564 of 1,000 candidates survive, but these ideas achieve the highest EDV retention (31.4%),
+confirming that filtering out “obvious” ideas genuinely improves the diversity of the accepted
+set. At τ = 0.20, nearly all candidates pass (941), and EDV retention drops slightly to 27.0%.
+All three settings achieve 0% collapse, indicating that the dedup component alone is sufficient
+for collapse prevention regardless of VTS aggressiveness.
+Dedup threshold δ. We test δ ∈ {0.80, 0.85, 0.90, 0.95}, with δ = 0.85 being the default.
+Figure 8 visualizes the diversity-quantity tradeoff across δ values.
+The dedup threshold δ controls the tradeoff between dataset size and diversity. At δ = 0.80,
+131 ideas are rejected (869 accepted), maintaining 27.5% EDV retention with 0% collapse. At
+δ = 0.95, nearly all ideas pass (999), but 2.5% collapse appears (Figure 8), confirming that
+δ = 0.95 is too permissive for reliable collapse prevention. The default δ = 0.85 achieves the
+best EDV retention (28.5%) at 0% collapse, but practitioners who need larger datasets can safely
+relax to δ = 0.90 (994 ideas, 0% collapse) at the cost of slightly reduced EDV retention.
+14
+
+Table 7: Model comparison on the packaging domain (200 batches). Claude Haiku has substantially higher dedup rejection rates than GPT-5-mini, indicating it generates more repetitive
+content. DCE’s benefit is even more pronounced: it reduces rejection from 30.1% to 11.0%, a
+19-point improvement.
+Model
+
+Method
+
+Ideas accepted
+
+Dedup rejection rate
+
+GPT-5-mini
+GPT-5-mini
+GPT-5-mini
+
+Naive
+VTS + dedup
+DCE
+
+1,000
+943
+950
+
+—
+5.7%
+5.0%
+
+Claude Haiku 4.5
+Claude Haiku 4.5
+Claude Haiku 4.5
+
+Naive
+VTS + dedup
+DCE
+
+1,000
+699
+890
+
+—
+30.1%
+11.0%
+
+Table 8: Sensitivity to the exploration-exploitation split. All configurations achieve 0% collapse,
+and EDV retention varies within a moderate range (22–30%), indicating that DCE is robust to
+this parameter.
+Split (explore/exploit)
+
+EDV retention
+
+Collapse rate
+
+0/100 (all exploitation)
+20/80
+30/70
+40/60 (default)
+50/50
+60/40
+100/0 (all exploration)
+
+22.2%
+30.0%
+23.2%
+27.1%
+27.7%
+26.9%
+27.4%
+
+0.0%
+0.0%
+0.0%
+0.0%
+0.0%
+0.0%
+0.0%
+
+Relaxed threshold downstream impact. To test whether relaxed δ improves downstream
+task performance (where training set size matters), we train DeBERTa classifiers on DCE data
+generated at δ = 0.90 across all three domains, with category count controlled at K=5.
+The education domain provides the strongest evidence: at the default δ = 0.85, DCE produces only 54 training examples (yielding 12.7% F1 in the category-controlled evaluation). At
+δ = 0.90, the training set grows to 164/41 train/val across 5 categories, and F1 jumps to 44.9%,
+a 32-point improvement that confirms training set size, not diversity quality, was the binding
+constraint. In packaging, δ = 0.90 produces 14.2% F1 (328/82, 22 classes unconstrained), below the default 30.5% (760/190, 9 classes), because relaxed dedup admits more categorically
+distinct ideas, spreading examples across 22 classes. The creative writing domain remains challenging: even at δ = 0.90, only 52 training examples pass filtering (3.6% F1), suggesting that
+this domain’s fine-grained category structure requires either more batches or domain-specific
+tuning.
+These results demonstrate that δ should be tuned per domain based on downstream requirements. High-redundancy domains like education benefit substantially from relaxed thresholds
+(δ = 0.90), while low-redundancy domains like packaging perform best at the default δ = 0.85.
+
+5.8
+
+Per-Strategy Contribution
+
+To evaluate the individual contribution of each diversity strategy, we analyze the 200 DCE
+batches (50 per strategy) and compute acceptance rate, mean EDV, and mean batch novelty for
+each.
+Constraint variation produces the highest acceptance rate (98.0%) and EDV (0.305), while
+gap targeting has the lowest (90.8%, 0.265). This is expected: gap targeting deliberately steers
+15
+
+

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CasLayout: Cascaded 3D Layout Diffusion for Indoor Scene Synthesis - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>CasLayout: Cascaded 3D Layout Diffusion for Indoor Scene Synthesis with Implicit Relation Modeling</h1>
+  <div class="meta">
+    <span>Yingrui Wu, You-Kang Kong, Mingyang Zhao, Weize Quan, Dong-Ming Yan, Yang Liu</span>
+    <span>2026-04-30</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.27361" target="_blank">arXiv:2604.27361</a>
+  </div>
+  <div class="tags">
+    <span class="tag">3D scene generation</span>
+    <span class="tag">cascaded diffusion</span>
+    <span class="tag">layout generation</span>
+    <span class="tag">SIGGRAPH 2026</span>
+    <span class="tag">implicit relation modeling</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>CasLayout 受专业室内设计师工作流程启发，将家具布局生成分解为四个级联的条件扩散过程——家具类型、属性、关系隐空间、边界框位置——并引入隐式稀疏关系建模来减少冗余约束，实现了可控且高质量的室内场景合成。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>级联生成</strong>：将复杂生成任务分解为按顺序执行的子任务，前一个输出作为后一个的输入条件。降低每个子任务的难度。</p>
+        <p><strong>有向包围盒（OBB）</strong>：带朝向的 3D 矩形框，描述物体的位置、尺寸和旋转。</p>
+        <p><strong>场景图</strong>：节点代表物体、边代表空间关系的结构化表示。</p>
+        <p><strong>图稀疏化</strong>：只保留有意义的关系（如功能区内关系），去掉无明确设计逻辑的边。减少计算量和冗余约束。</p>
+        <p><strong>变分自编码器（VAE）</strong>：学习数据潜在表示的神经网络。本文将关系图编码为紧凑的节点对齐隐向量。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>核心洞察来自室内设计师的工作方式：<strong>设计师不会一次性决定所有东西。</strong> 他们先确定房间需要什么家具，然后确定尺寸和风格，再考虑空间关系，最后精确摆放。CasLayout 将这个流程形式化为四个级联扩散阶段。</p>
+        <p>另一创新是<strong>隐式稀疏关系建模</strong>：全连接图中大部分关系（如"床-台灯"）没有明确设计意义，不仅浪费计算还引入噪声。CasLayout 按功能区分组构建稀疏图，用双向 VAE 将 N² 的图复杂度压缩为 N 级别隐向量。</p>
+        <p>级联分解的优势：降低问题复杂度、减少数据需求、任意阶段可人为干预。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>阶段 1：家具类型扩散</h4>
+        <p>输入房间建筑元素（平面图、墙、门、窗），通过 DDPM 预测家具类型和数量。输出："双人床×1、床头柜×2"等。</p>
+        <h4>阶段 2：家具属性扩散</h4>
+        <p>对每个家具预测精确尺寸和特征嵌入（用于从 3D 资产库检索 CAD 模型）。</p>
+        <h4>阶段 3：关系隐空间扩散</h4>
+        <p>按功能区分组构建稀疏关系图。用双向关系 VAE（入度-出度交叉注意力）将图编码为节点对齐的 N 个隐向量。在隐空间上训练 DDPM。</p>
+        <h4>阶段 4：边界框布局扩散</h4>
+        <p>预测精确位置和朝向。采用自-交叉-交叉注意力——第一个关注关系隐向量，第二个关注房间平面图。联合训练关系 VAE 和布局扩散。</p>
+        <p><strong>扩展应用</strong>：文本/图像到场景、布局编辑/重排/补全、LLM 集成。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>噪声添加</strong>：c_i,t = √(γ(t))·c_i + √(1-γ(t))·ε，对类别向量加噪。</p>
+        <p><strong>训练目标</strong>：E[||ε_t - ε_net(X_t, F, t)||²] 最小化预测噪声误差。</p>
+        <p><strong>辅助损失</strong>：L_rc = (1/m)·Σ||B_i - B̂_i||² 重建建筑元素的 OBB。</p>
+        <p><strong>熵度量</strong>：H(X) = -Σ p(x_ij)·log₂(p(x_ij))/n，全连接图熵值 1.62，稀疏图降至 1.04。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>数据集</strong>：3D-FRONT（4041 卧室、900 餐厅、813 客厅），构建 3D-Front-Relationship 关系数据集。</p>
+        <p><strong>评估指标</strong>：FID/KID（渲染图分布距离）、TKL（类型分布）、SCA（场景分类）、IoU（重叠度）。</p>
+        <p><strong>关键结果</strong>：有平面图控制全面最优——卧室 FID 17.53（第二 18.48）。无平面图同样领先。用户偏好 64%（有）/62%（无）。推理降至 25-40ms。消融验证每阶段有效性。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>图1：CasLayout 概览——四种条件 + 四阶段 + 六种应用</li>
+          <li>图2：完整流水线——四个阶段网络结构和信息流</li>
+          <li>图3：空间关系定义——方向、距离、对齐、对称</li>
+          <li>图4：入度-出度交叉注意力机制</li>
+          <li>表1：有平面图控制定量比较</li>
+          <li>表2：无平面图控制定量比较</li>
+          <li>表3：用户偏好研究</li>
+          <li>表8/9：消融研究</li>
+          <li>图5-7：生成场景展示</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>数据稀缺限制分布外场景的多样性</li>
+          <li>级联误差累积——前阶段错误无法在后续纠正</li>
+          <li>家具检索依赖固定 CAD 库，限制风格多样性</li>
+          <li>只处理成对关系，未覆盖群体关系</li>
+          <li>限室内场景，户外场景需调整</li>
+          <li>建筑元素覆盖有限</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.27361</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-30</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">3D scene generation / SIGGRAPH 2026</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">3D-FRONT</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">FID, KID, TKL, SCA, IoU</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">卧室 FID 17.53 (SOTA), KID 1.28×10⁻³</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">ATISS, DiffuScene, GLTScene, InstructScene, LayoutGPT</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        CasLayout 的级联分解从设计师工作流中汲取灵感，将人类专家的流程翻译为机器学习架构，值得借鉴。隐式稀疏关系建模点出了"更多并不总是更好"这一普遍困境——用熵量化信息密度并消冗，既有理论依据又实用。四阶段的潜在问题是误差累积，未来可引入阶段间反馈机制。LLM 集成策略巧妙：LLM 负责高层语义推理，扩散模型负责几何精确执行，各取所长。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

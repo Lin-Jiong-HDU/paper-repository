@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rein3D: Reinforced 3D Indoor Scene Generation with Panoramic Video Diffusion Models - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Rein3D: Reinforced 3D Indoor Scene Generation with Panoramic Video Diffusion Models</h1>
+  <div class="meta">
+    <span>Dehui Wang, Congsheng Xu, Rong Wei, Yue Shi, Shoufa Chen, Dingxiang Luo, Tianshuo Yang, Xiaokang Yang, Wei Sui, Yusen Qin, Rui Tang, Yao Mu</span>
+    <span>2026-04-14</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2604.10578" target="_blank">arXiv:2604.10578</a>
+  </div>
+  <div class="tags">
+    <span class="tag">3D reconstruction</span>
+    <span class="tag">3D Gaussian Splatting</span>
+    <span class="tag">panoramic video diffusion</span>
+    <span class="tag">scene completion</span>
+    <span class="tag">indoor scene</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>Rein3D 提出了一种"修复-精化"循环范式，通过径向探索策略渲染不完善的全景视频，利用全景视频扩散模型修复缺失的几何和纹理，再将修复后的高保真视频回传更新全局 3DGS 场，实现了从单张全景图出发的高质量、全局一致的 3D 室内场景重建。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>3DGS</strong>：用 3D 高斯原语表示场景，通过 alpha 混合渲染。每个原语有位置、协方差、不透明度和颜色参数。</p>
+        <p><strong>全景图</strong>：360° 全方位图像，覆盖整个球面视野，但极地区域畸变严重。</p>
+        <p><strong>视频扩散模型</strong>：从图像扩散扩展到视频，增加时间维度确保帧间一致性。</p>
+        <p><strong>径向探索</strong>：从场景中心沿多个方向向外移动相机，覆盖被遮挡区域。</p>
+        <p><strong>"修复-精化"范式</strong>：粗场景 → 渲染缺陷视图 → 生成模型修复 → 回传优化场景。循环迭代。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>核心可以类比为"先搭框架再修补细节"。从房间中心的单张全景图出发构建粗 3D 模型，然后沿不同方向向外移动，从粗模型渲染出有缺陷的视图，用全景视频扩散模型修复，再回传优化模型。</p>
+        <p>关键优势：<strong>全景图的 360° 视野</strong>确保每次移动都看到整个场景，无累积漂移；<strong>视频扩散的时间一致性</strong>确保帧间连续；<strong>线性轨迹</strong>即可覆盖全部区域，无需复杂路径规划。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 1：初始场景构建</h4>
+        <p>文本→DiT360→全景图→DA2→深度图→反投影→粗 3DGS。每个像素初始化为完全透明、各向同性的 3D 高斯原语。</p>
+        <h4>步骤 2：径向轨迹生成</h4>
+        <p>计算安全导航地图，设计 τ 条从中心均匀向外辐射的轨迹，优化全局方向最大化移动范围。渲染缩放全景视频。</p>
+        <h4>步骤 3：全景视频修复</h4>
+        <p>基于 Wan2.1 DiT 骨干，上下文适配器注入条件。Alpha 通道分离前景/背景，第一帧作为上下文锚点。纬度感知采样 + 纬度衰减损失。</p>
+        <h4>步骤 4：超分辨率与精化</h4>
+        <p>FlashVSR 超分辨率 → 投影为透视视图 → 作为伪地面真值 → 优化 3DGS（15000 步，含抗锯齿和稳健致密化）。</p>
+        <p>数据集：PanoV2V-15K（15,050 室内场景，配对有缺陷/干净全景视频）。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>3DGS 渲染</strong>：c(x) = Σ c_k·α_k·Π(1-α_i)。从前到后 alpha 混合合成像素。</p>
+        <p><strong>条件注入</strong>：Z_condition = [Z_anchor, Z_video]。锚点帧特征与视频特征时间维度拼接。</p>
+        <p><strong>纬度感知采样</strong>：x' = x_c + (x-x_c)·cos(ϕ)。拉伸极地噪声匹配球形几何。</p>
+        <p><strong>纬度衰减损失</strong>：W(ϕ) = λ + (1-λ)·cos(ϕ)，λ=0.1 最佳。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>视频修复</strong>：50 个测试片段。PSNR 23.77（VACE FT 22.18），FVD 5.26（ProPainter 14.56）。球形指标领先更多。</p>
+        <p><strong>文本→3D</strong>：定性对比 WorldGen（空洞）、EmbodiedGen（伪影）、DreamScene360（模糊）。Rein3D 全局一致。</p>
+        <p><strong>图像→3D</strong>：Structured3D 评估。Q-Align 3.06（EmbodiedGen 2.48），BRISQUE 45.89（53.51）。FPS 选择远视角确保全面覆盖。</p>
+        <p><strong>消融</strong>：无锚点 FVD 从 5.26→7.75，WS-PSNR 降 1dB。λ=0.1 最佳。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>图1：Rein3D 框架总览</li>
+          <li>图2：PanoV2V-15K 数据集构建</li>
+          <li>图3：详细流水线（文本→全景→深度→3DGS→径向渲染→修复→VSR→精化）</li>
+          <li>表1：视频修复定量对比</li>
+          <li>表2：图像到 3D 定量对比</li>
+          <li>表3：消融实验</li>
+          <li>图4-6：文本/图像到 3D 定性比较</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>依赖合成数据，与真实世界存在域差距</li>
+          <li>计算资源需求高（4×H200 GPU）</li>
+          <li>线性轨迹在复杂布局中可能覆盖不全</li>
+          <li>初始全景图质量影响整个流程</li>
+          <li>限于静态场景，不支持动态变化和语义编辑</li>
+          <li>轨迹数量收益递减，最优值需根据场景调整</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2604.10578</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-04-14</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">3D reconstruction, scene generation</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">PanoV2V-15K, Structured3D</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">PSNR, SSIM, FVD, Q-Align, CLIP, NIQE, BRISQUE</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">PSNR 23.77 (SOTA), FVD 5.26, Q-Align 3.06</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">ProPainter, VACE, WorldGen, EmbodiedGen, DreamScene360</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        "修复-精化"循环思路巧妙——不试图从稀疏输入一次性生成完美场景，而是通过闭环逐步改进，比端到端方法更稳健。上下文锚点简单但有效，可推广到其他视频生成任务。纬度优化（感知采样+衰减损失）反映了对全景几何的深入理解。一个有趣的方向是扩展到动态场景——让扩散模型"想象"物体运动，为具身智能体提供动态训练环境。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

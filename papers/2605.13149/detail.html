@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcquisitionSynthesis: Targeted Data Generation using Acquisition Functions - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AcquisitionSynthesis: Targeted Data Generation using Acquisition Functions</h1>
+  <div class="meta">
+    <span>Ishika Agarwal, Sofia Stoica, Emre Can Acikgoz, Pradeep Natarajan, Mahdi Namazifar, Jiaqi Ma, Dilek Hakkani-Tür</span>
+    <span>2026-05-13</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.13149" target="_blank">arXiv:2605.13149</a>
+  </div>
+  <div class="tags">
+    <span class="tag">主动学习</span>
+    <span class="tag">Acquisition Function</span>
+    <span class="tag">奖励模型</span>
+    <span class="tag">LLM合成数据</span>
+    <span class="tag">GRPO</span>
+    <span class="tag">数学推理</span>
+    <span class="tag">医学QA</span>
+    <span class="tag">代码</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>将主动学习中的 acquisition function 作为 GRPO 强化学习的奖励信号，训练 LLM 生成器产出对学生模型最有信息量的训练数据，在数学、医学 QA 和编程任务上实现 2-7% 的分布内提升，同时有效防止灾难性遗忘（OOD 性能提升 3%）。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>主动学习与 Acquisition Function</h4>
+        <p>主动学习中，模型主动选择最有价值的未标注样本请求人工标注。Acquisition function 用于量化一个数据点对模型学习的潜在贡献，常见策略包括不确定性采样、多样性采样等。</p>
+
+        <h4>GRPO (Group Relative Policy Optimization)</h4>
+        <p>一种强化学习算法，通过对一组生成样本进行组内比较来计算优势，不需要单独的 critic 模型，比 PPO 更简单高效。</p>
+
+        <h4>灾难性遗忘</h4>
+        <p>模型在学习新任务时忘记之前学过的知识。在 LLM 微调中，模型可能在某个领域性能提升但在其他领域下降。</p>
+
+        <h4>拒绝采样 vs 定向生成</h4>
+        <p>传统方法大量生成数据后筛选（低效），而 AcquisitionSynthesis 学习直接生成高价值样本（高效、可解释）。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>想象你是一位教练，训练一位学生运动员。传统方法是让学生做固定训练动作。如果动作太简单→没进步；太难→受伤或放弃。</p>
+        <p>更好的策略是持续观察学生的弱点，设计"刚好超出当前能力"的任务——恰好在"最近发展区"范围内。</p>
+        <p>本文的核心洞察：<strong>主动学习的 acquisition function 正好提供了这个标准</strong>！它衡量的是一个数据点对当前模型的"信息量"。将这些 acquisition function 作为强化学习的奖励信号，训练数据生成器产出对学生模型最有用的样本。</p>
+        <p>框架的关键在于它<strong>自洽</strong>：同一个模型既是生成器又是学生模型。生成器通过 GRPO 学会生成对自己（的镜像）最有用的数据——这是一种模型感知的自我改进。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 1：定义 5 种 Acquisition 奖励</h4>
+        <ul>
+          <li><strong>Confidence</strong>：基于学生模型 token 级不确定性</li>
+          <li><strong>Proximity</strong>：基于与训练数据的语义相似度</li>
+          <li><strong>Gradient Magnitude</strong>：基于反向传播的梯度范数</li>
+          <li><strong>Diversity</strong>：基于语义多样性（1 - Proximity）</li>
+          <li><strong>Answer Variance</strong>：基于多次推理的答案差异</li>
+          <li><strong>Format</strong>：基于输出的格式合规性</li>
+        </ul>
+
+        <h4>步骤 2：GRPO 训练生成器</h4>
+        <p>使用 500 个种子样本作为上下文示例。每轮生成样本→馈给学生模型→计算 acquisition 奖励→GRPO 更新生成器参数。</p>
+
+        <h4>步骤 3-5：生成、训练、评估</h4>
+        <p>生成 1,000 个训练样本，SFT 训练学生模型，在 ID 和 OOD 测试集上评估。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>Confidence 计算</h4>
+        <p>conf(P, R) = (1/|R|) Σ<sub>t</sub> [p<sub>θ</sub>(R<sub>t</sub><sup>(1)</sup>|...) − p<sub>θ</sub>(R<sub>t</sub><sup>(2)</sup>|...)]</p>
+        <p>对输出序列每个位置，计算最可能 token 与第二可能 token 概率之差的均值。差距越小→模型越不确定→reward 越高（1/conf）。</p>
+
+        <h4>GRPO 的训练机制</h4>
+        <p>不需要单独的 critic 模型（价值函数），通过对组内生成样本的比较计算优势。数学上更简洁，训练更高效。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>三个任务的选择</h4>
+        <ul>
+          <li>数学（NuminaMath + AIME）：答案可验证，客观正确性标准</li>
+          <li>医学 QA（MedMCQA + PubMedQA）：专业知识，考验相关性</li>
+          <li>编程（CodeForces）：严谨的逻辑推理</li>
+        </ul>
+
+        <h4>ID vs OOD 的双重评估</h4>
+        <p>大多数论文只报告 ID 性能。本文同时报告 OOD 性能，是衡量灾难性遗忘的黄金标准。</p>
+
+        <h4>关键发现</h4>
+        <ul>
+          <li>Confidence 是最佳通用奖励，在所有任务和模型上表现均衡</li>
+          <li>Diversity 提供最佳成本-OOD 增益平衡</li>
+          <li>AcquisitionSynthesis 防止灾难性遗忘（Qwen OOD +3.43%，基线 -1.25%）</li>
+          <li>跨模型迁移有效（Llama 8B 生成器可为 Qwen 3B/7B 生成有效数据）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图 1 (左)</strong>: 生成样本向高峰 acquisition 区域移动的示意图</li>
+          <li><strong>图 1 (右)</strong>: ID 和 OOD 性能对比</li>
+          <li><strong>图 2</strong>: 实验流程概览图</li>
+          <li><strong>表 1</strong>: ID 性能完整结果</li>
+          <li><strong>表 2-3</strong>: OOD 泛化结果</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ol>
+          <li>仅限可验证任务（数学、医学、代码），对开放式生成任务（写作、对话）未验证</li>
+          <li>使用模型自生成的伪标签，标签错误可能限制性能上限</li>
+          <li>GRPO 训练 + 多 acquisition 函数计算增加了训练开销</li>
+          <li>需要 500 个种子样本作为上下文示例</li>
+          <li>学生和生成器同架构，weak-to-strong 场景未充分探索</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.13149</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-05-13</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">自然语言处理 / 主动学习 / LLM</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">NuminaMath, MedMCQA, CodeForces</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">准确率 (ID + OOD)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">ID提升2-7%, OOD Qwen +3.43%, 基线降1-13%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Original, DataEnvGym, Prismatic Syn., Random, Filtered</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        AcquisitionSynthesis 最精彩之处在于它跨越了主动学习和 LLM 数据生成两个相对独立的领域。这解决了数据生成中的核心矛盾：生成器自己不知道什么数据有用，而 acquisition function 恰好提供了这个信号。Confidence 作为最佳通用奖励很有意思——"不确定性"可能是比"多样性"或"梯度大小"更普适的数据效用信号。值得注意的是，训练和生成耦合在同一循环中是否会引入偏差？如果生成器过于擅长针对学生模型的弱点，会不会忽视一些未来可能重要的领域？
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

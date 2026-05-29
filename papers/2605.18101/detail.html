@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENSE: Satellite-based ENergy Synthesis for Sustainable Environment - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SENSE: Satellite-based ENergy Synthesis for Sustainable Environment</h1>
+  <div class="meta">
+    <span>Kailai Sun, Mingyi He, Heye Huang, Can Rong, Alok Prakash, Baoshen Guo, Shenhao Wang, Jinhua Zhao</span>
+    <span>2026-05-18</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.18101" target="_blank">arXiv:2605.18101</a>
+  </div>
+  <div class="tags">
+    <span class="tag">卫星图像</span>
+    <span class="tag">建筑能耗建模</span>
+    <span class="tag">扩散模型</span>
+    <span class="tag">城市建模</span>
+    <span class="tag">UBEM</span>
+    <span class="tag">可控生成</span>
+    <span class="tag">可持续发展</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>提出 SENSE 框架，利用可控扩散模型在卫星图像生成的同时联合合成建筑能耗和高度图，仅需不到 20% 的真实标签数据即可将下游预测性能提升 10% mIoU，满足 ASHRAE 建筑能耗校准标准（NMBE 3.05%）。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>城市建筑能耗建模 (UBEM)</h4>
+        <p>城市中约 70% 的能源由建筑消耗，建筑能耗占全球能源需求的 32%。UBEM 旨在对城市级建筑能耗进行建模和预测，为节能减排政策制定提供依据。</p>
+
+        <h4>现有方法的局限性</h4>
+        <p>物理仿真方法准确但极慢（模拟一个城市需要数小时到数天）。数据驱动方法速度快但需要大量高质量标注数据。两类方法都是"预测性"的——能评估方案但不能"生成"新的节能城市形态。</p>
+
+        <h4>扩散模型与 ControlNet</h4>
+        <p>潜在扩散模型（LDM）在 VAE 编码后的潜在空间中进行扩散过程，大幅降低计算成本。ControlNet 通过在预训练编码器旁添加可训练的副本（零卷积层初始化为零），在不破坏预训练知识的前提下控制生成结果的空间布局。</p>
+
+        <h4>ASHRAE Guideline 14</h4>
+        <p>建筑能耗模型校准标准，要求 NMBE（标准化平均偏差误差）在 ±10% 以内，CVRMSE（均方根误差变异系数）在 30% 以内。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>SENSE 的核心洞察是：<strong>生成一张逼真的城市卫星图像所需的视觉语义，与预测建筑能耗和高度所需的信息，本质上是高度相关的</strong>。一个看起来像工厂的建筑，其能耗模式一定与看起来像住宅的建筑不同。</p>
+        <p>传统方法是"我们要预测能耗，所以我们需要更多标注数据"。SENSE 的思路是"我们要生成城市图像，而能耗信息就隐含在图像中"——这是从预测范式到生成范式的根本转变。</p>
+        <p>用类比来说：你不需要为"画一个人"和"猜测这个人的身高"分别训练两个模型。如果能画好一个人（说明模型理解了人体结构），那么从画面中估计身高就水到渠成。</p>
+        <p>SENSE 先训练一个强大的城市图像生成器，然后在生成器的潜在空间中使用轻量级解码器"读出"建筑高度和能耗信息。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>步骤 1：构建 MUSE 数据集</h4>
+        <p>从纽约、波士顿、里昂、釜山四个城市收集数据。每个样本是 2km × 2km 瓦片，包含卫星图像、密度指标文本、路网约束图、建筑高度图和能耗图。能耗数据经过 log1p 变换处理长尾分布。</p>
+
+        <h4>步骤 2：训练可控扩散模型（第一阶段）</h4>
+        <p>基于 Stable Diffusion + ControlNet。文本条件包含城市密度指标（BVD、BCR、RD），地理空间约束通过 ControlNet 注入路网和水体信息。零卷积层确保不破坏预训练知识。</p>
+
+        <h4>步骤 3：训练解码器（第二阶段）</h4>
+        <p>从 U-Net 解码器提取多尺度特征。H-Decoder 用 SegFormer 架构将高度离散化为 5 类。E-Decoder 将能耗离散化为 4 类，使用类别加权交叉熵处理高能耗类别的稀疏性问题。</p>
+
+        <h4>步骤 4：下游数据增强</h4>
+        <p>SENSE 生成大量合成三元组（图像-能耗-高度）。在真实数据有限时，混合训练显著提升下游预测模型性能。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>扩散模型损失</h4>
+        <p>L<sub>LDM</sub> = E[||ε − ε<sub>θ</sub>(z<sub>t</sub>, t, c<sub>text</sub>)||²₂]</p>
+        <p>对每个时间步 t，模型接收被噪声污染后的潜在表示 z<sub>t</sub>，尝试预测添加的噪声 ε。这就像教一个人从打乱的拼图中恢复原图。</p>
+
+        <h4>ControlNet 控制</h4>
+        <p>y = F(x<sub>in</sub> + Z(c<sub>env</sub>); Θ<sub>copy</sub>)</p>
+        <p>零卷积 Z 初始化为零，逐步学习注入地理空间环境信息。先让画家自由作画，再逐步引导他在特定区域内创作。</p>
+
+        <h4>能耗校准指标</h4>
+        <p><strong>NMBE</strong> = (Σ(ŷ<sub>i</sub> − y<sub>i</sub>) / Σ y<sub>i</sub>) × 100% — 衡量系统偏差。SENSE 达到 3.05%（ASHRAE 标准 ≤ 10%）</p>
+        <p><strong>CVRMSE</strong> = √[(1/N)Σ(ŷ<sub>i</sub> − y<sub>i</sub>)²] / ȳ × 100% — 衡量误差变异程度。SENSE 达到 14.62%（ASHRAE 标准 ≤ 30%）</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>四个城市的多样性</h4>
+        <p>纽约（网格城市）、波士顿（历史不规则街道）、里昂（欧洲紧凑型）、釜山（亚洲山地）代表了全球多样的城市形态，测试模型的泛化能力。</p>
+
+        <h4>研究问题的递进逻辑</h4>
+        <ul>
+          <li>RQ1: SENSE 自身生成质量如何？</li>
+          <li>RQ2: 生成数据符合行业标准吗？</li>
+          <li>RQ3-RQ4: 能否解决真实世界的有限数据问题？</li>
+        </ul>
+
+        <h4>关键发现</h4>
+        <ul>
+          <li>H-Decoder 准确率 85.75%，高层建筑 IoU 最高（0.6664）</li>
+          <li>E-Decoder 准确率 89.25%，对高能耗建筑敏感度最高</li>
+          <li>混合训练策略在真实数据＜40% 时提升最显著（~10% mIoU）</li>
+          <li>Yap et al. 获得最大提升（mIoU +0.1088）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图 1</strong>: SENSE 整体架构图（扩散模型 + ControlNet + 解码器）</li>
+          <li><strong>图 2</strong>: H-Decoder 和 E-Decoder 的归一化混淆矩阵</li>
+          <li><strong>图 3</strong>: 四个城市的生成结果可视化</li>
+          <li><strong>图 4</strong>: 不同方法的能耗预测性能比较</li>
+          <li><strong>图 5</strong>: 不同训练数据比例下的 mIoU 曲线</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ol>
+          <li>仅在四个城市上验证，扩展到数据稀缺的发展中国家城市可能困难</li>
+          <li>能耗和高度离散化为有限类别丢失了精细信息</li>
+          <li>能耗数据仅为年度总量，无法捕捉季节性变化和日内波动</li>
+          <li>三位城市专家的人工审查限制了方法的完全自动化</li>
+          <li>不显式建模物理过程（热传导、光照），极端情况下物理合理性存疑</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.18101</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-05-18</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">卫星遥感 / 建筑能耗 / 生成式AI</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">MUSE（多城市卫星-能耗数据集）</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">mIoU, NMBE, CVRMSE, Acc</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">NMBE 3.05%, CVRMSE 14.62%, mIoU提升最高10.88%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">Streltsov, Xie, Mayer, Yap et al.</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        SENSE 将"生成"和"预测"统一在一个框架中的思路令人印象深刻——从预测范式到生成范式的根本转变。MUSE 数据集的构建将四个国家的公开数据整合对齐，数据工程价值极高。"以不到 20% 标签数据提升 10% IoU"对数据稀缺的城市研究项目非常有吸引力。一个值得思考的方向：能否将物理约束（热力学方程、能耗标准）直接编码到生成过程中，而不仅依赖数据中的统计规律？
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperSim: A Holistic Sim-To-Real Framework For Robust Robotic Manipulation - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+.header .meta span { margin-right: 1.5rem; }
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.header .links a:hover { text-decoration: underline; }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.section-header:hover { background: var(--bg-alt); }
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+.section-body.hidden { display: none; }
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+.sidebar {}
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.sidebar-card .info-row:last-child { border-bottom: none; }
+.sidebar-card .info-label { color: var(--text-muted); }
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>HyperSim: A Holistic Sim-To-Real Framework For Robust Robotic Manipulation</h1>
+  <div class="meta">
+    <span>Junyi Dong, Haotian Luo, Ziwei Xu, et al.</span>
+    <span>2026-05-26</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2605.26638" target="_blank">arXiv:2605.26638</a>
+  </div>
+  <div class="tags">
+    <span class="tag">sim-to-real</span>
+    <span class="tag">机器人操作</span>
+    <span class="tag">环境合成</span>
+    <span class="tag">对抗训练</span>
+    <span class="tag">3D Gaussian Splatting</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>HyperSim 是一个全栈式 sim-to-real 框架，通过高保真环境合成、对抗性轨迹生成和仿真-现实协同训练三大模块，系统性地弥合仿真与现实之间的差距，在仅需少量人工采集数据的情况下，实现了机器人操作策略从仿真到现实的零样本和少样本高效迁移。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <h4>Sim-to-Real（仿真到现实迁移）</h4>
+        <p>机器人学习中的核心挑战。在仿真环境中训练策略成本低、速度快，但仿真与真实世界之间存在"领域鸿沟"（domain gap），主要体现在三个方面：</p>
+        <ul>
+          <li><strong>视觉差异</strong>：仿真渲染与真实摄像头捕捉的图像在光照、纹理、背景复杂度上存在明显差距</li>
+          <li><strong>物理差异</strong>：仿真物理引擎无法完美模拟真实的接触力学、摩擦力和物体动力学</li>
+          <li><strong>数据分布差异</strong>：仿真数据通常覆盖有限的初始状态和轨迹分布，而真实世界变化无穷</li>
+        </ul>
+        <h4>3D Gaussian Splatting (3DGS)</h4>
+        <p>一种先进的神经渲染技术，将场景表示为大量3D高斯原语的集合，能生成比传统网格表示更真实的新视角图像。HyperSim 使用几何感知的 GPGS 版本，利用 LiDAR 点云提供的几何先验指导优化。</p>
+        <h4>行为克隆（BC）与 ACT/π₀</h4>
+        <p>行为克隆是一种模仿学习方法，策略直接学习从观测到动作的映射。ACT 基于 Transformer 架构使用时间集成策略；π₀ 是 Physical Intelligence 开发的大规模视觉-语言-动作基础模型。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>HyperSim的核心洞察是：sim-to-real差距是多方面的，单一技术无法解决所有问题。就像要修复一条破旧的道路，仅仅修补几个坑洞是不够的，需要从路基到路面进行全面翻新。</p>
+        <p><strong>类比</strong>：想象你在赛车游戏中学习驾驶，然后要驾驶真实赛车。游戏中的赛道（仿真）与真实赛道（现实）存在三个不同：游戏画面虽然精美但仍是虚拟的（视觉差距）；游戏中的物理引擎简化了轮胎摩擦和空气阻力（物理差距）；游戏中的对手车辆总是按照固定模式行驶（数据分布差距）。HyperSim的做法是：首先用最新的图形技术让游戏画面逼近真实（高保真渲染），然后随机制造意外情况让玩家学会应对突发状况（对抗性轨迹），最后在模拟器和真实赛道上交替训练让玩家适应两种环境（协同训练）。</p>
+        <p><strong>双层架构</strong>：基础层负责生成多样化的仿真场景和轨迹数据；增强层通过三个模块系统性地缩小sim-to-real差距——高保真环境合成、对抗性轨迹生成、仿真-现实协同训练。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：高保真仿真环境构建</h4>
+        <p>采用混合策略——前景（操作区域）使用18种空间关系约束生成器，通过组合约束生成物理上合理、多样化的物体布局；背景使用几何感知的3D Gaussian Splatting (GPGS) 技术重建真实环境，先采集RGB/LiDAR/IMU多模态数据，再用LiDAR点云指导3D高斯优化，最后通过TSDF算法融合生成带颜色的网格。3D高斯用于视觉渲染，对齐的网格用于物理引擎碰撞检测。</p>
+        <h4>第二步：对抗性轨迹生成</h4>
+        <p>将操作任务分解为多个子任务，每个子任务定义"瓶颈位姿"（bottleneck pose）。轨迹分段合成后，在瓶颈位姿处突然改变目标物体的位置和姿态，迫使运动规划器动态计算恢复轨迹。这种扰动-恢复循环大幅扩展了状态分布覆盖范围，同时让传感器接触到多样化视角。每段轨迹最多注入3次扰动。</p>
+        <h4>第三步：仿真-现实协同训练</h4>
+        <p>将仿真数据 D_s 和真实数据 D_r 混合训练（|D_s| >> |D_r|），损失函数为 LD_α = αLD_s + (1-α)LD_r。α=1 对应零样本部署（只用仿真数据），α<1 对应少样本策略（混入少量真实数据）。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>3D高斯函数</strong>：G(p) = exp(-½(p-p_k)^T Σ^{-1} (p-p_k))。每个3D高斯原语在空间中定义椭球状的密度分布，p_k 是中心位置，Σ 控制椭球形状和方向。</p>
+        <p><strong>体渲染公式</strong>：c(x) = Σ c_k o_k G_k^{2D}(x) Π (1 - o_j G_j^{2D}(x))。从前往后累加每个高斯原语的颜色贡献，后面的累积乘积项模拟"前面物体遮挡后面物体"的物理过程。</p>
+        <p><strong>协同训练损失</strong>：LD_α = αLD_s + (1-α)LD_r。α 控制仿真数据的使用比例，当真实数据极稀缺时，较小的 α 值意味着更依赖仿真数据的先验知识。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>平台与任务</strong>：Galaxea R1 人形机器人 + 头部/腕部RGB摄像头（10Hz）。模拟工业分拣任务——将目标物体从中央深槽转移到旁边槽之一。深槽操作比平面操作更具挑战性。</p>
+        <p><strong>评估指标</strong>：TAR（目标对齐率）、SR1（首次尝试成功率）、SR3（三次尝试成功率）。</p>
+        <p><strong>关键发现</strong>：</p>
+        <ul>
+          <li>零样本迁移：完整流水线在 π₀ 上达到 TAR=80%, SR3=75%（基线仅45%/55%）</li>
+          <li>少样本协同训练：加入35个人工演示后，π₀ 的 SR3 达95%，TAR 达95%</li>
+          <li>对抗鲁棒性：对抗性数据使 SR1 从25%提升到60%（+35%）</li>
+          <li>基础模型协同效应：π₀ 在所有实验中大幅优于 ACT（高出25-55%）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>图1</strong>: HyperSim框架概览——从数据生成到策略训练再到物理部署的全流程</li>
+          <li><strong>图2</strong>: 系统架构图，展示基础层和增强层的双层设计</li>
+          <li><strong>图3-4</strong>: 18种空间关系约束和瓶颈位姿定义</li>
+          <li><strong>图5</strong>: 对抗性轨迹生成示例（杯子放置任务）</li>
+          <li><strong>图7</strong>: 目标2D位置和朝向分布对比——对抗机制如何扩展数据覆盖</li>
+          <li><strong>图8</strong>: 真实/BaseSim/3DGS-ADSim的摄像头观测对比</li>
+          <li><strong>表I</strong>: 零样本部署性能对比</li>
+          <li><strong>表II</strong>: 少样本部署性能对比（含协同训练）</li>
+          <li><strong>表IV</strong>: 动态扰动下的鲁棒性对比</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li>实验仅在一个特定任务套件和单一种类人形机器人上完成验证</li>
+          <li>评估规模有限（400+次试验），对于机器学习标准来说仍然较小</li>
+          <li>对抗性扰动每段轨迹最多3次，可能不足以覆盖更复杂场景</li>
+          <li>最佳性能依赖 π₀ 等大规模预训练模型，轻量级策略提升有限</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2605.26638</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2026-05-26</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">Robotics, Sim-to-Real</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">BaseSim, ADSim, 3DGS-ADSim, RealN</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">TAR, SR1, SR3</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">零样本 π₀ SR3=75%; 少样本 π₀ SR3=95%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">BaseSim → ADSim → 3DGS-ADSim 消融; 纯真实数据</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">HyperSim 最值得称道的是"系统思维"——将 sim-to-real 问题分解为视觉、动态和数据分布三个维度，每个维度都有专门解决方案。对抗性轨迹生成不仅仅是增加数据量，而是有意创造"困难样本"迫使策略学会闭环的视觉-运动对齐和错误恢复能力。一个潜在方向：是否可以自适应地根据策略的当前能力调整对抗性扰动的强度和频率，而非使用固定经验参数？</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
