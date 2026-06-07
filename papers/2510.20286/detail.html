@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI-Ins: Enhancing GUI Grounding with Multi-Perspective Instruction-as-Reasoning - PKB</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #3182ce;
+  --accent-light: #63b3ed;
+  --bg: #ffffff;
+  --bg-alt: #f7fafc;
+  --bg-card: #edf2f7;
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --tag-bg: #ebf8ff;
+  --tag-text: #2b6cb0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  color: var(--text);
+  background: var(--bg-alt);
+  line-height: 1.7;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.header .meta {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.header .meta span { margin-right: 1.5rem; }
+
+.header .links a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.header .links a:hover { text-decoration: underline; }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.summary-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.summary-card p {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-style: italic;
+}
+
+.section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-header:hover { background: var(--bg-alt); }
+
+.section-header h3 {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.section-header .toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.section-header .toggle.collapsed { transform: rotate(-90deg); }
+
+.section-body {
+  padding: 0 1.5rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.section-body.hidden { display: none; }
+
+.section-body h4 {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.section-body ul {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.section-body li { margin-bottom: 0.3rem; }
+.section-body p { margin-bottom: 0.5rem; }
+
+.sidebar {}
+
+.sidebar-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-card .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.sidebar-card .info-row:last-child { border-bottom: none; }
+
+.sidebar-card .info-label { color: var(--text-muted); }
+
+.sidebar-card .info-value {
+  color: var(--text);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.thought-box {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media print {
+  .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { display: block; }
+  .sidebar { page-break-before: always; }
+  .section-body.hidden { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>UI-Ins: Enhancing GUI Grounding with Multi-Perspective Instruction-as-Reasoning</h1>
+  <div class="meta">
+    <span>Liangyu Chen, Hanzhang Zhou, Chenglin Cai, Jianan Zhang, Panrong Tong, Quyu Kong, Xu Zhang, Chen Liu, Yuqi Liu, Wenxuan Wang, Yue Wang, Qin Jin, Steven HOI</span>
+    <span>2025-10-23</span>
+  </div>
+  <div class="links">
+    <a href="https://arxiv.org/abs/2510.20286" target="_blank">arXiv:2510.20286</a>
+  </div>
+  <div class="tags">
+    <span class="tag">GUI Grounding</span><span class="tag">Instruction-as-Reasoning</span><span class="tag">Multi-Perspective Reasoning</span><span class="tag">GRPO</span><span class="tag">GUI Agent</span><span class="tag">Vision-Language Model</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main">
+    <div class="summary-card">
+      <h2>一句话总结</h2>
+      <p>提出 Instruction-as-Reasoning 范式，将 GUI grounding 中的自然语言指令从静态输入升级为动态推理路径，通过 SFT+GRPO 两阶段训练让模型学会从多视角分析指令并选择最优推理路径，在五个主流 benchmark 上取得 SOTA。</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>背景与前置知识</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p><strong>GUI Grounding（GUI 元素定位）</strong>：给定一张 GUI 截图和一条自然语言指令，模型需要预测目标 UI 元素在屏幕上的坐标点。这是 GUI Agent 完成用户任务的核心基础能力——如果模型连"点哪里"都搞错了，后面的自动化操作就无从谈起。</p>
+        <p><strong>指令的多样性（Instruction Diversity）</strong>：人类在描述一个 UI 操作时，会自然地切换不同视角。比如"关闭窗口"这个意图，可以说"点那个红色的 X"（外观视角），也可以说"关闭文件管理器"（功能视角），或者说"点右上角的按钮"（位置视角），或者说"把这个屏幕关掉"（意图视角）。这四种描述指向同一个操作，但从不同角度表述。</p>
+        <p><strong>GRPO（Group Relative Policy Optimization）</strong>：一种强化学习算法，是 DeepSeek-R1 中使用的优化方法。核心思想是对同一输入生成多个 rollout，用组内相对优势（Z-score 归一化后的奖励）来更新策略，不需要单独的 critic 模型。</p>
+        <p><strong>OmniParser</strong>：一个纯视觉的 GUI 解析工具，能从截图中检测出所有可交互的 UI 元素及其边界框。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>核心思想详解</h3>
+        <span class="toggle">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <p>这篇论文的核心洞察可以用一个简单的类比来理解：</p>
+        <p>想象你去餐厅点菜。服务员给你菜单，你不会用"物理学"的方式描述想吃的菜（"我要一份由碳氢化合物组成的、经过美拉德反应的蛋白质混合物"），而是会说"我要一份红烧肉"。但如果菜单上有两道看起来很相似的菜，你可能会切换到外观视角："就是图片上那个红红的、装在砂锅里的那个"。如果还不行，你会加上位置信息："第三页左上角那个"。</p>
+        <p>这就是 <strong>Instruction-as-Reasoning</strong> 的本质：<strong>不同的指令表述不是简单的同义改写，而是不同的分析视角（reasoning pathway）</strong>。优秀的 GUI Agent 不应该只会机械地匹配指令文字和 UI 元素，而应该能从多个角度理解用户意图，并自动选择最有效的一个。</p>
+        <p>作者在 ScreenSpot-Pro 上做了一个关键实验：把原始指令手动改写成四种不同视角（外观、功能、位置、意图），用同一个模型（Qwen2.5-VL-7B）零样本测试。结果发现：四种视角的准确率差异巨大（18.9% → 35.2%），而且如果能针对每个样本选择最佳视角（"Combined"），准确率能达到 64.1%——相比原始指令的 36.4%，相对提升高达 <strong>76%</strong>。</p>
+        <p>这个发现直接推导出方法设计：<strong>先用 SFT 教会模型从多种视角推理，再用 RL 让模型学会选择最优视角。</strong></p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>方法逐步拆解</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>第一步：数据清洗与增强（Data Pipeline）</h4>
+        <ol>
+          <li><strong>预处理</strong>：用 OmniParser V2 检测截图中所有 UI 元素，通过 IoU 匹配找到与 ground-truth 最匹配的边界框，过滤掉不匹配的噪声样本。这一步把原数据中 23.3% 的质量问题降到了 8% 以下。</li>
+          <li><strong>多视角指令增强</strong>：对每个样本，用 GPT-4.1 生成四种视角的指令：
+            <ul>
+              <li><strong>外观（Appearance）</strong>："点那个红色的 X 图标"</li>
+              <li><strong>功能（Function）</strong>："关闭当前文件管理器窗口"</li>
+              <li><strong>位置（Spatial/Location）</strong>："点右上角的按钮"</li>
+              <li><strong>意图（Goal/Intent）</strong>："关掉这个屏幕"</li>
+            </ul>
+          </li>
+          <li><strong>验证过滤</strong>：GPT-4.1 再次检查每条生成的指令，确认它唯一指向目标元素（不能有歧义，不能指向多个元素）。</li>
+        </ol>
+        <h4>第二步：SFT 阶段——学习多样推理</h4>
+        <p>在 SFT 阶段，训练数据被构造成：输入 =（截图 + 一种视角的指令），输出 =（另一种视角的推理文本 + 最终坐标）。</p>
+        <p>举个例子：</p>
+        <ul>
+          <li>输入指令（功能视角）："点击 CSDN 书签"</li>
+          <li>模型思考输出（外观视角）："我将从外观角度分析——点击书签栏中带有红色 C 图标和 CSDN 标签的书签"</li>
+          <li>最终输出：坐标 [588, 67]</li>
+        </ul>
+        <p>这种设计巧妙的地方在于：它强制模型学会<strong>把一种指令翻译成另一种视角的描述</strong>，然后再根据翻译后的描述定位元素。经过大量训练后，模型内化了"多视角推理"的能力。</p>
+        <h4>第三步：RL 阶段——学习选择最优视角</h4>
+        <p>SFT 教会了模型"会"从多视角推理，但没教它"什么时候用什么视角"。RL 阶段解决这个问题。</p>
+        <ul>
+          <li>训练时<strong>不再指定使用哪种视角</strong>，只要求模型"think"然后再输出坐标</li>
+          <li>用 GRPO 算法优化，奖励函数是简单的 point-in-box：预测点在 ground-truth 框内 → reward=1，否则 → reward=0</li>
+          <li>模型通过探索（生成 8 个 rollout），自己发现哪些推理路径能带来更高准确率</li>
+        </ul>
+        <p><strong>关键设计细节</strong>：</p>
+        <ul>
+          <li>SFT 阶段的 prompt 明确列出了四种视角的定义（Appearance/Function/Spatial/Goal Perspective）</li>
+          <li>RL 阶段的 prompt 去掉了这些定义，只说"你先想想再回答"，鼓励自由探索</li>
+          <li>这样设计是因为：如果 RL 阶段还给定视角，模型就只会从这四个里选；去掉限制后，模型甚至能涌现出训练时没见过的全新推理视角</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键公式/算法解读</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>SFT 阶段的目标函数（公式 1）</h4>
+        <p>最大化模型生成正确输出序列的概率。目标序列由两部分拼接而成——推理文本（从增强的指令视角中随机采样一个）和坐标点。模型被要求先"说"出推理过程，再"点"出坐标。</p>
+        <h4>GRPO 的优势计算（公式 2）</h4>
+        <p>对一组 G 个 rollout 的奖励做 Z-score 标准化。这个设计的直觉是：不是关心"这个动作的绝对好坏"，而是关心"在当前这组尝试里，这个动作比平均好多少"。这避免了奖励尺度不一致的问题。</p>
+        <h4>GRPO 的优化目标（公式 3）</h4>
+        <p>对于每个 rollout，如果它的优势是正的（比平均好），就增大它在新策略下被选中的概率；如果是负的（比平均差），就减小。除以旧策略概率是为了做重要性采样修正。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>实验设计分析</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <h4>为什么选这些 benchmark？</h4>
+        <ul>
+          <li><strong>MMBench-GUI L2</strong>：测试对层次化指令的理解，分 Basic（直接描述外观）和 Advanced（描述用途/意图）两个难度，能区分模型是真的理解了指令还是只会匹配文字</li>
+          <li><strong>UI-I2E-Bench</strong>：分 Explicit（显式）和 Implicit（隐式）指令，测试模型的语义推理能力</li>
+          <li><strong>ScreenSpot-Pro</strong>：高分辨率专业软件截图（CAD、开发工具、创意软件），测试模型对复杂界面的感知能力</li>
+          <li><strong>ScreenSpot-V2 & ShowDown</strong>：跨平台（Mobile/Desktop/Web）的通用 grounding 测试</li>
+          <li><strong>AndroidWorld</strong>：动态在线环境，测试真实场景中 grounding 的稳定性和泛化能力</li>
+        </ul>
+        <h4>实验结果说明了什么？</h4>
+        <ul>
+          <li>UI-Ins-32B 在所有 benchmark 上都是 SOTA，特别是在理解和推理类任务上优势更明显</li>
+          <li>在 MMBench-GUI L2 上，UI-Ins 相对基础模型的提升在 Advanced 子集上更大（24.5% vs 12.3%），说明多视角推理确实增强了复杂指令理解</li>
+          <li>AndroidWorld 上 74.1% 的成功率（比 Qwen2.5-VL-7B 的 50.0% 高 24.1%）说明强大的 grounding 能直接转化为更好的 agent 表现</li>
+        </ul>
+        <h4>消融实验的关键发现：</h4>
+        <ul>
+          <li>去掉中间推理步骤 → UI-I2E 准确率下降超过 10%，说明推理过程是必需的，不是花架子</li>
+          <li>只用 SFT 或只用 RL → 都不如 SFT+RL 组合，说明两个阶段不可偏废</li>
+          <li>Free-Form Reasoning 在 GRPO 中会<strong>降低</strong>性能（UI-Tars-1.5-7B 下降 6.4%），而 Instruction-as-Reasoning 始终提升（Qwen2.5-VL-7B 提升 9.9%）</li>
+          <li>标准 SFT+RL 框架容易出现策略崩溃（RL 后性能反而下降），但 Instruction-as-Reasoning 的 SFT 阶段提供了多样化探索能力，避免了这个问题</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>关键图表</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <p><strong>Figure 1</strong>：UI-Ins 的 scaling 性能对比图。随参数量增加（2B→32B），UI-Ins 在 MMBench-GUI L2 和 UI-I2E Bench 上均保持对其他方法的显著优势，且 7B 模型就超过了某些 72B 模型。</p>
+        <p><strong>Figure 2</strong>：(a) 四种指令视角下的模型性能对比，Combined（最优选择）远超任何单一视角；(b) 原始数据的质量问题分布：23.3% 有缺陷；(c) 清洗数据训练后的模型在多个 benchmark 上一致优于原始数据训练的模型。</p>
+        <p><strong>Figure 6</strong>：Instruction-as-Reasoning 框架全景图。左侧是 SFT 阶段（给定视角→推理→坐标），右侧是 RL 阶段（自由探索→GRPO 优化）。</p>
+        <p><strong>Figure 8</strong>：(a) 模型在推理时能组合多个视角（1-6 个）进行分析；(b) RL 后模型探索出了训练时未见过的全新视角（如 Structural Relationship, Component Type, State 等）。</p>
+        <p><strong>Figure 9</strong>：展示了 UI-Ins 的三种涌现推理能力：(1) 单视角推理、(2) 多视角组合推理、(3) 组合+涌现视角推理（包含了训练中未见的 Group Affiliation、State、Prediction 等视角）。</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h3>局限性</h3>
+        <span class="toggle collapsed">&#9660;</span>
+      </div>
+      <div class="section-body hidden">
+        <ul>
+          <li><strong>缺乏领域知识</strong>：模型无法将抽象描述（如"以积木玩具闻名的公司"）与具体品牌实体（如"MEGA"）关联，需要外部知识库支持</li>
+          <li><strong>界面布局理解不足</strong>：在复杂布局中，模型有时无法准确判断哪个区域是可点击的操作目标</li>
+          <li><strong>视觉歧义和幻觉</strong>：当界面中存在视觉相似的图标时，模型容易混淆并选错目标</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>基本信息</h3>
+      <div class="info-row">
+        <span class="info-label">arXiv ID</span>
+        <span class="info-value">2510.20286</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">发表日期</span>
+        <span class="info-value">2025-10-23</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">领域</span>
+        <span class="info-value">GUI Grounding / GUI Agent</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">数据集</span>
+        <span class="info-value">OS-Atlas, Omniact, Android Control, AMEX, AgentNet</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>实验结果</h3>
+      <div class="info-row">
+        <span class="info-label">主要指标</span>
+        <span class="info-value">Point-in-box Accuracy</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">关键结果</span>
+        <span class="info-value">87.3% UI-I2E, 57.0% ScreenSpot-Pro, 84.9% MMBench-GUI L2 (SOTA)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">对比方法</span>
+        <span class="info-value">GPT-4o, Claude 3.7, Qwen2.5-VL, UI-TARS, UGround, GTA1, InfiGUI-G1, GUI-G2 等</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>个人思考</h3>
+      <div class="thought-box">
+        <p>这篇论文最值得学习的是"把问题本身拆解清楚"的方法论。他们没有急着提一个新模型，而是先做了两个扎实的预分析——"指令多样性到底重不重要？"和"现有数据质量到底可不可靠？"——这两个问题的答案直接推导出整个方法的设计逻辑。</p>
+        <br>
+        <p>Instruction-as-Reasoning 这个概念本身也很优雅。它不是简单地做数据增强，而是把"多样性"提升到"推理路径"的层面——不同视角不仅是不同的输入，更是不同的认知策略。这使得 RL 阶段可以真正学到"策略选择"而不仅仅是"模式匹配"。</p>
+        <br>
+        <p>关于 Free-Form Reasoning 在 grounding 中失败的发现也很有价值。它说明了一个更普遍的道理：在视觉 grounding 这种精确空间定位任务中，无约束的推理不如结构化的推理有效。Grounding 需要的是对视觉证据的精确描述，而不是开放式联想。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.toggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    toggle.classList.add('collapsed');
+  }
+}
+</script>
+
+</body>
+</html>
